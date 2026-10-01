@@ -5,9 +5,9 @@
 
 ## Current Phase / 当前阶段
 
-**T01 done; T02 next.** Docs frozen (commit fa4d85d); T01 skeleton + test infrastructure complete and pushed (commit cea7e37): Next 16.3.8 / Prisma 7.10.0 (prisma.config.ts adapter) / Vitest / Playwright / docker-compose (postgres + bitnamilegacy minio). All acceptance commands green.
+**Preparation phase complete; T01 done; T02 next.** All external channels verified: GitHub deploy key, Cloudflare API, Kimi API, Lighthouse key login, outbound email (SMTP 587/STARTTLS smoke send succeeded 2026-10-01). Docs frozen (fa4d85d, 28d4fe6); T01 skeleton complete (cea7e37). Next: T02 invitation-based registration & email OTP login.
 
-**T01 完成，下一项 T02。** 文档已冻结（提交 fa4d85d）；T01 骨架与测试基建完成并推送（提交 cea7e37）：Next 16.3.8 / Prisma 7.10.0（prisma.config.ts adapter）/ Vitest / Playwright / docker-compose（postgres + bitnamilegacy minio）。验收命令全部通过。
+**准备阶段全部完成；T01 已完成；下一项 T02。** 外部链路全部验证：GitHub deploy key、Cloudflare API、Kimi API、Lighthouse 密钥登录、邮件发信（SMTP 587/STARTTLS 冒烟发送成功，2026-10-01）。文档已冻结（fa4d85d、28d4fe6）；T01 骨架完成（cea7e37）。下一步：T02 邀请注册与邮箱 OTP 登录。
 
 ## T01 Status / T01 状态
 
