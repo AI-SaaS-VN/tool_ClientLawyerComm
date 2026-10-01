@@ -1,9 +1,9 @@
-# PLAN.md — MVP Implementation Plan (Draft) / MVP 实施计划（草案）
+# PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.3 (draft, pending review) | Date: 2026-10-01
-- 版本：0.3（草案，待评审）｜日期：2026-10-01
-- Basis: SPEC.md v0.3 (draft), SOW.md v1.5 (including the scope-narrowing decisions in 2026OCT1-REVIEW.md; v1.5 adds the P1 Daily Case Digest email, corresponding to T13). Once approved by review, this plan is frozen as the Execution Baseline; no business code is written before the freeze.
-- 依据：SPEC.md v0.3（草案）、SOW.md v1.5（含 2026OCT1-REVIEW.md 收窄决定；v1.5 新增 P1 案件日报邮件，对应 T13）。评审通过后冻结为执行基线；冻结前不写业务代码。
+- Version: 0.5 | Date: 2026-10-01
+- 版本：0.5｜日期：2026-10-01
+- Basis: SPEC.md v0.5, SOW.md v1.7. v0.3 was frozen and T01 is done (commit cea7e37). v0.5 records the user's confirmation of the v0.4 defaults and the sole-reviewer prompt-and-confirm rule (T07 / REQ-REV-06). P0 tasks are T01–T08 and T10–T12 (11 tasks). T09 and T13 are P1 and do not block P0.
+- 依据：SPEC.md v0.5、SOW.md v1.7。v0.3 已冻结，T01 已完成（提交 cea7e37）。v0.5 记录用户对 v0.4 默认值的确认，以及唯一审核人提示后确认发布（T07 / REQ-REV-06）。P0 任务为 T01–T08 与 T10–T12（11 个）。T09 与 T13 属于 P1，不阻塞 P0。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -13,8 +13,8 @@
 - 运行环境：VPS（Node v24.19.0、npm 11.17.0、Docker 29.1.3）；无 pnpm，统一用 npm；PostgreSQL 与 MinIO（S3 兼容）开发期用 Docker Compose 提供。
 - Fixed technical decisions (SOW Section 10 technology defaults): Next.js (App Router) + TypeScript monolith, PostgreSQL, Prisma (migrations and type-safe access; a reversible choice, version pinned in T01), database-backed persistent task queue, SSE, Vitest (unit/integration), Playwright (end-to-end). Concrete version numbers are looked up from official sources during T01 implementation and pinned in package.json.
 - 技术固定点（SOW 第10节技术默认值）：Next.js（App Router）＋TypeScript 单体、PostgreSQL、Prisma（迁移与类型安全访问，可逆选择，T01 固定版本）、数据库持久任务队列、SSE、Vitest（单元/集成）、Playwright（端到端）。具体版本号在 T01 实施时查官方资料并写入 package.json 固定。
-- External Providers (Translation/Email/scanning; **SmsProvider moves to P1 together with the phone channel**) are first implemented as interfaces plus mock stand-ins; integrating real vendors belongs to O05/O07 and does not block T02–T11.
-- 外部 Provider（Translation/Email/扫描；**SmsProvider 随手机渠道移 P1**）先实现接口＋模拟替身；真实供应商接入属 O05/O07，不阻塞 T02–T11。
+- External Providers (Translation/Email/scanning; **SmsProvider moves to P1 together with the phone channel**) are first implemented as interfaces plus mock stand-ins. The email vendor is already selected (operator SMTP); T02–T11 still use the mock. Real email acceptance is T12. Real Kimi calls wait for the O05 data-processing check. Neither blocks T02–T11.
+- 外部 Provider（Translation/Email/扫描；**SmsProvider 随手机渠道移 P1**）先实现接口＋模拟替身。邮件供应商已经选定（运营方 SMTP）；T02–T11 仍使用模拟实现。真实邮件验收在 T12。真实 Kimi 调用等待 O05 的数据处理核查。两者都不阻塞 T02–T11。
 - Per-task rhythm: failing test → minimal implementation → pass → refactor → accept against SPEC → update PROGRESS.md.
 - 每任务节奏：失败测试 → 最小实现 → 通过 → 重构 → 对照 SPEC 验收 → 更新 PROGRESS.md。
 - Scheduling: no calendar commitments; rough magnitude is 1–3 development days per task. T12 depends on external resources (O07) and is not counted in the coding schedule.
@@ -34,8 +34,8 @@
 | T08 | File upload / isolation / scanning / publish / authorized download<br>文件上传/隔离/扫描/发布/授权下载 | T03、T07 | REQ-FILE; R07; AC06 |
 | T09 | ~~DOCX Bilingual Parallel Document conversion~~ (moved to P1, v1.4)<br>~~DOCX 双语对照转换~~（移 P1，v1.4） | — | REQ-DOC; R08; AC07 (P1) |
 | T10 | Two-way Urgent Alerts (between users, email channel)<br>双向紧急提醒（用户间，邮件渠道） | T07、T03 | REQ-NTF-01~06; R09; AC08 |
-| T11 | Permission Revocation / Archive / admin MFA / Audit Trail<br>撤权/归档/管理员 MFA/审计 | T03、T07、T08 | REQ-OPS/PM-08/AUTH-09; R11; AC02/09/11 |
-| T12 | End-to-end dual-user + Backup and Restore drill + real-channel acceptance<br>端到端双用户＋备份恢复演练＋真实链路验收 | T01–T11 | AC01–AC12 aggregate; O07/O08<br>AC01–AC12 汇总；O07/O08 |
+| T11 | Permission Revocation / Archive / admin MFA / Audit Trail<br>撤权/归档/管理员 MFA/审计 | T03、T04、T07、T08 | REQ-OPS/PM-08/AUTH-09; R11; AC02/09/11 |
+| T12 | End-to-end dual-user + Backup and Restore drill + real-channel acceptance<br>端到端双用户＋备份恢复演练＋真实链路验收 | T01–T08、T10、T11 | AC01–AC06、AC08–AC12（AC07 属 P1）；O07/O08 |
 | T13 | Daily Case Digest email (P1, added in v1.5)<br>案件日报邮件（P1，v1.5 新增） | T07、T08、T12 | REQ-DIG; REQ-CASE-01 |
 
 ---
@@ -54,27 +54,27 @@
 - 同步测试：`tests/unit/health.test.ts`、`tests/e2e/smoke.spec.ts`。
 - Test commands: `npm run test` (unit), `npm run test:e2e` (smoke).
 - 测试命令：`npm run test`（单元）、`npm run test:e2e`（冒烟）。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: Done (2026-10-01, commit cea7e37). Do not re-implement. Prisma 7 connection lives in `prisma.config.ts` with the `pg` adapter.
+- 状态：已完成（2026-10-01，提交 cea7e37）。不要重做。Prisma 7 的连接写在 `prisma.config.ts`，使用 `pg` adapter。
 
 ## T02 Invitation-based Registration and Login (MVP: Email OTP Only) / T02 邀请注册与登录（MVP 仅邮箱 OTP）
 
 - Goal: invite-code creation/acceptance/revocation/resend; email Verification Code (OTP) login (EmailProvider interface + mock implementation; **phone OTP and SmsProvider move to P1**, v1.4); session management; administrator account framework (separate role; MFA completed in T11). Priority P0.
 - 目标：邀请码创建/接受/撤销/重发；邮箱验证码登录（EmailProvider 接口＋模拟实现；**手机号验证码与 SmsProvider 移 P1**，v1.4）；会话管理；管理员账号框架（独立角色，T11 完成 MFA）。优先级 P0。
-- SPEC references: REQ-AUTH-01~08, REQ-AUTH-10; REQ-PM-02/09/10. Acceptance: the mock-chain part of AC01 (real channels belong to T12).
-- SPEC 引用：REQ-AUTH-01~08、REQ-AUTH-10；REQ-PM-02/09/10。验收：AC01 模拟链路部分（真实渠道属 T12）。
+- SPEC references: REQ-AUTH-01~08, REQ-AUTH-10, REQ-AUTH-11; REQ-PM-02/09/10. Acceptance: the mock-chain part of AC01 (real channels belong to T12).
+- SPEC 引用：REQ-AUTH-01~08、REQ-AUTH-10、REQ-AUTH-11；REQ-PM-02/09/10。验收：AC01 模拟链路部分（真实渠道属 T12）。
 - Dependencies: T01.
 - 依赖：T01。
-- Acceptance criteria: the email registration/login chain is completed under the mock Provider; expiry/replay/wrong-code lockout/rate limiting take effect per REQ-AUTH-03; revoking an invite invalidates it immediately; resending invalidates the old code; after registration the user has no case permissions; plaintext OTPs never appear in the database or logs; administrator accounts and ordinary role accounts cannot be shared.
-- 验收标准：模拟 Provider 下完成邮箱注册登录链路；过期/重放/错误锁定/频率限制按 REQ-AUTH-03 生效；撤销邀请立即失效；重发使旧码失效；注册后无案件权限；验证码明文不出现在库与日志；管理员账号与普通角色账号不可共用。
-- Expected new/modified: `src/modules/auth/**`, `src/modules/invites/**`, `src/server/providers/{email,sms}/{interface,fake}.ts`, `prisma/migrations/*` (users, contact_channels, invites, otp_challenges, sessions), `src/app/(auth)/**`.
-- 预计新增/修改：`src/modules/auth/**`、`src/modules/invites/**`、`src/server/providers/{email,sms}/{interface,fake}.ts`、`prisma/migrations/*`（users、contact_channels、invites、otp_challenges、sessions）、`src/app/(auth)/**`。
+- Acceptance criteria: the email registration/login chain is completed under the mock Provider; expiry/replay/wrong-code lockout/rate limiting take effect per REQ-AUTH-03; revoking an invite invalidates it immediately; resending invalidates the old code; after registration the user has no case permissions; plaintext OTPs never appear in the database or logs; administrator accounts and ordinary role accounts cannot be shared; a Case invite cannot create an administrator; on HTTP test origins the session cookie omits `Secure`, and the HTTPS configuration sets it (REQ-AUTH-06).
+- 验收标准：模拟 Provider 下完成邮箱注册登录链路；过期/重放/错误锁定/频率限制按 REQ-AUTH-03 生效；撤销邀请立即失效；重发使旧码失效；注册后无案件权限；验证码明文不出现在库与日志；管理员账号与普通角色账号不可共用；案件邀请不能创建管理员；HTTP 测试源上的会话 Cookie 不带 `Secure`，HTTPS 配置则带上（REQ-AUTH-06）。
+- Expected new/modified: `src/modules/auth/**`, `src/modules/invites/**`, `src/server/providers/email/{interface,fake}.ts`, `prisma/migrations/*` (users, contact_channels, invites, otp_challenges, sessions), `src/app/(auth)/**`. SmsProvider files are P1 and are not part of T02.
+- 预计新增/修改：`src/modules/auth/**`、`src/modules/invites/**`、`src/server/providers/email/{interface,fake}.ts`、`prisma/migrations/*`（users、contact_channels、invites、otp_challenges、sessions）、`src/app/(auth)/**`。SmsProvider 文件属于 P1，不属于 T02。
 - Tests to add/update: `tests/unit/auth/otp-rules.test.ts`, `tests/integration/auth/invite-flow.test.ts`, `tests/integration/auth/channel-binding.test.ts`.
 - 同步测试：`tests/unit/auth/otp-rules.test.ts`、`tests/integration/auth/invite-flow.test.ts`、`tests/integration/auth/channel-binding.test.ts`。
 - Test commands: `npm run test -- auth`, `npm run test:int -- auth`.
 - 测试命令：`npm run test -- auth`、`npm run test:int -- auth`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: Next (P0).
+- 状态：下一项（P0）。
 
 ## T03 Case and Member Management + Permission Middleware / T03 案件与成员管理＋权限中间件
 
@@ -84,16 +84,16 @@
 - SPEC 引用：REQ-PM-01~10、REQ-CASE-01~06。验收：AC02（越权部分）、AC09（归档部分）。
 - Dependencies: T02.
 - 依赖：T02。
-- Acceptance criteria: when a Lawyer participates in two cases, directly requesting the other case's API is denied; any non-member request for any case resource is denied; after a member is revoked, new requests are denied immediately; a Lawyer cannot list all Clients on the platform.
-- 验收标准：律师参与两案时，直接请求另一案 API 被拒；非成员请求任何案件资源被拒；撤销成员后新请求立即被拒；律师不能列全平台客户。
-- Expected new/modified: `src/modules/cases/**`, `src/modules/members/**`, `src/server/guards/**`, `src/app/(app)/cases/**`, `src/lib/drafts.ts`, `prisma/migrations/*` (cases, case_members, client_profiles, case_applications).
-- 预计新增/修改：`src/modules/cases/**`、`src/modules/members/**`、`src/server/guards/**`、`src/app/(app)/cases/**`、`src/lib/drafts.ts`、`prisma/migrations/*`（cases、case_members、client_profiles、case_applications）。
-- Tests to add/update: `tests/integration/cases/cross-case-denied.test.ts`, `tests/integration/cases/revoke.test.ts`, `tests/unit/drafts-isolation.test.ts`.
-- 同步测试：`tests/integration/cases/cross-case-denied.test.ts`、`tests/integration/cases/revoke.test.ts`、`tests/unit/drafts-isolation.test.ts`。
-- Test commands: `npm run test -- cases drafts`, `npm run test:int -- cases`.
-- 测试命令：`npm run test -- cases drafts`、`npm run test:int -- cases`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Acceptance criteria: creating a Case without a title of 1–80 characters is rejected (REQ-CASE-01); `POST /api/cases/:id/members` creates an invitation and does not activate membership before accept; when a Lawyer participates in two cases, directly requesting the other case's API is denied; any non-member request for any case resource is denied; after a member is revoked, new requests are denied immediately; a Lawyer cannot list all Clients on the platform. Client-side draft isolation is P1 (REQ-CASE-04) and is not built here.
+- 验收标准：创建案件时标题不是 1–80 个字符则拒绝（REQ-CASE-01）；`POST /api/cases/:id/members` 只创建邀请，接受前不激活成员资格；律师参与两案时，直接请求另一案 API 被拒；非成员请求任何案件资源被拒；撤销成员后新请求立即被拒；律师不能列全平台客户。客户端草稿隔离属于 P1（REQ-CASE-04），不在本任务实现。
+- Expected new/modified: `src/modules/cases/**`, `src/modules/members/**`, `src/server/guards/**`, `src/app/(app)/cases/**`, `prisma/migrations/*` (cases with required title, case_members with can_manage/can_review, client_profiles, case_applications).
+- 预计新增/修改：`src/modules/cases/**`、`src/modules/members/**`、`src/server/guards/**`、`src/app/(app)/cases/**`、`prisma/migrations/*`（cases 含必填 title，case_members 含 can_manage/can_review，client_profiles，case_applications）。
+- Tests to add/update: `tests/integration/cases/cross-case-denied.test.ts`, `tests/integration/cases/revoke.test.ts`, `tests/integration/cases/title-required.test.ts`.
+- 同步测试：`tests/integration/cases/cross-case-denied.test.ts`、`tests/integration/cases/revoke.test.ts`、`tests/integration/cases/title-required.test.ts`。
+- Test commands: `npm run test:int -- cases`.
+- 测试命令：`npm run test:int -- cases`。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## T04 Message Pipeline and SSE Reconnect Backfill / T04 消息流水线与 SSE 断线补拉
 
@@ -103,16 +103,16 @@
 - SPEC 引用：REQ-MSG-01~08。验收：AC03 的去重/重连部分。
 - Dependencies: T03.
 - 依赖：T03。
-- Acceptance criteria: duplicate submissions/network retries produce no duplicate messages; pending messages are invisible to the receiver through any interface; after an SSE disconnect, backfill has no loss and no duplication; non-members cannot subscribe to SSE.
-- 验收标准：重复提交/网络重试不产生重复消息；pending 消息对接收方各接口不可见；SSE 断开后补拉无丢失无重复；非成员无法订阅 SSE。
+- Acceptance criteria: duplicate submissions/network retries produce no duplicate messages under `(case_id, author_id, idempotency_key)`; pending messages are invisible to the receiver through any interface; after an SSE disconnect, backfill has no loss and no duplication; non-members cannot subscribe to SSE; a Coordinator who is a member can post, and that message uses the same pipeline (REQ-PM-05).
+- 验收标准：在 `(case_id, author_id, idempotency_key)` 下，重复提交/网络重试不产生重复消息；pending 消息对接收方各接口不可见；SSE 断开后补拉无丢失无重复；非成员无法订阅 SSE；作为成员的协调员可以发消息，且该消息走同一流水线（REQ-PM-05）。
 - Expected new/modified: `src/modules/messages/**`, `src/app/api/cases/[id]/messages/route.ts`, `src/app/api/cases/[id]/stream/route.ts`, `src/server/sse/**`, `prisma/migrations/*` (messages).
 - 预计新增/修改：`src/modules/messages/**`、`src/app/api/cases/[id]/messages/route.ts`、`src/app/api/cases/[id]/stream/route.ts`、`src/server/sse/**`、`prisma/migrations/*`（messages）。
 - Tests to add/update: `tests/integration/messages/idempotency.test.ts`, `tests/integration/messages/visibility.test.ts`, `tests/integration/messages/sse-reconnect.test.ts`.
 - 同步测试：`tests/integration/messages/idempotency.test.ts`、`tests/integration/messages/visibility.test.ts`、`tests/integration/messages/sse-reconnect.test.ts`。
 - Test commands: `npm run test:int -- messages`.
 - 测试命令：`npm run test:int -- messages`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## Continued: T05–T12 in the Next Section (Part Two of This File) / 续：T05–T12 见下节（本文件第二部分）
 
@@ -132,65 +132,65 @@
 - 同步测试：`tests/unit/moderation/rules.test.ts`、`tests/unit/moderation/fee-vs-amount.test.ts`、`tests/integration/moderation/pipeline.test.ts`。
 - Test commands: `npm run test -- moderation`, `npm run test:int -- moderation`.
 - 测试命令：`npm run test -- moderation`、`npm run test:int -- moderation`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## T06 Translation Service and Dual Reading Modes (Simplified/Traditional Chinese / Vietnamese / English) / T06 翻译服务与双阅读模式（中简繁/越/英）
 
 - Goal: TranslationProvider interface + mock implementation (Kimi adapter skeleton); language scope Chinese (Simplified/Traditional) / Vietnamese / English (v1.4); **only conversation-message translation, no document translation (v1.4)**; Translated Text versioning mapped to the Source Text; key-field (numbers/currency/dates/negations) recheck; automatic/manual dual reading modes; failure states and retry; language preference. Priority P0.
 - 目标：TranslationProvider 接口＋模拟实现（Kimi 适配骨架）；语言范围中文（简体/繁体）/越南语/英语（v1.4）；**仅对话消息翻译，不含文档翻译（v1.4）**；译文版本化与源文对应；关键字段（数字/币种/日期/否定词）复核；自动/手动双阅读模式；失败状态与重试；语言偏好。优先级 P0。
-- SPEC references: REQ-TR-01~07, REQ-MSG-09/10. Acceptance: AC03 (multilingual-display part), AC04.
-- SPEC 引用：REQ-TR-01~07、REQ-MSG-09/10。验收：AC03（多语显示部分）、AC04。
+- SPEC references: REQ-TR-01~09, REQ-MSG-09/10. Acceptance: AC03 (multilingual-display part), AC04.
+- SPEC 引用：REQ-TR-01~09、REQ-MSG-09/10。验收：AC03（多语显示部分）、AC04。
 - Dependencies: T04 (can run in parallel with T05).
 - 依赖：T04（与 T05 可并行）。
-- Acceptance criteria: in automatic mode a waiting indicator is shown before the translation completes; target languages Chinese (Simplified/Traditional) / Vietnamese / English are supported; LLM timeout/rate-limit/format anomalies are marked failed without losing the Source Text, are retryable, and never fake success; key-field mismatches enter needs_review and the doubtful translation is not displayed; manual mode translates only on click; same-language content is not re-translated; revising a translation produces a new version.
-- 验收标准：自动模式译文完成前显示等待提示；支持中（简/繁）/越/英目标语言；LLM 超时/限流/格式异常标记 failed 且源文不丢、可重试、不伪造成功；关键字段不一致进入 needs_review 不展示存疑译文；手动模式点击才翻译；同语种不重复翻译；译文修订产生新版本。
+- Acceptance criteria: translation is not requested for a message still in pending_review or check_failed (REQ-TR-09); in automatic mode a waiting indicator is shown before the translation completes and the foreign source is not shown as a fallback; target languages zh-Hans, zh-Hant, vi, and en are supported; zh-Hans ↔ zh-Hant may use a deterministic converter; LLM timeout/rate-limit/format anomalies are marked failed without losing the Source Text, are retryable, and never fake success; key-field mismatches enter needs_review and the doubtful translation is not displayed; manual mode translates only on click; same-language content is not re-translated; revising a translation produces a new version.
+- 验收标准：仍处于 pending_review 或 check_failed 的消息不得请求翻译（REQ-TR-09）；自动模式在译文完成前显示等待提示，且不用外语源文代替；支持 zh-Hans、zh-Hant、vi、en；zh-Hans ↔ zh-Hant 可用确定性转换；LLM 超时/限流/格式异常标记 failed 且源文不丢、可重试、不伪造成功；关键字段不一致进入 needs_review 不展示存疑译文；手动模式点击才翻译；同语种不重复翻译；译文修订产生新版本。
 - Expected new/modified: `src/modules/translation/**`, `src/server/providers/llm/kimi-adapter.ts` (interface skeleton only; real calls not enabled), `src/app/api/messages/[id]/translate/route.ts`, `prisma/migrations/*` (translation_versions).
 - 预计新增/修改：`src/modules/translation/**`、`src/server/providers/llm/kimi-adapter.ts`（仅接口骨架，不启用真实调用）、`src/app/api/messages/[id]/translate/route.ts`、`prisma/migrations/*`（translation_versions）。
 - Tests to add/update: `tests/unit/translation/key-field-check.test.ts`, `tests/integration/translation/modes.test.ts`, `tests/integration/translation/failure-states.test.ts`.
 - 同步测试：`tests/unit/translation/key-field-check.test.ts`、`tests/integration/translation/modes.test.ts`、`tests/integration/translation/failure-states.test.ts`。
 - Test commands: `npm run test -- translation`, `npm run test:int -- translation`.
 - 测试命令：`npm run test -- translation`、`npm run test:int -- translation`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## T07 Review Console + Coordinator Automatic Reminders (Including Notification Core) / T07 审核后台＋协调员自动提醒（含通知核心）
 
 - Goal: persistent notification task queue (state machine, deduplication, cooldown, exponential-backoff retry, timeout escalation, canceling redundant tasks; **MVP: email channel only**, v1.4); Coordinator Pending Review queue with approve/return/reject; first reminder sent within 30 seconds of entering Pending Review (internal target); escalation and backup owners; stop redundant reminders after review completes. Priority P0.
 - 目标：持久通知任务队列（状态机、去重、冷却、指数退避重试、超时升级、取消冗余；**MVP 仅邮件渠道**，v1.4）；协调员待审队列与批准/退回/拒绝；进入待审 30 秒内首发提醒（内部目标）；升级与备用负责人；审核完成后停止冗余提醒。优先级 P0。
-- SPEC references: REQ-REV-01~05, REQ-NTF-07~13. Acceptance: AC12 (mock-channel part).
-- SPEC 引用：REQ-REV-01~05、REQ-NTF-07~13。验收：AC12（模拟渠道部分）。
+- SPEC references: REQ-REV-01~06, REQ-NTF-07~13. Acceptance: AC12 (mock-channel part).
+- SPEC 引用：REQ-REV-01~06、REQ-NTF-07~13。验收：AC12（模拟渠道部分）。
 - Dependencies: T05.
 - 依赖：T05。
-- Acceptance criteria: Pending Review registration and the notification event are in the same transaction; under a simulated clock, first send ≤30s, retries at 1/5/15 minutes, and final failure is visible; consecutive uploads are merged into a batch but the first item triggers immediately and nothing is missed; on timeout, escalation follows the configuration to backup Coordinator → operations lead; completing a review cancels unsent reminders; when no valid channel exists the submitter sees an error; the notification body contains no original message/fees/attachments.
-- 验收标准：待审登记与通知事件同事务；模拟时钟下首发 ≤30s、按 1/5/15 分钟重试、最终失败可见；连续上传合并批次但首项立即触发且不遗漏；超时按配置升级备用协调员→运营负责人；审核完成取消未发提醒；无有效渠道时提交人可见异常；通知正文不含原消息/费用/附件。
+- Acceptance criteria: Pending Review registration and the notification event are in the same transaction; when another reviewer or a configured backup Coordinator exists, the author is not offered their own task; when the author is the only reviewer and no backup is configured, the author is prompted and an explicit confirmation publishes the item with self_release recorded (REQ-REV-06); dismissing the prompt does not publish, and timeout never confirms; under a simulated clock, first send ≤30s, retries at 1/5/15 minutes, and final failure is visible; consecutive uploads are merged into a batch but the first item triggers immediately and nothing is missed; on timeout, escalation follows the configuration to backup Coordinator → operations lead, using elapsed time rather than a business-hours calendar; completing a review cancels unsent reminders; when no valid channel exists the submitter sees an error; the notification body contains no original message/fees/attachments.
+- 验收标准：待审登记与通知事件同事务；存在其他审核人或已配置备用协调员时，作者不会被分配审核自己的任务；作者是唯一审核人且未配置备用协调员时，系统向其提示，明确确认后发布并记录 self_release（REQ-REV-06）；关闭提示不发布，超时也绝不代为确认；模拟时钟下首发 ≤30s、按 1/5/15 分钟重试、最终失败可见；连续上传合并批次但首项立即触发且不遗漏；超时按已流逝时间升级备用协调员→运营负责人，不等待工作时间日历；审核完成取消未发提醒；无有效渠道时提交人可见异常；通知正文不含原消息/费用/附件。
 - Expected new/modified: `src/modules/review/**`, `src/modules/notifications/**`, `src/server/jobs/{queue,worker}.ts`, `src/app/(app)/review/**`, `prisma/migrations/*` (notification_tasks, review_tasks extension).
 - 预计新增/修改：`src/modules/review/**`、`src/modules/notifications/**`、`src/server/jobs/{queue,worker}.ts`、`src/app/(app)/review/**`、`prisma/migrations/*`（notification_tasks、review_tasks 扩展）。
 - Tests to add/update: `tests/integration/review/alert-lifecycle.test.ts` (covering retry/dedup/escalation/cancel), `tests/integration/review/decisions.test.ts`, `tests/unit/notifications/dedupe.test.ts`.
 - 同步测试：`tests/integration/review/alert-lifecycle.test.ts`（含重试/去重/升级/取消）、`tests/integration/review/decisions.test.ts`、`tests/unit/notifications/dedupe.test.ts`。
 - Test commands: `npm run test -- notifications`, `npm run test:int -- review`.
 - 测试命令：`npm run test -- notifications`、`npm run test:int -- review`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## T08 File Upload / Isolation / Scanning / Publish / Authorized Download / T08 文件上传/隔离/扫描/发布/授权下载
 
 - Goal: private upload (MinIO) + real type detection + 20MB limit; scanning interface (including failure/timeout/encrypted paths); files enter review; Published Version copies separated from originals; authorized proxy download, with old links invalidated after Permission Revocation. Priority P0.
 - 目标：私有上传（MinIO）＋真实类型检测＋20MB 上限；扫描接口（含失败/超时/加密路径）；文件进入审核；发布副本与原件分离；授权代理下载，撤权后旧链接失效。优先级 P0。
-- SPEC references: REQ-FILE-01~07. Acceptance: AC06.
-- SPEC 引用：REQ-FILE-01~07。验收：AC06。
+- SPEC references: REQ-FILE-01~08. Acceptance: AC06.
+- SPEC 引用：REQ-FILE-01~08。验收：AC06。
 - Dependencies: T03, T07.
 - 依赖：T03、T07。
-- Acceptance criteria: pending-review files are invisible to the receiver's list/preview/download/direct links; scan failure does not auto-release; type forgery and oversize are rejected; every download after publish is re-authorized; old download URLs return 403 after revocation; file names/metadata are included in checks; entering Pending Review triggers a Coordinator reminder (linked with T07).
-- 验收标准：待审文件对接收方列表/预览/下载/直链均不可见；扫描失败不自动放行；类型伪造与超限拒绝；发布后下载每次重新鉴权；撤权后旧下载地址 403；文件名/元数据纳入检查；进入待审触发协调员提醒（与 T07 联动）。
+- Acceptance criteria: pending-review files are invisible to the receiver's list/preview/download/direct links; scan failure stays in check_failed, alerts the Coordinator without a file body, and does not auto-release (REQ-FILE-08); type forgery and oversize are rejected; every download after publish is re-authorized; old download URLs return 403 after revocation; file names/metadata are included in checks; entering Pending Review triggers a Coordinator reminder (linked with T07). The bilingual file kind is not added in this task.
+- 验收标准：待审文件对接收方列表/预览/下载/直链均不可见；扫描失败停在 check_failed，向协调员告警且不含文件正文，不自动放行（REQ-FILE-08）；类型伪造与超限拒绝；发布后下载每次重新鉴权；撤权后旧下载地址 403；文件名/元数据纳入检查；进入待审触发协调员提醒（与 T07 联动）。本任务不加入 bilingual 文件种类。
 - Expected new/modified: `src/modules/files/**`, `src/server/providers/storage/{interface,minio}.ts`, `src/server/providers/scanner/{interface,stub}.ts`, `src/app/api/files/[id]/download/route.ts`, `prisma/migrations/*` (files, file_variants).
 - 预计新增/修改：`src/modules/files/**`、`src/server/providers/storage/{interface,minio}.ts`、`src/server/providers/scanner/{interface,stub}.ts`、`src/app/api/files/[id]/download/route.ts`、`prisma/migrations/*`（files、file_variants）。
 - Tests to add/update: `tests/integration/files/quarantine.test.ts`, `tests/integration/files/download-auth.test.ts`, `tests/integration/files/scan-failure.test.ts`.
 - 同步测试：`tests/integration/files/quarantine.test.ts`、`tests/integration/files/download-auth.test.ts`、`tests/integration/files/scan-failure.test.ts`。
 - Test commands: `npm run test:int -- files`.
 - 测试命令：`npm run test:int -- files`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## T09 ~~DOCX Bilingual Parallel Document Conversion~~ (Moved to P1, v1.4) / T09 ~~DOCX 双语对照转换~~（已移 P1，v1.4）
 
@@ -219,16 +219,16 @@
 - SPEC 引用：REQ-NTF-01~06。验收：AC08（模拟渠道部分）。
 - Dependencies: T07 (notification core), T03.
 - 依赖：T07（通知核心）、T03。
-- Acceptance criteria: repeated clicks are deduplicated; notifications contain no counterpart contact details/message bodies/attachments; status is visible to the sender; recipient In-app Confirmation is trackable; after Permission Revocation/Archive, unfinished reminders are re-checked and canceled.
-- 验收标准：重复点击去重；通知不含对方联系方式/正文/附件；状态对发送人可见；收件人站内确认可追踪；撤权/归档后未完成提醒重新检查并取消。
+- Acceptance criteria: repeated clicks are deduplicated; notifications contain no counterpart contact details/message bodies/attachments; status is visible to the sender; final failure also sends a content-free notice to reviewers (REQ-NTF-05); recipient In-app Confirmation is trackable; after Permission Revocation/Archive, unfinished reminders are re-checked and canceled.
+- 验收标准：重复点击去重；通知不含对方联系方式/正文/附件；状态对发送人可见；最终失败时还向审核人发送不含正文的通知（REQ-NTF-05）；收件人站内确认可追踪；撤权/归档后未完成提醒重新检查并取消。
 - Expected new/modified: `src/modules/urgent/**`, `src/app/api/cases/[id]/urgent/route.ts`, `src/app/api/notifications/**`.
 - 预计新增/修改：`src/modules/urgent/**`、`src/app/api/cases/[id]/urgent/route.ts`、`src/app/api/notifications/**`。
 - Tests to add/update: `tests/integration/urgent/dedupe-cooldown.test.ts`, `tests/integration/urgent/status-visibility.test.ts`, `tests/integration/urgent/confirm.test.ts`.
 - 同步测试：`tests/integration/urgent/dedupe-cooldown.test.ts`、`tests/integration/urgent/status-visibility.test.ts`、`tests/integration/urgent/confirm.test.ts`。
 - Test commands: `npm run test:int -- urgent`.
 - 测试命令：`npm run test:int -- urgent`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## T11 Permission Revocation / Archive / Admin MFA / Audit Trail / T11 撤权/归档/管理员 MFA/审计
 
@@ -236,8 +236,8 @@
 - 目标：权限撤销即时生效（新请求拒绝＋存量 SSE 断开＋未完成任务重检）；归档只读；管理员 TOTP MFA；审计日志全覆盖（REQ-OPS-01 清单）。优先级 P0。
 - SPEC references: REQ-PM-08, REQ-CASE-05, REQ-AUTH-09, REQ-OPS-01~03/05. Acceptance: AC02 (revocation part), AC09 (archive part), AC11 (audit/logging part).
 - SPEC 引用：REQ-PM-08、REQ-CASE-05、REQ-AUTH-09、REQ-OPS-01~03/05。验收：AC02（撤权部分）、AC09（归档部分）、AC11（审计/日志部分）。
-- Dependencies: T03, T07, T08.
-- 依赖：T03、T07、T08。
+- Dependencies: T03, T04, T07, T08. Peer-urgent cancellation after revoke is covered with T10; if T11 lands first, that assertion is added when T10 exists.
+- 依赖：T03、T04、T07、T08。撤权后取消用户间紧急提醒与 T10 一起覆盖；若 T11 先完成，该断言在 T10 存在时补上。
 - Acceptance criteria: after revocation, existing SSE connections are closed and API/SSE/download/export are all denied; after archive, new messages/files/reminders are forbidden; administrators without MFA configured cannot perform administrative operations; audit records contain no message bodies/OTPs; routine logs contain no sensitive content (log-scan test).
 - 验收标准：撤权后存量 SSE 连接关闭、API/SSE/下载/导出全部拒绝；归档后禁止新消息/文件/提醒；未配置 MFA 的管理员不能执行管理操作；审计记录无正文/验证码；常规日志无敏感内容（日志扫描测试）。
 - Expected new/modified: `src/modules/admin/**`, `src/server/audit/**`, `src/server/auth/mfa.ts`, `prisma/migrations/*` (audit_logs, users.mfa).
@@ -246,8 +246,8 @@
 - 同步测试：`tests/integration/lifecycle/revoke-live.test.ts`、`tests/integration/lifecycle/archive.test.ts`、`tests/integration/admin/mfa.test.ts`、`tests/unit/audit/no-sensitive-logging.test.ts`。
 - Test commands: `npm run test:int -- lifecycle admin`, `npm run test -- audit`.
 - 测试命令：`npm run test:int -- lifecycle admin`、`npm run test -- audit`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## T12 End-to-end Dual-user + Backup and Restore Drill + Real-channel Acceptance / T12 端到端双用户＋备份恢复演练＋真实链路验收
 
@@ -257,16 +257,16 @@
 - SPEC 引用：第17节全部映射；REQ-OPS-04。
 - Dependencies: T01–T08, T10, T11 (T09 has moved to P1).
 - 依赖：T01–T08、T10、T11（T09 已移 P1）。
-- Acceptance criteria: E2E covers the key paths of AC02/AC03/AC05/AC06/AC08/AC09/AC12; restore-drill report (message/member/file association checks pass); real-email delivery report; network test report (time/network/sample size/P50/P95/failure rate). **Simulated success does not count as real delivery; when external resources are not in place, the related items are marked "Blocked" rather than passed.**
-- 验收标准：E2E 覆盖 AC02/AC03/AC05/AC06/AC08/AC09/AC12 关键路径；恢复演练报告（消息/成员/文件关联核查通过）；真实邮件送达报告；网络测试报告（时间/网络/样本数/P50/P95/失败率）。**模拟成功不视为真实送达；外部资源未到位时相关项标记「阻塞」而非通过。**
+- Acceptance criteria: E2E covers the key paths of AC02/AC03/AC05/AC06/AC08/AC09/AC12. AC07 stays in T09 (P1) and is not an MVP pass condition. AC03's required browser pair is Chinese and Vietnamese; English and Traditional Chinese are already covered by T06 mock tests. Restore-drill report (message/member/file association checks pass); real-email delivery report; network test report (time/network/sample size/P50/P95/failure rate). **Simulated success does not count as real delivery; when external resources are not in place, the related items are marked "Blocked" rather than passed.**
+- 验收标准：E2E 覆盖 AC02/AC03/AC05/AC06/AC08/AC09/AC12 关键路径。AC07 留在 T09（P1），不是 MVP 的通过条件。AC03 的必测浏览器组合是中文与越南语；英语与繁体中文已由 T06 的模拟测试覆盖。恢复演练报告（消息/成员/文件关联核查通过）；真实邮件送达报告；网络测试报告（时间/网络/样本数/P50/P95/失败率）。**模拟成功不视为真实送达；外部资源未到位时相关项标记「阻塞」而非通过。**
 - Expected new/modified: `tests/e2e/**`, `scripts/backup.sh`, `scripts/restore-drill.sh`, `docs/runbook/*.md`, `docs/deployment.md`.
 - 预计新增/修改：`tests/e2e/**`、`scripts/backup.sh`、`scripts/restore-drill.sh`、`docs/runbook/*.md`、`docs/deployment.md`。
 - Tests to add/update: `tests/e2e/dual-user.spec.ts`, `tests/e2e/review-alert.spec.ts`.
 - 同步测试：`tests/e2e/dual-user.spec.ts`、`tests/e2e/review-alert.spec.ts`。
 - Test commands: `npm run test:e2e`, `npm run drill:restore`.
 - 测试命令：`npm run test:e2e`、`npm run drill:restore`。
-- Status: Pending Review(approval).
-- 状态：待评审。
+- Status: P0, not started. Implement only after the dependencies above are accepted.
+- 状态：P0，未开始。须待上方依赖验收后再实现。
 
 ## T13 Daily Case Digest Email (P1, Added in v1.5) / T13 案件日报邮件（P1，v1.5 新增）
 
@@ -278,8 +278,8 @@
 - 依赖：T07（通知核心）、T08（附件发布）、T12（真实邮件通道）。
 - Acceptance criteria: fires on time under a simulated clock; includes only published content (Pending Review/returned/rejected not included); recipients = the case's Lawyers + Coordinator, sent individually per person, can be turned off per Lawyer and recorded in the audit trail; no send when there is no new content that day; archived cases do not send; correct subject format (including case-name-required validation and 2026OCT8-style dates); oversized attachments are split by sequence number; failure retry and final failure are visible; digest_runs records are complete.
 - 验收标准：模拟时钟下按时触发；仅含已发布内容（待审/退回/拒绝不纳入）；收件人 = 本案律师＋协调员、逐人单独发送、可按律师关闭且入审计；当日无新内容不发送；归档案件不发送；标题格式正确（含案件名称必填校验、2026OCT8 式日期）；附件超限按序号拆分；失败重试与最终失败可见；digest_runs 记录完整。
-- Expected new/modified: `src/modules/digest/**`, `src/server/jobs/digest-worker.ts`, `prisma/migrations/*` (cases.title required, case_members.digest_opt_out, digest_runs).
-- 预计新增/修改：`src/modules/digest/**`、`src/server/jobs/digest-worker.ts`、`prisma/migrations/*`（cases.title 必填、case_members.digest_opt_out、digest_runs）。
+- Expected new/modified: `src/modules/digest/**`, `src/server/jobs/digest-worker.ts`, `prisma/migrations/*` (case_members.digest_opt_out, digest_runs, notification kind case_digest). `cases.title` is already required in T03; T13 only reads it.
+- 预计新增/修改：`src/modules/digest/**`、`src/server/jobs/digest-worker.ts`、`prisma/migrations/*`（case_members.digest_opt_out、digest_runs、通知种类 case_digest）。`cases.title` 已在 T03 设为必填；T13 只读取它。
 - Tests to add/update: `tests/unit/digest/subject-format.test.ts`, `tests/integration/digest/daily-run.test.ts`, `tests/integration/digest/opt-out.test.ts`.
 - 同步测试：`tests/unit/digest/subject-format.test.ts`、`tests/integration/digest/daily-run.test.ts`、`tests/integration/digest/opt-out.test.ts`。
 - Test commands: `npm run test -- digest`, `npm run test:int -- digest`.
@@ -289,15 +289,15 @@
 
 ## Dependency Graph and Execution Order / 依赖图与执行顺序
 
-Dependency graph (kept as-is):
-依赖图（原样保留）：
+Dependency graph:
+依赖图：
 
 ```
 T01 → T02 → T03 → T04 → T05 → T07 → T08 ─────────┐
-                    │      ↘ T06                 ├→ T12
+                    │      ↘ T06                 ├→ T12 → T13 (P1)
                     └──────────→ T10 ← T07       │
-                    └──────────→ T11 ← T07、T08 ─┘
-（T09 已移 P1，不在 MVP 依赖图中）
+                    └──────────→ T11 ← T04、T07、T08 ─┘
+（T09 为 P1，依赖 T06 与 T08，不在 MVP 关键路径上）
 ```
 
 - Parallelizable: T05 and T06; T10 and T11. Suggested order: T01→T02→T03→T04→(T05∥T06)→T07→T08→(T10∥T11)→T12.

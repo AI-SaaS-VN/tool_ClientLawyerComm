@@ -1,7 +1,7 @@
 # CONTEXT.md — Stable Background and File Navigation / 稳定背景与文件导航
 
-- Last updated: 2026-09-30 (UTC)
-- 更新日期：2026-09-30（UTC）
+- Last updated: 2026-10-01 (UTC)
+- 更新日期：2026-10-01（UTC）
 - Purpose: keeps only the product background, confirmed decisions, file navigation, and unresolved environment conditions. Records no credentials, real case details, or personal contact information.
 - 用途：仅保留产品背景、已确认决策、文件导航和未解决的环境条件。不记录凭据、真实案情、个人联系方式。
 
@@ -15,8 +15,8 @@
 - 内容限制仅针对诉讼委托费用（MVP 仅显式问询/协商触发待审，v1.4）与双方直接联系方式；案件金额（诉讼请求/赔偿/和解等）不受限。
 - Suspected restricted content and files must be Reviewed by the Coordinator before Publish; entering Pending Review automatically sends an Urgent Alert to the Coordinator; nothing is ever auto-released on timeout.
 - 疑似受限内容与文件须经协调员审核后发布；进入待审自动向协调员发紧急提醒；超时绝不自动放行。
-- MVP includes two-way Urgent Alerts (email channel), file sharing (PDF/DOCX/JPG/PNG, 20MB), Permission Revocation, Archive, administrator MFA (separate admin account), Audit Trail, Backup and Restore; languages are Chinese (Simplified/Traditional)/Vietnamese/English; the Coordinator may participate in chat (v1.4). Moved to P1: phone registration/SMS, DOCX Bilingual Parallel Document, Cross-case Mix-up Prevention UI.
-- MVP 含双向紧急提醒（邮件渠道）、文件分享（PDF/DOCX/JPG/PNG，20MB）、权限撤销、归档、管理员 MFA（独立管理员账号）、审计、备份恢复；语言为中（简/繁）/越/英；协调员可参与聊天（v1.4）。移 P1：手机注册/短信、DOCX 双语对照、防串案界面。
+- MVP includes two-way Urgent Alerts (email channel), file sharing (PDF/DOCX/JPG/PNG, 20MB), Permission Revocation, Archive, administrator MFA (separate admin account), Audit Trail, Backup and Restore; languages are Chinese (Simplified/Traditional)/Vietnamese/English; the Coordinator may participate in chat (v1.4). Moved to P1: phone registration/SMS, DOCX Bilingual Parallel Document, Cross-case Mix-up Prevention UI, Daily Case Digest email (v1.5).
+- MVP 含双向紧急提醒（邮件渠道）、文件分享（PDF/DOCX/JPG/PNG，20MB）、权限撤销、归档、管理员 MFA（独立管理员账号）、审计、备份恢复；语言为中（简/繁）/越/英；协调员可参与聊天（v1.4）。移至或新增于 P1：手机注册/短信、DOCX 双语对照、防串案界面、案件日报邮件（v1.5）。
 
 ## Confirmed Technical Direction (technical defaults; reversible details may be optimized but must be recorded) / 已确认技术方向（技术默认值，可逆细节可优化但须记录）
 
@@ -33,10 +33,11 @@
 
 | File / 文件 | Responsibility / 职责 |
 | --- | --- |
-| SOW.md | v1.0 Execution Baseline (user-approved 2026-09-30): scope, acceptance AC01–AC12, Open Items O01–O08<br>v1.0 执行基线（2026-09-30 用户批准）：范围、验收 AC01–AC12、待落实 O01–O08 |
-| VIBE_CODING_INPUT.md | Launch-instruction entry point<br>启动指令入口 |
-| SPEC.md | Requirements/permissions/state machine/data/API/exception specifications (draft, pending Review(approval))<br>需求/权限/状态机/数据/API/异常规格（草案，待评审） |
-| PLAN.md | MVP task breakdown T01–T13 (draft, pending Review(approval))<br>MVP 任务拆分 T01–T13（草案，待评审） |
+| SOW.md | v1.7 execution baseline. v1.6 was the consistency errata; v1.7 records the user's confirmation, including sole-reviewer prompt-and-confirm<br>v1.7 执行基线。v1.6 为一致性勘误；v1.7 记录用户确认，包括唯一审核人提示后确认发布 |
+| VIBE_CODING_INPUT.md | Historical launch-instruction entry point. Where it conflicts with SOW v1.6, SOW prevails<br>历史启动指令入口。与 SOW v1.6 冲突时以 SOW 为准 |
+| SPEC.md | v0.5 requirements, permissions, state machines, data, API, and exceptions<br>v0.5 需求、权限、状态机、数据、API 与异常 |
+| PLAN.md | v0.5 task breakdown. P0 is T01–T08 and T10–T12. T01 is done. T09 and T13 are P1<br>v0.5 任务拆分。P0 为 T01–T08 与 T10–T12。T01 已完成。T09 与 T13 属于 P1 |
+| CURSOR_REVIEW.md | 2026-10-01 design-consistency review, plus the user's later decisions in Section 4<br>2026-10-01 设计一致性复核，以及第 4 节中用户随后作出的决定 |
 | PROGRESS.md | Current phase, task status, blockers, next steps<br>当前阶段、任务状态、阻塞、下一步 |
 | SESSIONS.md | Appended log of each session<br>每次会话追加记录 |
 | GLOSSARY.md | Business terminology (synced from SOW §2)<br>业务术语（自 SOW 第2节同步） |

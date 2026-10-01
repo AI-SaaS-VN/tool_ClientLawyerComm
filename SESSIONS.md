@@ -165,3 +165,57 @@ User reviews SPEC.md / PLAN.md; after freezing the versions, initialize git and 
 ## Session close / 会话结束（2026-10-01，UTC）
 
 User exited. All work recorded and pushed (f490866). State: preparation phase complete, T01 done, next = T02 (invitation registration + email OTP). Resume by reading: 项目指令 → SESSIONS.md 最新记录 → PROGRESS.md → PLAN.md T02 → SPEC.md REQ-AUTH.<br>用户退出。全部工作已记录并推送（f490866）。状态：准备阶段完成、T01 完成、下一项 T02（邀请注册＋邮箱 OTP）。恢复时阅读：项目指令 → SESSIONS.md 最新记录 → PROGRESS.md → PLAN.md T02 → SPEC.md REQ-AUTH。
+
+---
+
+## Session 2026-10-01-02 (Ended) / 会话 2026-10-01-02（已结束）
+
+- Date/Timezone: 2026-10-01, UTC+8 (review started about 20:39 local)<br>日期/时区：2026-10-01，UTC+8（复核约于本地 20:39 开始）
+- Environment: Cursor on the project VPS. No business code was written or run.<br>环境：项目 VPS 上的 Cursor。未编写、未运行业务代码。
+- Goal: read SESSIONS / PROGRESS / CONTEXT, then review VIBE_CODING_INPUT, PLAN, SOW, SPEC, and GLOSSARY for consistency, omissions, and contradictions. Markdown design documents only.<br>本次目标：阅读 SESSIONS / PROGRESS / CONTEXT，再复核 VIBE_CODING_INPUT、PLAN、SOW、SPEC、GLOSSARY 的一致性、遗漏与矛盾。只改 Markdown 设计文档。
+
+### Actual Actions / 实际动作
+
+1. Read the progress files and the design set, plus 2026OCT1-REVIEW.md.<br>阅读进度文件与设计文档全集，以及 2026OCT1-REVIEW.md。
+2. Found cross-document contradictions (stale PROGRESS versus completed T01, SPEC still citing v1.1 Q3, PLAN T02 still listing SmsProvider, PLAN T03 still building the P1 draft-isolation UI, digest wording, publish-versus-translate order, file `check_failed` versus "pending review").<br>发现跨文档矛盾（PROGRESS 仍写 T01 未完成，而会话记录已完成 T01；SPEC 仍引用 v1.1 Q3；PLAN T02 仍列出 SmsProvider；PLAN T03 仍包含 P1 草稿隔离界面；日报措辞；发布与翻译的顺序；文件 `check_failed` 与「待审」混用）。
+3. Applied a consistency errata: SOW v1.6, SPEC v0.4, PLAN v0.4, GLOSSARY resync, VIBE precedence banner, CONTEXT navigation, PROGRESS rewrite. Full findings and open questions are in CURSOR_REVIEW.md.<br>写入一致性勘误：SOW v1.6、SPEC v0.4、PLAN v0.4、GLOSSARY 重新同步、VIBE 效力说明、CONTEXT 导航、PROGRESS 重写。完整发现与未决问题见 CURSOR_REVIEW.md。
+
+### Changed Files / 变更文件
+
+- Modified: VIBE_CODING_INPUT.md, SOW.md, SPEC.md, PLAN.md, GLOSSARY.md, CONTEXT.md, PROGRESS.md, SESSIONS.md<br>修改：VIBE_CODING_INPUT.md、SOW.md、SPEC.md、PLAN.md、GLOSSARY.md、CONTEXT.md、PROGRESS.md、SESSIONS.md
+- Added: CURSOR_REVIEW.md<br>新增：CURSOR_REVIEW.md
+- Not modified: any `.ts` / `.tsx` / other source<br>未修改：任何 `.ts` / `.tsx` 或其他源代码
+
+### Verification Results / 验证结果
+
+- Documentation review only. No tests were run. This is not product acceptance.<br>仅文档复核。未运行测试。这不是产品验收。
+
+### Unfinished Items / 未完成项
+
+- Open questions listed at the end of CURSOR_REVIEW.md. Working defaults are already written into SPEC v0.4 so T02 can proceed if those defaults are accepted.<br>未决问题列在 CURSOR_REVIEW.md 末尾。工作默认值已写入 SPEC v0.4；若接受这些默认值，即可进入 T02。
+- git commit of this errata was not requested.<br>本次勘误未要求 git 提交。
+
+### First Step Next Time / 下次第一步
+
+Read CURSOR_REVIEW.md, then PLAN.md T02 and SPEC.md REQ-AUTH. Do not redo T01.<br>先读 CURSOR_REVIEW.md，再读 PLAN.md T02 与 SPEC.md REQ-AUTH。不要重做 T01。
+
+---
+
+## Session 2026-10-01-03 (Ended) / 会话 2026-10-01-03（已结束）
+
+- Date/Timezone: 2026-10-01, UTC+8<br>日期/时区：2026-10-01，UTC+8
+- Goal: record the user's decisions on the CURSOR_REVIEW.md questions. Markdown only.<br>本次目标：记录用户对 CURSOR_REVIEW.md 问题的决定。只改 Markdown。
+
+### Actual Actions / 实际动作
+
+1. User accepted the review defaults, and replaced sole-reviewer blocking with prompt-and-confirm: when the author is the only reviewer and no backup Coordinator is configured, the system prompts them; if they still confirm, the held message is published.<br>用户接受复核中的默认值，并把「唯一审核人不能放行」改为提示后确认：作者是唯一审核人且未配置备用协调员时，系统向其提示；若其仍然确认，被拦住的消息即发布。
+2. Wrote that rule into SOW v1.7, SPEC v0.5 (REQ-REV-06, REQ-NTF-07, REQ-AUTH-01, REQ-TR-01, REQ-AUTH-06, O03), PLAN v0.5 T07, and GLOSSARY. CURSOR_REVIEW.md Section 4 now records the decisions. Git history was not rewritten and no commit was made.<br>该规则已写入 SOW v1.7、SPEC v0.5（REQ-REV-06、REQ-NTF-07、REQ-AUTH-01、REQ-TR-01、REQ-AUTH-06、O03）、PLAN v0.5 T07 与 GLOSSARY。CURSOR_REVIEW.md 第 4 节改为决定记录。未改写 Git 历史，也未提交。
+
+### Changed Files / 变更文件
+
+- Modified: SOW.md, SPEC.md, PLAN.md, GLOSSARY.md, VIBE_CODING_INPUT.md, CONTEXT.md, PROGRESS.md, CURSOR_REVIEW.md, SESSIONS.md<br>修改：SOW.md、SPEC.md、PLAN.md、GLOSSARY.md、VIBE_CODING_INPUT.md、CONTEXT.md、PROGRESS.md、CURSOR_REVIEW.md、SESSIONS.md
+- Source code: unchanged<br>源代码：未改
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T02 against SPEC.md v0.5 REQ-AUTH. Do not redo T01.<br>按 SPEC.md v0.5 REQ-AUTH 实现 PLAN.md T02。不要重做 T01。

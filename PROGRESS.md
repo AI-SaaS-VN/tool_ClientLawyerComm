@@ -5,32 +5,30 @@
 
 ## Current Phase / 当前阶段
 
-**Preparation phase complete; T01 done; T02 next.** All external channels verified: GitHub deploy key, Cloudflare API, Kimi API, Lighthouse key login, outbound email (SMTP 587/STARTTLS smoke send succeeded 2026-10-01). Docs frozen (fa4d85d, 28d4fe6); T01 skeleton complete (cea7e37). Next: T02 invitation-based registration & email OTP login.
+**Preparation phase complete. T01 done. Design decisions confirmed (SOW v1.7 / SPEC v0.5 / PLAN v0.5). Next is T02.** External channels already verified: GitHub deploy key, Cloudflare API, Kimi API, Lighthouse key login, outbound email (SMTP 587/STARTTLS smoke send succeeded 2026-10-01). Docs baseline: fa4d85d, 28d4fe6. T01 skeleton: cea7e37.
 
-**准备阶段全部完成；T01 已完成；下一项 T02。** 外部链路全部验证：GitHub deploy key、Cloudflare API、Kimi API、Lighthouse 密钥登录、邮件发信（SMTP 587/STARTTLS 冒烟发送成功，2026-10-01）。文档已冻结（fa4d85d、28d4fe6）；T01 骨架完成（cea7e37）。下一步：T02 邀请注册与邮箱 OTP 登录。
+**准备阶段已完成。T01 已完成。设计决定已确认（SOW v1.7 / SPEC v0.5 / PLAN v0.5）。下一项是 T02。** 外部链路已验证：GitHub deploy key、Cloudflare API、Kimi API、Lighthouse 密钥登录、邮件发信（SMTP 587/STARTTLS 冒烟发送于 2026-10-01 成功）。文档基线：fa4d85d、28d4fe6。T01 骨架：cea7e37。
+
+The earlier "T01 blocked on Prisma 7 datasource url" note is obsolete. `prisma.config.ts`, the `pg` adapter, `migrate dev --name init`, `migrate reset`, `npm run test`, and `npm run test:e2e` were completed in the same day. Do not repeat that work.
+
+早先「T01 卡在 Prisma 7 datasource url」的记录已经过时。`prisma.config.ts`、`pg` adapter、`migrate dev --name init`、`migrate reset`、`npm run test` 与 `npm run test:e2e` 已在同一天完成。不要重做。
 
 ## T01 Status / T01 状态
 
-Done / 已完成：
+Done / 已完成（cea7e37）：
 
-- Next.js scaffold: Next 16.3.8, React 19.2.8, Tailwind 4, TS5 (create-next-app via subagent; AGENTS.md/CLAUDE.md auto-created by `next dev` — Next 16 has breaking changes, read `node_modules/next/dist/docs/` before coding)<br>Next.js 骨架：Next 16.3.8、React 19.2.8、Tailwind 4、TS5（子代理搭建；`next dev` 自动创建 AGENTS.md/CLAUDE.md——Next 16 有破坏性变更，编码前先读 `node_modules/next/dist/docs/`）
-- docker-compose.yml: postgres:16-alpine + bitnamilegacy/minio:2025.5.24-debian-12-r5 (Docker Hub returns 401 for minio/* org → bitnamilegacy drop-in). Both containers healthy (clc-postgres, clc-minio)<br>docker-compose.yml：postgres:16-alpine + bitnamilegacy/minio（Docker Hub 对 minio/* 返回 401，改用 bitnamilegacy）。两容器均健康
-- package.json: name=clientlawyercomm; @types/node ^24 (fixed ERESOLVE with vitest@5.0.3); scripts: dev/build/start/lint/setup/test/test:int/test:e2e<br>package.json：name=clientlawyercomm；@types/node ^24（修复与 vitest@5.0.3 的 ERESOLVE 冲突）；scripts 已加 setup/test/test:int/test:e2e
-- Installed: @prisma/client 7.10.0, prisma 7.10.0, vitest, @playwright/test. NOTE: npm allow-scripts blocked postinstall for prisma / @prisma/engines / unrs-resolver — may need `npm approve-scripts` if engines missing<br>已装：@prisma/client 7.10.0、prisma 7.10.0、vitest、@playwright/test。注意：npm allow-scripts 拦截了 prisma/@prisma/engines/unrs-resolver 的 postinstall——若缺引擎需 `npm approve-scripts`
-- Written: prisma/schema.prisma (User/Session), src/app/api/health/route.ts, src/lib/db.ts, vitest.config.ts, tests/unit/health.test.ts, playwright.config.ts (webServer=next dev; smoke test uses request fixture, no browser needed), tests/e2e/smoke.spec.ts, .env.example<br>已写：schema（User/Session）、health 路由、db.ts、vitest/playwright 配置、unit+e2e 冒烟测试（e2e 用 request fixture，不需浏览器）、.env.example
-- .env appended with dev vars (DATABASE_URL=postgresql://postgres:postgres@localhost:5432/clc_dev, MINIO_*) via shell append without reading secrets<br>.env 已追加开发变量（DATABASE_URL、MINIO_*；shell 追加，未读取原机密内容）
-
-Blocked / 卡点（下次第一件事）：
-
-- `npx prisma migrate dev --name init` fails: **Prisma 7 removed `url` from datasource** — must move connection to `prisma.config.ts` with an `adapter` (see https://pris.ly/d/config-datasource). Was inspecting `node_modules/@prisma/config/dist/index.d.ts` (exports `defineConfig`, `env`; Datasource type at line ~150) when paused. Likely needs `pg` + `@prisma/adapter-pg`, and `src/lib/db.ts` must construct PrismaClient with the adapter.<br>`npx prisma migrate dev --name init` 失败：**Prisma 7 移除了 datasource 的 `url`**——连接须迁到 `prisma.config.ts` 的 `adapter`。暂停时正在查 `node_modules/@prisma/config/dist/index.d.ts`（导出 `defineConfig`、`env`；Datasource 类型在 ~150 行）。预计需要 `pg` + `@prisma/adapter-pg`，且 `src/lib/db.ts` 须用 adapter 构造 PrismaClient。
-
-Not yet done / 未完成：prisma.config.ts + adapter install、`migrate dev --name init`、migrate reset 验证、`npm run test`、`npx playwright install chromium`、`npm run test:e2e`、T01 提交。
+- Next.js 16.3.8, React 19.2.8, Tailwind 4, TypeScript 5. Read `node_modules/next/dist/docs/` before writing application code; this Next.js version differs from older training data.<br>Next.js 16.3.8、React 19.2.8、Tailwind 4、TypeScript 5。编写应用代码前先读 `node_modules/next/dist/docs/`；此 Next.js 版本与旧训练数据不同。
+- docker-compose: postgres:16-alpine + bitnamilegacy/minio (Docker Hub returns 401 for the `minio/*` organization). Containers clc-postgres and clc-minio were healthy at acceptance.<br>docker-compose：postgres:16-alpine + bitnamilegacy/minio（Docker Hub 对 `minio/*` 组织返回 401）。验收时 clc-postgres 与 clc-minio 健康。
+- Prisma 7.10.0 with `prisma.config.ts` and `@prisma/adapter-pg`. Migration `20261001085327_init` applied and replayed with `migrate reset --force`.<br>Prisma 7.10.0，使用 `prisma.config.ts` 与 `@prisma/adapter-pg`。迁移 `20261001085327_init` 已应用，并用 `migrate reset --force` 重放通过。
+- Tests at acceptance: `npm run test` (1 passed), `npm run test:e2e` (smoke via the request fixture). AC01–AC12 remain unverified; they belong to later tasks.<br>验收时测试：`npm run test`（1 通过）、`npm run test:e2e`（经 request fixture 的冒烟）。AC01–AC12 仍未验证；它们属于后续任务。
 
 ## Test Status / 测试状态
 
-No test suites run yet (T01 incomplete). AC01–AC12 all unverified.<br>尚未运行测试套件（T01 未完成）。AC01–AC12 全部未验证。
+T01 unit and smoke tests passed on 2026-10-01. No integration suite for T02+ has been run. AC01–AC12 are not accepted.
 
-## Next Steps (First Step of Next Session) / 下一步（下次会话第一步）
+T01 的单元测试与冒烟测试于 2026-10-01 通过。T02 及之后的集成套件尚未运行。AC01–AC12 未验收。
 
-1. Write prisma.config.ts with pg adapter; install `pg @prisma/adapter-pg`; update src/lib/db.ts; run `npx prisma migrate dev --name init`. If engine errors, run `npm approve-scripts`.<br>编写 prisma.config.ts（pg adapter）；安装 `pg @prisma/adapter-pg`；更新 src/lib/db.ts；跑 `npx prisma migrate dev --name init`。若报引擎错误则 `npm approve-scripts`。
-2. Run `npm run test` and `npm run test:e2e`; then commit T01 and proceed to T02.<br>运行 `npm run test` 与 `npm run test:e2e`；提交 T01 后进入 T02。
+## Next Steps / 下一步
+
+1. Implement PLAN.md T02 against SPEC.md REQ-AUTH (v0.5). Do not add SmsProvider. Do not redo T01. Invitation codes are not bound to an email. On the HTTP test origin, omit the `Secure` cookie flag.
+1. 按 SPEC.md REQ-AUTH（v0.5）实现 PLAN.md T02。不要加入 SmsProvider。不要重做 T01。邀请码不绑定邮箱。HTTP 测试源上的会话 Cookie 不带 `Secure`。
