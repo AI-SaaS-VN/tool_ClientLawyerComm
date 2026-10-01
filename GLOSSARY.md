@@ -1,0 +1,22 @@
+# GLOSSARY.md — Business Glossary / 业务术语表
+
+> Synchronized from SOW.md Section 2.2 (v1.1 clarifications included, 2026-10-01); contains only confirmed business terms, with no implementation details mixed in. New terms must be registered here before being used in SPEC/PLAN.
+> 自 SOW.md 第2.2节同步（已含 v1.1 澄清，2026-10-01）；仅收录已确定的业务术语，不夹实现细节。新增术语先在此登记再在 SPEC/PLAN 使用。
+
+| Term / 术语 | Meaning in This Project / 本项目中的含义 |
+| --- | --- |
+| Client Organization<br>客户组织 | The enterprise or individual entity receiving the services; not equivalent to a login account.<br>接受服务的企业或个人主体，不等同于登录账号 |
+| User<br>用户 | A login identity that can be associated with one or more verified Registered Contact Channels (MVP: email only, v1.4; mobile phone P1); may join Cases it is authorized for; two accounts must not be merged merely because their names are the same.<br>登录身份，可关联一个或多个已验证的注册联系方式（MVP 仅邮箱，v1.4；手机号 P1）；可加入被授权的案件；仅凭姓名相同不得合并两个账号 |
+| Case Space<br>案件空间 | The boundary of a Case's members, chats, files, Review, and Archive.<br>一项案件的成员、聊天、文件、审核与归档边界 |
+| Case Coordinator<br>案件协调员 | A person granted designated permissions for invitations, member management, Publish Review, and Archive; Review is one dimension of how Coordinator responsibilities are assigned; may participate in Case chats and post messages (v1.4, to clarify misunderstandings between the two parties), and those messages are likewise subject to content checks and Audit Trail; not equivalent to the System Operations Administrator (administrators use dedicated accounts).<br>获指定权限的邀请、成员管理、发布审核与归档人员；审核是协调员职责的一种分配维度；可参与案件聊天并发言（v1.4，用于澄清双方理解偏差），其消息同样接受内容检查与审计；不等同于系统运维管理员（管理员使用专门账号） |
+| In-app Confirmation<br>站内确认 | The confirmation made by the recipient, after logging in, within the Case in response to an Urgent Alert; it is the primary evidence that the alert reached the recipient; the system does not provide message read receipts to the other party.<br>收件人登录后在案件内对紧急提醒作出的确认，是提醒触达的主要证据；系统不向另一方提供消息已读回执 |
+| Registered Contact Channel<br>注册联系方式 | The contact channel used for authentication and system notifications (MVP: email only, v1.4; mobile phone P1); not disclosed to other participants by default.<br>用于认证及系统通知的联系方式（MVP 仅邮箱，v1.4；手机号 P1），默认不向其他参与方公开 |
+| Case Amount<br>案件金额 | Amounts needed to discuss the facts of a case, such as litigation claims, debts, losses, compensation, and settlements (not restricted).<br>诉讼请求、债权、损失、赔偿、和解等讨论案情所需的金额（不受限） |
+| Restricted Business Content<br>受限商务内容 | In this phase, refers specifically to content related to Litigation Retainer Fees; no other information may be added to this restriction without authorization.<br>本期专指诉讼委托费用相关内容；其他信息不得擅自扩入该限制 |
+| Source Text / Translated Text<br>源文 / 译文 | The text submitted by the user and its corresponding translation; the Translated Text must be traceable to the Source Text version.<br>用户提交的文字与其对应翻译；译文必须可追溯到源文版本 |
+| Published Version<br>发布版本 | The specific message or file version that has passed permission and content checks and is allowed to be viewed by the recipients.<br>经过权限和内容检查、允许接收方查看的具体消息或文件版本 |
+| Urgent Alert<br>紧急提醒 | A notification requesting the other party to log in and check as soon as possible; it does not mean the other party has read, handled, or committed to respond.<br>请求对方尽快登录查看的通知，不等于对方已阅读、已处理或承诺响应 |
+| Pending Review<br>待审 | The state in which content has been determined by checks to be suspected restricted and is awaiting manual Review by the Coordinator; not visible to the receiving party during this period.<br>内容经检查判定为疑似受限，等待协调员人工审核的状态；期间对接收方不可见 |
+| Original File / Shared Copy<br>原件 / 共享副本 | The uploaded immutable original file and the copy/translation published after Review, stored separately and linked to each other.<br>上传的不可变原始文件与经审核发布的副本/译本，分别存储并关联 |
+| Bilingual Parallel Document<br>双语对照文档 | (P1, v1.4) A Chinese–Vietnamese parallel DOCX organized by paragraph numbers, generated upon the user's active request (simple paragraph text, ≤20 pages); in MVP, document translation is handled by the participants themselves.<br>（P1，v1.4）用户主动请求生成的、按段落编号的中越对照 DOCX（≤20 页简单段落文本）；MVP 文档翻译由参与方自行解决 |
+| Daily Case Digest<br>案件日报 | (P1, v1.5) An email sent daily at 24:00 Vietnam time: it summarizes the Case's conversations and uploaded attachments of the day, and is sent to the Case's Vietnamese Lawyer (the Coordinator can turn it off per lawyer) and the Coordinator; subject line "案件名称-发送日-Record".<br>（P1，v1.5）每日越南时间 24:00 发送的邮件：汇总案件当日对话记录与上传附件，发本案越南律师（协调员可按律师关闭）与协调员；标题「案件名称-发送日-Record」 |
