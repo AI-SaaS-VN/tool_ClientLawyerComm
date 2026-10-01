@@ -1,0 +1,47 @@
+# Local development infrastructure only.
+# Credentials below are intentionally weak placeholders (postgres/postgres,
+# minioadmin/minioadmin) for throwaway local containers. Never reuse them
+# outside local development; real credentials live in .env (git-ignored).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clc_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d clc_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # NOTE: upstream `minio/minio` is not pullable from this host's network
+  # (Docker Hub returns 401 for the whole minio/* org). bitnamilegacy/minio
+  # is a drop-in MinIO build pinned by tag. It serves the S3 API on :9000
+  # (the web console is not enabled by this image by default).
+  minio:
+    image: bitnamilegacy/minio:2025.5.24-debian-12-r5
+    container_name: clc-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+    volumes:
+      - miniodata:/bitnami/minio/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  miniodata:

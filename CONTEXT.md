@@ -42,6 +42,11 @@
 | GLOSSARY.md | Business terminology (synced from SOW §2)<br>业务术语（自 SOW 第2节同步） |
 | docs/adr/ | Architecture decision records (create when needed)<br>架构决策记录（需要时建立） |
 
+## Deployment Topology / 部署拓扑
+
+- Laptop → SSH → dev VPS (coding and commands) → deploy to Tencent Lighthouse 124.223.13.137 (functional testing via browser). Rule (user instruction 2026-10-01): any URL opened in the user's browser must use 124.223.13.137, never localhost — localhost would point to the laptop. localhost/127.0.0.1 is only allowed for same-host internal connections on the dev VPS (e.g., app → Docker postgres) where the laptop browser is not involved.
+- 笔记本 → SSH → 研发 VPS（编码与命令）→ 部署到腾讯 Lighthouse 124.223.13.137（浏览器功能测试）。规则（2026-10-01 用户指示）：凡用户浏览器访问的地址一律用 124.223.13.137，禁止 localhost——localhost 会指向笔记本。localhost/127.0.0.1 仅用于研发 VPS 同机内部连接（如应用 → Docker 内 postgres），即浏览器不参与的场景。
+
 ## Unresolved Environment Conditions (see SOW §14 for details) / 未解决的环境条件（详见 SOW 第14节）
 
 - O01: GitHub deploy key connectivity verified (2026-10-01); Cloudflare API Token verified working (zone vietnamlawyers.ai, status active); the main site's tech stack is still unverified. This VPS has no pnpm/PostgreSQL client installed (Docker provides Postgres during development).
