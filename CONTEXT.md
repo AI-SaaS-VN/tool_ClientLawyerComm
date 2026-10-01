@@ -1,7 +1,7 @@
 # CONTEXT.md — Stable Background and File Navigation / 稳定背景与文件导航
 
-- Last updated: 2026-10-01 (UTC)
-- 更新日期：2026-10-01（UTC）
+- Last updated: 2026-10-02 (UTC)
+- 更新日期：2026-10-02（UTC）
 - Purpose: keeps only the product background, confirmed decisions, file navigation, and unresolved environment conditions. Records no credentials, real case details, or personal contact information.
 - 用途：仅保留产品背景、已确认决策、文件导航和未解决的环境条件。不记录凭据、真实案情、个人联系方式。
 
@@ -9,14 +9,14 @@
 
 - A Chinese–Vietnamese bilingual Case communication system: Chinese Client — Vietnamese Lawyer — Case Coordinator, web-based (mobile/desktop browsers), no WeChat/Zalo required.
 - 中越双语案件沟通系统：中国客户—越南律师—案件协调员，网页端（手机/电脑浏览器），无需 WeChat/Zalo。
-- Users, chats, files, and permissions are isolated by Case. The administrator is created by local bootstrap. MVP has one Case, so a Coordinator, Chinese Client, or Vietnamese Lawyer joins it only by completing the activation email sent to the address that was entered, and that invitation is bound to the email (v1.9). Later, one Vietnamese Lawyer may join many Cases; an additional-case invitation code is then not bound to an email (P1, REQ-AUTH-12). Phone registration is P1.
-- 以案件隔离用户、聊天、文件和权限。管理员由本地引导创建。MVP 只有一个案件，协调员、中国客户或越南律师只有完成发到为其输入的那个邮箱的激活邮件才加入，且该邀请绑定邮箱（v1.9）。以后一名越南律师可以参加多个案件，那时追加案件的邀请码不绑定邮箱（P1，REQ-AUTH-12）。手机注册为 P1。
+- Users, chats, files, and permissions are isolated by Case. The administrator is created by local bootstrap. A Coordinator, Chinese Client, or Vietnamese Lawyer is notified by an activation email sent to the address that was entered. The invitation code is not bound to that email (v1.10, MVP): it binds the Case and the role, so the same Lawyer account can join another Case later without a different rule. Phone registration is P1.
+- 以案件隔离用户、聊天、文件和权限。管理员由本地引导创建。协调员、中国客户或越南律师通过发到被输入地址的激活邮件得到通知。邀请码不绑定该邮箱（v1.10，MVP）：它绑定案件与角色，因此同一律师账号以后加入另一个案件时不必换一套规则。手机注册为 P1。
 - Content restrictions apply only to Litigation Retainer Fees (MVP: explicit inquiry/negotiation triggers Pending Review only, v1.4) and to either party's direct contact information; Case Amount (claims/compensation/settlement, etc.) is unrestricted.
 - 内容限制仅针对诉讼委托费用（MVP 仅显式问询/协商触发待审，v1.4）与双方直接联系方式；案件金额（诉讼请求/赔偿/和解等）不受限。
 - Suspected restricted content and files must be Reviewed by the Coordinator before Publish; entering Pending Review automatically sends an Urgent Alert to the Coordinator; nothing is ever auto-released on timeout.
 - 疑似受限内容与文件须经协调员审核后发布；进入待审自动向协调员发紧急提醒；超时绝不自动放行。
-- MVP includes two-way Urgent Alerts (email channel), file sharing (PDF/DOCX/JPG/PNG, 20MB), Permission Revocation, Archive, administrator MFA (separate admin account), Audit Trail, Backup and Restore; languages are Chinese (Simplified/Traditional)/Vietnamese/English; the Coordinator may participate in chat (v1.4). Moved to P1: phone registration/SMS, DOCX Bilingual Parallel Document, Cross-case Mix-up Prevention UI, Daily Case Digest email (v1.5), and additional-case invitation codes that are not bound to an email (v1.9).
-- MVP 含双向紧急提醒（邮件渠道）、文件分享（PDF/DOCX/JPG/PNG，20MB）、权限撤销、归档、管理员 MFA（独立管理员账号）、审计、备份恢复；语言为中（简/繁）/越/英；协调员可参与聊天（v1.4）。移至或新增于 P1：手机注册/短信、DOCX 双语对照、防串案界面、案件日报邮件（v1.5），以及不绑定邮箱的追加案件邀请码（v1.9）。
+- MVP includes two-way Urgent Alerts (email channel), file sharing (PDF/DOCX/JPG/PNG, 20MB), Permission Revocation, Archive, administrator MFA (separate admin account), Audit Trail, Backup and Restore, and invitation codes that are not bound to an email (v1.10); languages are Chinese (Simplified/Traditional)/Vietnamese/English; the Coordinator may participate in chat (v1.4). Moved to P1: phone registration/SMS, DOCX Bilingual Parallel Document, Cross-case Mix-up Prevention UI, Daily Case Digest email (v1.5).
+- MVP 含双向紧急提醒（邮件渠道）、文件分享（PDF/DOCX/JPG/PNG，20MB）、权限撤销、归档、管理员 MFA（独立管理员账号）、审计、备份恢复，以及不绑定邮箱的邀请码（v1.10）；语言为中（简/繁）/越/英；协调员可参与聊天（v1.4）。移至或新增于 P1：手机注册/短信、DOCX 双语对照、防串案界面、案件日报邮件（v1.5）。
 
 ## Confirmed Technical Direction (technical defaults; reversible details may be optimized but must be recorded) / 已确认技术方向（技术默认值，可逆细节可优化但须记录）
 
@@ -33,10 +33,10 @@
 
 | File / 文件 | Responsibility / 职责 |
 | --- | --- |
-| SOW.md | v1.9 execution baseline. MVP invitation is bound to the entered email; later additional-case codes are not<br>v1.9 执行基线。MVP 邀请绑定被输入的邮箱；以后追加案件的邀请码不绑定 |
-| VIBE_CODING_INPUT.md | Historical launch-instruction entry point. Where it conflicts with SOW v1.9, SOW prevails. The historical body is kept and still contains superseded sentences<br>历史启动指令入口。与 SOW v1.9 冲突时以 SOW 为准。历史正文保留，其中仍有已被取代的句子 |
-| SPEC.md | v0.7 requirements, permissions, state machines, data, API, and exceptions<br>v0.7 需求、权限、状态机、数据、API 与异常 |
-| PLAN.md | v0.7 task breakdown. P0 is T01–T08 and T10–T12. T01 is done. T02 binds the activation to the entered email. REQ-AUTH-12, T09, and T13 are P1<br>v0.7 任务拆分。P0 为 T01–T08 与 T10–T12。T01 已完成。T02 把激活绑定到被输入的邮箱。REQ-AUTH-12、T09 与 T13 属于 P1 |
+| SOW.md | v1.10 execution baseline. The invitation code is not bound to an email, and that rule is MVP<br>v1.10 执行基线。邀请码不绑定邮箱，且该规则属于 MVP |
+| VIBE_CODING_INPUT.md | Historical launch-instruction entry point. Where it conflicts with SOW v1.10, SOW prevails. The historical body is kept and still contains superseded sentences<br>历史启动指令入口。与 SOW v1.10 冲突时以 SOW 为准。历史正文保留，其中仍有已被取代的句子 |
+| SPEC.md | v0.8 requirements, permissions, state machines, data, API, and exceptions<br>v0.8 需求、权限、状态机、数据、API 与异常 |
+| PLAN.md | v0.8 task breakdown. P0 is T01–T08 and T10–T12. T01 is done. T02 implements invitation codes that are not bound to an email. T09 and T13 are P1<br>v0.8 任务拆分。P0 为 T01–T08 与 T10–T12。T01 已完成。T02 实现不绑定邮箱的邀请码。T09 与 T13 属于 P1 |
 | CURSOR_REVIEW.md | 2026-10-01 design-consistency review, plus the user's later decisions in Section 4<br>2026-10-01 设计一致性复核，以及第 4 节中用户随后作出的决定 |
 | PROGRESS.md | Current phase, task status, blockers, next steps<br>当前阶段、任务状态、阻塞、下一步 |
 | SESSIONS.md | Appended log of each session<br>每次会话追加记录 |

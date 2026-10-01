@@ -262,3 +262,24 @@ Implement PLAN.md T02 against SPEC.md v0.6 REQ-AUTH-01. Activation emails are bo
 ### First Step Next Time / 下次第一步
 
 Implement PLAN.md T02 against SPEC.md v0.7 REQ-AUTH-01. The MVP invitation is bound to the entered email. Do not implement REQ-AUTH-12. Do not redo T01.<br>按 SPEC.md v0.7 REQ-AUTH-01 实现 PLAN.md T02。MVP 的邀请绑定被输入的邮箱。不要实现 REQ-AUTH-12。不要重做 T01。
+
+---
+
+## Session 2026-10-02-01 (Ended) / 会话 2026-10-02-01（已结束）
+
+- Date/Timezone: 2026-10-02, UTC+8<br>日期/时区：2026-10-02，UTC+8
+- Goal: move "invitation code is not bound to an email" into the MVP, so a later multi-case change does not need a second rule. Markdown only.<br>本次目标：把「邀请码不绑定邮箱」放进 MVP，以免以后多个案件时再换一套规则。只改 Markdown。
+
+### Actual Actions / 实际动作
+
+1. Wrote SOW v1.10, SPEC v0.8, and PLAN v0.8. REQ-AUTH-12 is now MVP and is part of T02. The activation email is still sent only to the entered address, and that address is not an acceptance check.<br>写入 SOW v1.10、SPEC v0.8 与 PLAN v0.8。REQ-AUTH-12 现为 MVP，并属于 T02。激活邮件仍只发给被输入的地址，该地址不作为接受条件。
+2. Synced GLOSSARY, CONTEXT, PROGRESS, CURSOR_REVIEW section 7, and the VIBE banner. Source code was not changed. These docs are then committed and pushed as the GitHub baseline.<br>同步了 GLOSSARY、CONTEXT、PROGRESS、CURSOR_REVIEW 第 7 节和 VIBE 文首。未改源代码。这些文档随后作为 GitHub 基线提交并推送。
+
+### Changed Files / 变更文件
+
+- Modified: SOW.md, SPEC.md, PLAN.md, GLOSSARY.md, CONTEXT.md, PROGRESS.md, CURSOR_REVIEW.md, VIBE_CODING_INPUT.md, SESSIONS.md<br>修改：SOW.md、SPEC.md、PLAN.md、GLOSSARY.md、CONTEXT.md、PROGRESS.md、CURSOR_REVIEW.md、VIBE_CODING_INPUT.md、SESSIONS.md
+- Source code: unchanged<br>源代码：未改
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T02 against SPEC.md v0.8 REQ-AUTH-01 and REQ-AUTH-12. The invitation code is not bound to an email. Do not redo T01.<br>按 SPEC.md v0.8 REQ-AUTH-01 与 REQ-AUTH-12 实现 PLAN.md T02。邀请码不绑定邮箱。不要重做 T01。

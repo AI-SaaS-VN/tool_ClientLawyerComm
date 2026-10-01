@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.7 | Date: 2026-10-01
-- 版本：0.7｜日期：2026-10-01
-- Basis: SPEC.md v0.7, SOW.md v1.9. T02 implements the MVP path: the activation is bound to the entered email. An invitation code that is not bound to an email is P1 (REQ-AUTH-12) and is not a P0 task. P0 tasks are T01–T08 and T10–T12 (11 tasks). T09 and T13 are P1 and do not block P0.
-- 依据：SPEC.md v0.7、SOW.md v1.9。T02 实现 MVP 路径：激活绑定被输入的邮箱。不绑定邮箱的邀请码属于 P1（REQ-AUTH-12），不是 P0 任务。P0 任务为 T01–T08 与 T10–T12（11 个）。T09 与 T13 属于 P1，不阻塞 P0。
+- Version: 0.8 | Date: 2026-10-02
+- 版本：0.8｜日期：2026-10-02
+- Basis: SPEC.md v0.8, SOW.md v1.10. T02 implements the MVP path: the invitation code is not bound to an email (REQ-AUTH-01, REQ-AUTH-12). The activation email is still sent only to the entered address. P0 tasks are T01–T08 and T10–T12 (11 tasks). T09 and T13 are P1 and do not block P0.
+- 依据：SPEC.md v0.8、SOW.md v1.10。T02 实现 MVP 路径：邀请码不绑定邮箱（REQ-AUTH-01、REQ-AUTH-12）。激活邮件仍只发给被输入的地址。P0 任务为 T01–T08 与 T10–T12（11 个）。T09 与 T13 属于 P1，不阻塞 P0。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -59,14 +59,14 @@
 
 ## T02 Invitation-based Registration and Login (MVP: Email OTP Only) / T02 邀请注册与登录（MVP 仅邮箱 OTP）
 
-- Goal: enter a participant email and send an activation email only to that address; acceptance, revocation, and resend; email OTP login (EmailProvider interface + mock; **phone OTP and SmsProvider stay P1**); the activation grants only the named Case; administrator accounts stay on the local bootstrap path (MFA in T11). Priority P0.
-- 目标：输入参与人邮箱，且只向该地址发送激活邮件；接受、撤销与重发；邮箱验证码登录（EmailProvider 接口＋模拟；**手机验证码与 SmsProvider 仍为 P1**）；激活只授予所写明的案件；管理员账号仍走本地引导（MFA 在 T11）。优先级 P0。
-- SPEC references: REQ-AUTH-01~08, REQ-AUTH-10, REQ-AUTH-11; REQ-PM-02/09/10. Acceptance: the mock-chain part of AC01 (real channels belong to T12).
-- SPEC 引用：REQ-AUTH-01~08、REQ-AUTH-10、REQ-AUTH-11；REQ-PM-02/09/10。验收：AC01 模拟链路部分（真实渠道属 T12）。
+- Goal: enter a notification email and send an activation email only to that address; the invitation code is not bound to that email; acceptance, revocation, and resend; email OTP login (EmailProvider interface + mock; **phone OTP and SmsProvider stay P1**); accepting grants only the named Case; an already logged-in Lawyer accepts a second Case on the same account; administrator accounts stay on the local bootstrap path (MFA in T11). Priority P0.
+- 目标：输入通知邮箱，且只向该地址发送激活邮件；邀请码不绑定该邮箱；接受、撤销与重发；邮箱验证码登录（EmailProvider 接口＋模拟；**手机验证码与 SmsProvider 仍为 P1**）；接受只授予所写明的案件；已登录的律师用同一账号接受第二个案件；管理员账号仍走本地引导（MFA 在 T11）。优先级 P0。
+- SPEC references: REQ-AUTH-01~08, REQ-AUTH-10, REQ-AUTH-11, REQ-AUTH-12; REQ-PM-02/09/10. Acceptance: the mock-chain part of AC01 (real channels belong to T12).
+- SPEC 引用：REQ-AUTH-01~08、REQ-AUTH-10、REQ-AUTH-11、REQ-AUTH-12；REQ-PM-02/09/10。验收：AC01 模拟链路部分（真实渠道属 T12）。
 - Dependencies: T01.
 - 依赖：T01。
-- Acceptance criteria: under the mock Provider, an activation is sent only to the entered email; a different email cannot accept it; accepting it grants only that Case and role; expiry/replay/wrong-code lockout/rate limiting follow REQ-AUTH-03; revoking an activation invalidates it immediately; resending invalidates the old activation and sends only to the original address; plaintext OTPs never appear in the database or logs; an activation cannot create an administrator; on HTTP test origins the session cookie omits `Secure`, and the HTTPS configuration sets it (REQ-AUTH-06). REQ-AUTH-12 (an additional-case code not bound to an email) is P1 and is not accepted in T02.
-- 验收标准：模拟 Provider 下，激活邮件只发给被输入的邮箱；其他邮箱不能接受；接受后只获得该案件与角色；过期/重放/错误锁定/频率限制按 REQ-AUTH-03；撤销激活立即失效；重发使旧激活失效且只发给原地址；验证码明文不出现在库与日志；激活不能创建管理员；HTTP 测试源上的会话 Cookie 不带 `Secure`，HTTPS 配置则带上（REQ-AUTH-06）。REQ-AUTH-12（不绑定邮箱的追加案件邀请码）属于 P1，不在 T02 验收。
+- Acceptance criteria: under the mock Provider, an activation is sent only to the entered notification email; the code is not rejected because the account email differs from that address; a logged-in Lawyer accepts a second Case code on the same account and no second account is created; a different role cannot accept it; accepting grants only that Case and role; expiry/replay/wrong-code lockout/rate limiting follow REQ-AUTH-03; revoking a code invalidates it immediately; resending invalidates the old code and sends only to the original notification address; plaintext OTPs never appear in the database or logs; an invitation cannot create an administrator; on HTTP test origins the session cookie omits `Secure`, and the HTTPS configuration sets it (REQ-AUTH-06).
+- 验收标准：模拟 Provider 下，激活邮件只发给被输入的通知邮箱；不因账号邮箱与该地址不同而拒绝邀请码；已登录的律师用同一账号接受第二个案件的邀请码，且不创建第二个账号；其他角色不能接受；接受后只获得该案件与角色；过期/重放/错误锁定/频率限制按 REQ-AUTH-03；撤销邀请码立即失效；重发使旧码失效且只发给原通知地址；验证码明文不出现在库与日志；邀请不能创建管理员；HTTP 测试源上的会话 Cookie 不带 `Secure`，HTTPS 配置则带上（REQ-AUTH-06）。
 - Expected new/modified: `src/modules/auth/**`, `src/modules/invites/**`, `src/server/providers/email/{interface,fake}.ts`, `prisma/migrations/*` (users, contact_channels, invites, otp_challenges, sessions), `src/app/(auth)/**`. SmsProvider files are P1 and are not part of T02.
 - 预计新增/修改：`src/modules/auth/**`、`src/modules/invites/**`、`src/server/providers/email/{interface,fake}.ts`、`prisma/migrations/*`（users、contact_channels、invites、otp_challenges、sessions）、`src/app/(auth)/**`。SmsProvider 文件属于 P1，不属于 T02。
 - Tests to add/update: `tests/unit/auth/otp-rules.test.ts`, `tests/integration/auth/invite-flow.test.ts`, `tests/integration/auth/channel-binding.test.ts`.
@@ -257,8 +257,8 @@
 - SPEC 引用：第17节全部映射；REQ-OPS-04；REQ-OPS-07。
 - Dependencies: T01–T08, T10, T11 (T09 has moved to P1).
 - 依赖：T01–T08、T10、T11（T09 已移 P1）。
-- Acceptance criteria: E2E covers the key paths of AC02/AC03/AC05/AC06/AC08/AC09/AC12. AC07 stays in T09 (P1) and is not an MVP pass condition. AC03's required browser pair is Chinese and Vietnamese; English and Traditional Chinese are already covered by T06 mock tests. The runbook is followed once: the administrator creates one fictitious test Case, three activation emails go to the Coordinator, Chinese Client, and Vietnamese Lawyer addresses, each acceptance joins only that Case, and the administrator is not a chat member. Restore-drill report (message/member/file association checks pass); real-email delivery report; network test report (time/network/sample size/P50/P95/failure rate). **Simulated success does not count as real delivery; when external resources are not in place, the related items are marked "Blocked" rather than passed.**
-- 验收标准：E2E 覆盖 AC02/AC03/AC05/AC06/AC08/AC09/AC12 关键路径。AC07 留在 T09（P1），不是 MVP 的通过条件。AC03 的必测浏览器组合是中文与越南语；英语与繁体中文已由 T06 的模拟测试覆盖。运行指引实际走一遍：管理员创建一个虚构测试案件，三封激活邮件分别发给协调员、中国客户、越南律师的邮箱，每次接受只加入该案件，管理员不是聊天成员。恢复演练报告（消息/成员/文件关联核查通过）；真实邮件送达报告；网络测试报告（时间/网络/样本数/P50/P95/失败率）。**模拟成功不视为真实送达；外部资源未到位时相关项标记「阻塞」而非通过。**
+- Acceptance criteria: E2E covers the key paths of AC02/AC03/AC05/AC06/AC08/AC09/AC12. AC07 stays in T09 (P1) and is not an MVP pass condition. AC03's required browser pair is Chinese and Vietnamese; English and Traditional Chinese are already covered by T06 mock tests. The runbook is followed once: the administrator creates one fictitious test Case, three activation emails go to the Coordinator, Chinese Client, and Vietnamese Lawyer addresses, each code is not bound to that mailbox, each acceptance joins only that Case, and the administrator is not a chat member. The same-account second Case is covered by T02, not by this one-Case runbook. Restore-drill report (message/member/file association checks pass); real-email delivery report; network test report (time/network/sample size/P50/P95/failure rate). **Simulated success does not count as real delivery; when external resources are not in place, the related items are marked "Blocked" rather than passed.**
+- 验收标准：E2E 覆盖 AC02/AC03/AC05/AC06/AC08/AC09/AC12 关键路径。AC07 留在 T09（P1），不是 MVP 的通过条件。AC03 的必测浏览器组合是中文与越南语；英语与繁体中文已由 T06 的模拟测试覆盖。运行指引实际走一遍：管理员创建一个虚构测试案件，三封激活邮件分别发给协调员、中国客户、越南律师的邮箱，每个邀请码都不绑定该邮箱，每次接受只加入该案件，管理员不是聊天成员。同一账号的第二个案件由 T02 覆盖，不由这份单案件运行指引覆盖。恢复演练报告（消息/成员/文件关联核查通过）；真实邮件送达报告；网络测试报告（时间/网络/样本数/P50/P95/失败率）。**模拟成功不视为真实送达；外部资源未到位时相关项标记「阻塞」而非通过。**
 - Expected new/modified: `tests/e2e/**`, `src/app/(app)/admin/test-case/**`, `scripts/backup.sh`, `scripts/restore-drill.sh`, `docs/runbook/mvp-test-case.md`, `docs/deployment.md`.
 - 预计新增/修改：`tests/e2e/**`、`src/app/(app)/admin/test-case/**`、`scripts/backup.sh`、`scripts/restore-drill.sh`、`docs/runbook/mvp-test-case.md`、`docs/deployment.md`。
 - Tests to add/update: `tests/e2e/dual-user.spec.ts`, `tests/e2e/review-alert.spec.ts`, `tests/e2e/admin-test-case.spec.ts`.
