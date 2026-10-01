@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.5 | Date: 2026-10-01
-- 版本：0.5｜日期：2026-10-01
-- Basis: SPEC.md v0.5, SOW.md v1.7. v0.3 was frozen and T01 is done (commit cea7e37). v0.5 records the user's confirmation of the v0.4 defaults and the sole-reviewer prompt-and-confirm rule (T07 / REQ-REV-06). P0 tasks are T01–T08 and T10–T12 (11 tasks). T09 and T13 are P1 and do not block P0.
-- 依据：SPEC.md v0.5、SOW.md v1.7。v0.3 已冻结，T01 已完成（提交 cea7e37）。v0.5 记录用户对 v0.4 默认值的确认，以及唯一审核人提示后确认发布（T07 / REQ-REV-06）。P0 任务为 T01–T08 与 T10–T12（11 个）。T09 与 T13 属于 P1，不阻塞 P0。
+- Version: 0.7 | Date: 2026-10-01
+- 版本：0.7｜日期：2026-10-01
+- Basis: SPEC.md v0.7, SOW.md v1.9. T02 implements the MVP path: the activation is bound to the entered email. An invitation code that is not bound to an email is P1 (REQ-AUTH-12) and is not a P0 task. P0 tasks are T01–T08 and T10–T12 (11 tasks). T09 and T13 are P1 and do not block P0.
+- 依据：SPEC.md v0.7、SOW.md v1.9。T02 实现 MVP 路径：激活绑定被输入的邮箱。不绑定邮箱的邀请码属于 P1（REQ-AUTH-12），不是 P0 任务。P0 任务为 T01–T08 与 T10–T12（11 个）。T09 与 T13 属于 P1，不阻塞 P0。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -54,19 +54,19 @@
 - 同步测试：`tests/unit/health.test.ts`、`tests/e2e/smoke.spec.ts`。
 - Test commands: `npm run test` (unit), `npm run test:e2e` (smoke).
 - 测试命令：`npm run test`（单元）、`npm run test:e2e`（冒烟）。
-- Status: Done (2026-10-01, commit cea7e37). Do not re-implement. Prisma 7 connection lives in `prisma.config.ts` with the `pg` adapter.
-- 状态：已完成（2026-10-01，提交 cea7e37）。不要重做。Prisma 7 的连接写在 `prisma.config.ts`，使用 `pg` adapter。
+- Status: Done. Re-checked 2026-10-01: containers healthy, `npm run test` 1 passed, `npm run test:e2e` health check passed. Commit cea7e37. Prisma 7 connection lives in `prisma.config.ts` with the `pg` adapter. Migration replay was verified earlier the same day and was not repeated, because reset would wipe the development database.
+- 状态：已完成。2026-10-01 复核：容器健康，`npm run test` 1 项通过，`npm run test:e2e` 健康检查通过。提交 cea7e37。Prisma 7 的连接写在 `prisma.config.ts`，使用 `pg` adapter。迁移重放已在当天早些时候验证，本次未再执行，因为 reset 会清空开发数据库。
 
 ## T02 Invitation-based Registration and Login (MVP: Email OTP Only) / T02 邀请注册与登录（MVP 仅邮箱 OTP）
 
-- Goal: invite-code creation/acceptance/revocation/resend; email Verification Code (OTP) login (EmailProvider interface + mock implementation; **phone OTP and SmsProvider move to P1**, v1.4); session management; administrator account framework (separate role; MFA completed in T11). Priority P0.
-- 目标：邀请码创建/接受/撤销/重发；邮箱验证码登录（EmailProvider 接口＋模拟实现；**手机号验证码与 SmsProvider 移 P1**，v1.4）；会话管理；管理员账号框架（独立角色，T11 完成 MFA）。优先级 P0。
+- Goal: enter a participant email and send an activation email only to that address; acceptance, revocation, and resend; email OTP login (EmailProvider interface + mock; **phone OTP and SmsProvider stay P1**); the activation grants only the named Case; administrator accounts stay on the local bootstrap path (MFA in T11). Priority P0.
+- 目标：输入参与人邮箱，且只向该地址发送激活邮件；接受、撤销与重发；邮箱验证码登录（EmailProvider 接口＋模拟；**手机验证码与 SmsProvider 仍为 P1**）；激活只授予所写明的案件；管理员账号仍走本地引导（MFA 在 T11）。优先级 P0。
 - SPEC references: REQ-AUTH-01~08, REQ-AUTH-10, REQ-AUTH-11; REQ-PM-02/09/10. Acceptance: the mock-chain part of AC01 (real channels belong to T12).
 - SPEC 引用：REQ-AUTH-01~08、REQ-AUTH-10、REQ-AUTH-11；REQ-PM-02/09/10。验收：AC01 模拟链路部分（真实渠道属 T12）。
 - Dependencies: T01.
 - 依赖：T01。
-- Acceptance criteria: the email registration/login chain is completed under the mock Provider; expiry/replay/wrong-code lockout/rate limiting take effect per REQ-AUTH-03; revoking an invite invalidates it immediately; resending invalidates the old code; after registration the user has no case permissions; plaintext OTPs never appear in the database or logs; administrator accounts and ordinary role accounts cannot be shared; a Case invite cannot create an administrator; on HTTP test origins the session cookie omits `Secure`, and the HTTPS configuration sets it (REQ-AUTH-06).
-- 验收标准：模拟 Provider 下完成邮箱注册登录链路；过期/重放/错误锁定/频率限制按 REQ-AUTH-03 生效；撤销邀请立即失效；重发使旧码失效；注册后无案件权限；验证码明文不出现在库与日志；管理员账号与普通角色账号不可共用；案件邀请不能创建管理员；HTTP 测试源上的会话 Cookie 不带 `Secure`，HTTPS 配置则带上（REQ-AUTH-06）。
+- Acceptance criteria: under the mock Provider, an activation is sent only to the entered email; a different email cannot accept it; accepting it grants only that Case and role; expiry/replay/wrong-code lockout/rate limiting follow REQ-AUTH-03; revoking an activation invalidates it immediately; resending invalidates the old activation and sends only to the original address; plaintext OTPs never appear in the database or logs; an activation cannot create an administrator; on HTTP test origins the session cookie omits `Secure`, and the HTTPS configuration sets it (REQ-AUTH-06). REQ-AUTH-12 (an additional-case code not bound to an email) is P1 and is not accepted in T02.
+- 验收标准：模拟 Provider 下，激活邮件只发给被输入的邮箱；其他邮箱不能接受；接受后只获得该案件与角色；过期/重放/错误锁定/频率限制按 REQ-AUTH-03；撤销激活立即失效；重发使旧激活失效且只发给原地址；验证码明文不出现在库与日志；激活不能创建管理员；HTTP 测试源上的会话 Cookie 不带 `Secure`，HTTPS 配置则带上（REQ-AUTH-06）。REQ-AUTH-12（不绑定邮箱的追加案件邀请码）属于 P1，不在 T02 验收。
 - Expected new/modified: `src/modules/auth/**`, `src/modules/invites/**`, `src/server/providers/email/{interface,fake}.ts`, `prisma/migrations/*` (users, contact_channels, invites, otp_challenges, sessions), `src/app/(auth)/**`. SmsProvider files are P1 and are not part of T02.
 - 预计新增/修改：`src/modules/auth/**`、`src/modules/invites/**`、`src/server/providers/email/{interface,fake}.ts`、`prisma/migrations/*`（users、contact_channels、invites、otp_challenges、sessions）、`src/app/(auth)/**`。SmsProvider 文件属于 P1，不属于 T02。
 - Tests to add/update: `tests/unit/auth/otp-rules.test.ts`, `tests/integration/auth/invite-flow.test.ts`, `tests/integration/auth/channel-binding.test.ts`.
@@ -84,8 +84,8 @@
 - SPEC 引用：REQ-PM-01~10、REQ-CASE-01~06。验收：AC02（越权部分）、AC09（归档部分）。
 - Dependencies: T02.
 - 依赖：T02。
-- Acceptance criteria: creating a Case without a title of 1–80 characters is rejected (REQ-CASE-01); `POST /api/cases/:id/members` creates an invitation and does not activate membership before accept; when a Lawyer participates in two cases, directly requesting the other case's API is denied; any non-member request for any case resource is denied; after a member is revoked, new requests are denied immediately; a Lawyer cannot list all Clients on the platform. Client-side draft isolation is P1 (REQ-CASE-04) and is not built here.
-- 验收标准：创建案件时标题不是 1–80 个字符则拒绝（REQ-CASE-01）；`POST /api/cases/:id/members` 只创建邀请，接受前不激活成员资格；律师参与两案时，直接请求另一案 API 被拒；非成员请求任何案件资源被拒；撤销成员后新请求立即被拒；律师不能列全平台客户。客户端草稿隔离属于 P1（REQ-CASE-04），不在本任务实现。
+- Acceptance criteria: creating a Case without a title of 1–80 characters is rejected (REQ-CASE-01); `POST /api/cases/:id/invites` requires an email and does not activate membership before that email accepts; when a Lawyer participates in two cases, directly requesting the other case's API is denied; any non-member request for any case resource is denied; after a member is revoked, new requests are denied immediately; a Lawyer cannot list all Clients on the platform. Client-side draft isolation is P1 (REQ-CASE-04) and is not built here.
+- 验收标准：创建案件时标题不是 1–80 个字符则拒绝（REQ-CASE-01）；`POST /api/cases/:id/invites` 必须带邮箱，该邮箱接受前不激活成员资格；律师参与两案时，直接请求另一案 API 被拒；非成员请求任何案件资源被拒；撤销成员后新请求立即被拒；律师不能列全平台客户。客户端草稿隔离属于 P1（REQ-CASE-04），不在本任务实现。
 - Expected new/modified: `src/modules/cases/**`, `src/modules/members/**`, `src/server/guards/**`, `src/app/(app)/cases/**`, `prisma/migrations/*` (cases with required title, case_members with can_manage/can_review, client_profiles, case_applications).
 - 预计新增/修改：`src/modules/cases/**`、`src/modules/members/**`、`src/server/guards/**`、`src/app/(app)/cases/**`、`prisma/migrations/*`（cases 含必填 title，case_members 含 can_manage/can_review，client_profiles，case_applications）。
 - Tests to add/update: `tests/integration/cases/cross-case-denied.test.ts`, `tests/integration/cases/revoke.test.ts`, `tests/integration/cases/title-required.test.ts`.
@@ -251,18 +251,18 @@
 
 ## T12 End-to-end Dual-user + Backup and Restore Drill + Real-channel Acceptance / T12 端到端双用户＋备份恢复演练＋真实链路验收
 
-- Goal: Playwright dual-browser (Chinese/Vietnamese) core journeys; Backup and Restore drill in an isolated environment (verifying the RPO ≤24h / RTO ≤8h targets); AC01/AC08/AC12 **real email** acceptance execution (+86/+84 SMS acceptance moves to P1 with the phone channel, v1.4); AC10 China-Vietnam network experience test; deployment and operations documentation (including Shanghai test-environment IP access and main-site redirect link configuration). Priority P0 (external resource dependencies O02/O05/O07/O08).
-- 目标：Playwright 双浏览器（中/越）核心旅程；隔离环境备份恢复演练（RPO ≤24h/RTO ≤8h 目标验证）；AC01/AC08/AC12 **真实邮件**验收执行（+86/+84 短信验收随手机渠道移 P1，v1.4）；AC10 中越网络体验测试；部署与运行说明（含上海测试环境 IP 访问与主站跳转链接配置）。优先级 P0（外部资源依赖 O02/O05/O07/O08）。
-- SPEC references: all mappings in Section 17; REQ-OPS-04.
-- SPEC 引用：第17节全部映射；REQ-OPS-04。
+- Goal: Playwright dual-browser (Chinese/Vietnamese) core journeys; a runbook that guides the bootstrapped administrator to create one fictitious test Case and enter the Coordinator, Chinese Client, and Vietnamese Lawyer emails (REQ-OPS-07); Backup and Restore drill in an isolated environment (verifying the RPO ≤24h / RTO ≤8h targets); AC01/AC08/AC12 **real email** acceptance execution (+86/+84 SMS acceptance moves to P1 with the phone channel, v1.4); AC10 China-Vietnam network experience test; deployment and operations documentation (including Shanghai test-environment IP access and main-site redirect link configuration). Priority P0 (external resource dependencies O02/O05/O07/O08).
+- 目标：Playwright 双浏览器（中/越）核心旅程；一份运行指引，引导已引导创建的管理员创建一个虚构测试案件并输入协调员、中国客户、越南律师的邮箱（REQ-OPS-07）；隔离环境备份恢复演练（RPO ≤24h/RTO ≤8h 目标验证）；AC01/AC08/AC12 **真实邮件**验收执行（+86/+84 短信验收随手机渠道移 P1，v1.4）；AC10 中越网络体验测试；部署与运行说明（含上海测试环境 IP 访问与主站跳转链接配置）。优先级 P0（外部资源依赖 O02/O05/O07/O08）。
+- SPEC references: all mappings in Section 17; REQ-OPS-04; REQ-OPS-07.
+- SPEC 引用：第17节全部映射；REQ-OPS-04；REQ-OPS-07。
 - Dependencies: T01–T08, T10, T11 (T09 has moved to P1).
 - 依赖：T01–T08、T10、T11（T09 已移 P1）。
-- Acceptance criteria: E2E covers the key paths of AC02/AC03/AC05/AC06/AC08/AC09/AC12. AC07 stays in T09 (P1) and is not an MVP pass condition. AC03's required browser pair is Chinese and Vietnamese; English and Traditional Chinese are already covered by T06 mock tests. Restore-drill report (message/member/file association checks pass); real-email delivery report; network test report (time/network/sample size/P50/P95/failure rate). **Simulated success does not count as real delivery; when external resources are not in place, the related items are marked "Blocked" rather than passed.**
-- 验收标准：E2E 覆盖 AC02/AC03/AC05/AC06/AC08/AC09/AC12 关键路径。AC07 留在 T09（P1），不是 MVP 的通过条件。AC03 的必测浏览器组合是中文与越南语；英语与繁体中文已由 T06 的模拟测试覆盖。恢复演练报告（消息/成员/文件关联核查通过）；真实邮件送达报告；网络测试报告（时间/网络/样本数/P50/P95/失败率）。**模拟成功不视为真实送达；外部资源未到位时相关项标记「阻塞」而非通过。**
-- Expected new/modified: `tests/e2e/**`, `scripts/backup.sh`, `scripts/restore-drill.sh`, `docs/runbook/*.md`, `docs/deployment.md`.
-- 预计新增/修改：`tests/e2e/**`、`scripts/backup.sh`、`scripts/restore-drill.sh`、`docs/runbook/*.md`、`docs/deployment.md`。
-- Tests to add/update: `tests/e2e/dual-user.spec.ts`, `tests/e2e/review-alert.spec.ts`.
-- 同步测试：`tests/e2e/dual-user.spec.ts`、`tests/e2e/review-alert.spec.ts`。
+- Acceptance criteria: E2E covers the key paths of AC02/AC03/AC05/AC06/AC08/AC09/AC12. AC07 stays in T09 (P1) and is not an MVP pass condition. AC03's required browser pair is Chinese and Vietnamese; English and Traditional Chinese are already covered by T06 mock tests. The runbook is followed once: the administrator creates one fictitious test Case, three activation emails go to the Coordinator, Chinese Client, and Vietnamese Lawyer addresses, each acceptance joins only that Case, and the administrator is not a chat member. Restore-drill report (message/member/file association checks pass); real-email delivery report; network test report (time/network/sample size/P50/P95/failure rate). **Simulated success does not count as real delivery; when external resources are not in place, the related items are marked "Blocked" rather than passed.**
+- 验收标准：E2E 覆盖 AC02/AC03/AC05/AC06/AC08/AC09/AC12 关键路径。AC07 留在 T09（P1），不是 MVP 的通过条件。AC03 的必测浏览器组合是中文与越南语；英语与繁体中文已由 T06 的模拟测试覆盖。运行指引实际走一遍：管理员创建一个虚构测试案件，三封激活邮件分别发给协调员、中国客户、越南律师的邮箱，每次接受只加入该案件，管理员不是聊天成员。恢复演练报告（消息/成员/文件关联核查通过）；真实邮件送达报告；网络测试报告（时间/网络/样本数/P50/P95/失败率）。**模拟成功不视为真实送达；外部资源未到位时相关项标记「阻塞」而非通过。**
+- Expected new/modified: `tests/e2e/**`, `src/app/(app)/admin/test-case/**`, `scripts/backup.sh`, `scripts/restore-drill.sh`, `docs/runbook/mvp-test-case.md`, `docs/deployment.md`.
+- 预计新增/修改：`tests/e2e/**`、`src/app/(app)/admin/test-case/**`、`scripts/backup.sh`、`scripts/restore-drill.sh`、`docs/runbook/mvp-test-case.md`、`docs/deployment.md`。
+- Tests to add/update: `tests/e2e/dual-user.spec.ts`, `tests/e2e/review-alert.spec.ts`, `tests/e2e/admin-test-case.spec.ts`.
+- 同步测试：`tests/e2e/dual-user.spec.ts`、`tests/e2e/review-alert.spec.ts`、`tests/e2e/admin-test-case.spec.ts`。
 - Test commands: `npm run test:e2e`, `npm run drill:restore`.
 - 测试命令：`npm run test:e2e`、`npm run drill:restore`。
 - Status: P0, not started. Implement only after the dependencies above are accepted.

@@ -1,7 +1,7 @@
 # GLOSSARY.md — Business Glossary / 业务术语表
 
-> Synchronized with SOW.md Section 2.2 and Section 5.2 at v1.7 (2026-10-01). Contains confirmed business terms only. New terms are registered here before they are used in SPEC/PLAN.
-> 与 SOW.md 第 2.2 节和第 5.2 节 v1.7 同步（2026-10-01）。仅收录已确定的业务术语。新增术语先在此登记，再在 SPEC/PLAN 中使用。
+> Synchronized with SOW.md v1.9 (2026-10-01). MVP activation is bound to the entered email. An additional-case invitation code that is not bound to an email is P1. Contains confirmed business terms only. New terms are registered here before they are used in SPEC/PLAN.
+> 与 SOW.md v1.9 同步（2026-10-01）。MVP 的激活绑定被输入的邮箱。不绑定邮箱的追加案件邀请码属于 P1。仅收录已确定的业务术语。新增术语先在此登记，再在 SPEC/PLAN 中使用。
 
 | Term / 术语 | Meaning in This Project / 本项目中的含义 |
 | --- | --- |
@@ -12,6 +12,7 @@
 | System Operations Administrator<br>系统运维管理员 | An operator who logs in with a dedicated account for service health, configuration, and restricted administration. The account is not shared with a Case Coordinator, Client, or Lawyer, and does not join Case chat by default.<br>使用专门账号登录、负责服务健康、配置与受限管理操作的人员。账号不与案件协调员、客户或律师共用，默认不加入案件聊天 |
 | In-app Confirmation<br>站内确认 | The confirmation made by the recipient, after logging in, within the Case in response to an Urgent Alert; it is the primary evidence that the alert reached the recipient; the system does not provide message read receipts to the other party.<br>收件人登录后在案件内对紧急提醒作出的确认，是提醒触达的主要证据；系统不向另一方提供消息已读回执 |
 | Registered Contact Channel<br>注册联系方式 | The contact channel used for authentication and system notifications (MVP: email only, v1.4; mobile phone P1); not disclosed to other participants by default.<br>用于认证及系统通知的联系方式（MVP 仅邮箱，v1.4；手机号 P1），默认不向其他参与方公开 |
+| Activation Email<br>激活邮件 | (v1.9) MVP sends this only to the address an authorized person entered, and the invitation is bound to that email, because the pilot has one Case. Completing it grants that Case and role only. The System Operations Administrator is not created this way. Later, when one Vietnamese Lawyer joins many Cases, an additional-case invitation code is not bound to an email (REQ-AUTH-12, P1).<br>（v1.9）MVP 只把这封邮件发给被授权的人输入的那个地址，邀请绑定该邮箱，因为试点只有一个案件。完成后只授予该案件与该角色。系统运维管理员不由此创建。以后一名越南律师参加多个案件时，追加案件的邀请码不绑定邮箱（REQ-AUTH-12，P1） |
 | Case Amount<br>案件金额 | Amounts needed to discuss the facts of a case, such as litigation claims, debts, losses, compensation, settlements, and court fees (not restricted).<br>诉讼请求、债权、损失、赔偿、和解以及法院诉讼费等讨论案情所需的金额（不受限） |
 | Litigation Retainer Fees<br>诉讼委托费用 | The only fee topic under content restriction in this phase: an explicit inquiry or negotiation about what the firm charges for the case. Ambiguous mentions pass by default (v1.4).<br>本期唯一受内容限制的费用话题：就律所办理本案收取多少费用所作的显式问询或协商。模糊提及默认放行（v1.4） |
 | Restricted Business Content<br>受限商务内容 | In this phase, refers specifically to content related to Litigation Retainer Fees. Direct contact channels are a separate rule. No other information may be added to this restriction without authorization.<br>本期专指诉讼委托费用相关内容。直接联系渠道是另一条规则。其他信息不得擅自扩入该限制 |

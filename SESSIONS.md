@@ -219,3 +219,46 @@ Read CURSOR_REVIEW.md, then PLAN.md T02 and SPEC.md REQ-AUTH. Do not redo T01.<b
 ### First Step Next Time / 下次第一步
 
 Implement PLAN.md T02 against SPEC.md v0.5 REQ-AUTH. Do not redo T01.<br>按 SPEC.md v0.5 REQ-AUTH 实现 PLAN.md T02。不要重做 T01。
+
+---
+
+## Session 2026-10-01-04 (Ended) / 会话 2026-10-01-04（已结束）
+
+- Date/Timezone: 2026-10-01, UTC+8 (about 22:14 local)<br>日期/时区：2026-10-01，UTC+8（约本地 22:14）
+- Goal: re-check T01, re-check VIBE versus SOW, and record the activation-email rule plus the MVP test-case guide. Markdown only, plus re-running existing T01 tests.<br>本次目标：复核 T01，复核 VIBE 与 SOW，并记录激活邮件规则与 MVP 测试案件指引。只改 Markdown，并重跑已有的 T01 测试。
+
+### Actual Actions / 实际动作
+
+1. T01 re-check: skeleton files and migration `20261001085327_init` are present. `docker compose ps` showed postgres and minio healthy. `npm run test` passed 1 test. `npm run test:e2e` passed `GET /api/health` 200. Did not rerun `migrate reset`.<br>T01 复核：骨架文件与迁移 `20261001085327_init` 都在。`docker compose ps` 显示 postgres 与 minio 健康。`npm run test` 通过 1 项。`npm run test:e2e` 通过 `GET /api/health` 200。未再跑 `migrate reset`。
+2. VIBE_CODING_INPUT.md historical body still conflicts with SOW (phone OTP, mix-up UI, DOCX bilingual, DeepSeek, SMS alerts, "do not code yet"). The banner now says SOW v1.8 wins. The body was not rewritten.<br>VIBE_CODING_INPUT.md 历史正文仍与 SOW 冲突（手机验证码、防串案界面、DOCX 双语、DeepSeek、短信提醒、「先不要编码」）。文首已写明以 SOW v1.8 为准。正文未改写。
+3. User rule recorded as SOW v1.8 / SPEC v0.6 / PLAN v0.6: administrator is local bootstrap only; Coordinator, Chinese Client, and Vietnamese Lawyer get case participation from an activation email sent to the entered address; MVP completion guides the administrator through one fictitious test case with those three emails (REQ-OPS-07, T12).<br>用户规则已写入 SOW v1.8 / SPEC v0.6 / PLAN v0.6：管理员只本地引导；协调员、中国客户、越南律师通过发到被输入邮箱的激活邮件获得案件参与资格；MVP 完成时引导管理员做一个含这三个邮箱的虚构测试案件（REQ-OPS-07、T12）。
+
+### Changed Files / 变更文件
+
+- Modified: VIBE_CODING_INPUT.md, SOW.md, SPEC.md, PLAN.md, GLOSSARY.md, CONTEXT.md, PROGRESS.md, CURSOR_REVIEW.md, SESSIONS.md<br>修改：VIBE_CODING_INPUT.md、SOW.md、SPEC.md、PLAN.md、GLOSSARY.md、CONTEXT.md、PROGRESS.md、CURSOR_REVIEW.md、SESSIONS.md
+- Source code: unchanged<br>源代码：未改
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T02 against SPEC.md v0.6 REQ-AUTH-01. Activation emails are bound to the entered address. Do not redo T01.<br>按 SPEC.md v0.6 REQ-AUTH-01 实现 PLAN.md T02。激活邮件绑定到被输入的邮箱。不要重做 T01。
+
+---
+
+## Session 2026-10-01-05 (Ended) / 会话 2026-10-01-05（已结束）
+
+- Date/Timezone: 2026-10-01, UTC+8<br>日期/时区：2026-10-01，UTC+8
+- Goal: split invitation binding. MVP (one Case) binds the invitation to the entered email. Later, when one Vietnamese Lawyer joins many Cases, the additional-case invitation code is not bound to an email. Markdown only.<br>本次目标：拆分邀请绑定。MVP（一个案件）把邀请绑定到被输入的邮箱。以后一名越南律师参加多个案件时，追加案件的邀请码不绑定邮箱。只改 Markdown。
+
+### Actual Actions / 实际动作
+
+1. Wrote SOW v1.9, SPEC v0.7 REQ-AUTH-12 (P1), and PLAN v0.7. T02 still implements only the email-bound MVP path.<br>写入 SOW v1.9、SPEC v0.7 REQ-AUTH-12（P1）与 PLAN v0.7。T02 仍只实现绑定邮箱的 MVP 路径。
+2. Synced GLOSSARY, CONTEXT, PROGRESS, CURSOR_REVIEW section 6, and the VIBE banner. Source code was not changed. No commit.<br>同步了 GLOSSARY、CONTEXT、PROGRESS、CURSOR_REVIEW 第 6 节和 VIBE 文首。未改源代码。未提交。
+
+### Changed Files / 变更文件
+
+- Modified: SOW.md, SPEC.md, PLAN.md, GLOSSARY.md, CONTEXT.md, PROGRESS.md, CURSOR_REVIEW.md, VIBE_CODING_INPUT.md, SESSIONS.md<br>修改：SOW.md、SPEC.md、PLAN.md、GLOSSARY.md、CONTEXT.md、PROGRESS.md、CURSOR_REVIEW.md、VIBE_CODING_INPUT.md、SESSIONS.md
+- Source code: unchanged<br>源代码：未改
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T02 against SPEC.md v0.7 REQ-AUTH-01. The MVP invitation is bound to the entered email. Do not implement REQ-AUTH-12. Do not redo T01.<br>按 SPEC.md v0.7 REQ-AUTH-01 实现 PLAN.md T02。MVP 的邀请绑定被输入的邮箱。不要实现 REQ-AUTH-12。不要重做 T01。
