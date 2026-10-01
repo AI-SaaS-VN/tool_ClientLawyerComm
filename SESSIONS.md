@@ -159,3 +159,9 @@ User reviews SPEC.md / PLAN.md; after freezing the versions, initialize git and 
 
 1. SMTP smoke send: 465/SSL timed out — outbound 465 is blocked on this dev VPS; 587 reachable. Switched .env to SMTP_PORT=587 + STARTTLS and re-ran: **send succeeded**. .env.example gained the SMTP template (placeholders only); the 465-blocked note went into LOCAL_DEV_NOTES.md.<br>SMTP 冒烟发送：465/SSL 超时——本研发 VPS 出站 465 被封，587 可达。.env 改用 587＋STARTTLS 后复测**发送成功**。.env.example 增加 SMTP 模板（仅占位）；465 被封一事记入 LOCAL_DEV_NOTES.md。
 2. User confirmed email capability. Preparation phase now fully complete: GitHub ✓, Cloudflare ✓, Kimi ✓, Lighthouse ✓ (cleaned + hardened), SMTP ✓, docs frozen ✓, T01 ✓. Next: T02 (invitation registration + email OTP).<br>用户确认邮件能力。准备阶段全部完成：GitHub ✓、Cloudflare ✓、Kimi ✓、Lighthouse ✓（已清理加固）、SMTP ✓、文档冻结 ✓、T01 ✓。下一步：T02（邀请注册＋邮箱 OTP）。
+
+---
+
+## Session close / 会话结束（2026-10-01，UTC）
+
+User exited. All work recorded and pushed (f490866). State: preparation phase complete, T01 done, next = T02 (invitation registration + email OTP). Resume by reading: 项目指令 → SESSIONS.md 最新记录 → PROGRESS.md → PLAN.md T02 → SPEC.md REQ-AUTH.<br>用户退出。全部工作已记录并推送（f490866）。状态：准备阶段完成、T01 完成、下一项 T02（邀请注册＋邮箱 OTP）。恢复时阅读：项目指令 → SESSIONS.md 最新记录 → PROGRESS.md → PLAN.md T02 → SPEC.md REQ-AUTH。
