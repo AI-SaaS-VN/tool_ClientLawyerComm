@@ -5,9 +5,9 @@
 
 ## Current Phase / 当前阶段
 
-**Docs frozen; T01 in progress (blocked on Prisma 7 config migration).** Bilingual design docs (SOW v1.5 / SPEC v0.3 / PLAN v0.3) committed and pushed to GitHub (root commit fa4d85d). T01 skeleton largely done; remaining: Prisma 7 config + migration, run test suites, commit.
+**T01 done; T02 next.** Docs frozen (commit fa4d85d); T01 skeleton + test infrastructure complete and pushed (commit cea7e37): Next 16.3.8 / Prisma 7.10.0 (prisma.config.ts adapter) / Vitest / Playwright / docker-compose (postgres + bitnamilegacy minio). All acceptance commands green.
 
-**文档已冻结；T01 进行中（卡在 Prisma 7 配置迁移）。** 双语设计文档（SOW v1.5 / SPEC v0.3 / PLAN v0.3）已提交并推送 GitHub（首次提交 fa4d85d）。T01 骨架大部分完成；剩余：Prisma 7 配置与迁移、跑测试、提交。
+**T01 完成，下一项 T02。** 文档已冻结（提交 fa4d85d）；T01 骨架与测试基建完成并推送（提交 cea7e37）：Next 16.3.8 / Prisma 7.10.0（prisma.config.ts adapter）/ Vitest / Playwright / docker-compose（postgres + bitnamilegacy minio）。验收命令全部通过。
 
 ## T01 Status / T01 状态
 

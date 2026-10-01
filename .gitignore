@@ -6,3 +6,4 @@ dist/
 playwright-report/
 test-results/
 *.log
+LOCAL_DEV_NOTES.md
