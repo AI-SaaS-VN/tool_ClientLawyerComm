@@ -7,26 +7,116 @@ datasource db {
 }
 
 model User {
-  id          String    @id @default(uuid()) @db.Uuid
-  displayName String    @map("display_name")
-  globalRole  String    @map("global_role") @default("client")
-  status      String    @default("active")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  sessions    Session[]
+  id             String           @id @default(uuid()) @db.Uuid
+  displayName    String           @map("display_name")
+  globalRole     String           @map("global_role") @default("client")
+  status         String           @default("active")
+  preferredLang  String?          @map("preferred_lang")
+  uiLang         String?          @map("ui_lang")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  sessions       Session[]
+  channels       ContactChannel[]
+  memberships    CaseMember[]
+  invitesCreated Invite[]         @relation("InviteCreator")
 
   @@map("users")
 }
 
 model Session {
-  id           String    @id @default(uuid()) @db.Uuid
+  id           String    @id @default(uuid())
   userId       String    @map("user_id") @db.Uuid
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt    DateTime  @map("expires_at")
   lastActiveAt DateTime  @default(now()) @map("last_active_at")
   revokedAt    DateTime? @map("revoked_at")
   createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("sessions")
+}
+
+model ContactChannel {
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String         @default("email")
+  valueEnc      String         @map("value_enc")
+  valueHash     String         @unique @map("value_hash")
+  verifiedAt    DateTime?      @map("verified_at")
+  isPrimary     Boolean        @default(false) @map("is_primary")
+  notifyEnabled Boolean        @default(true) @map("notify_enabled")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  otpChallenges OtpChallenge[]
+
+  @@index([userId])
+  @@map("contact_channels")
+}
+
+model OtpChallenge {
+  id          String         @id @default(uuid()) @db.Uuid
+  channelId   String         @map("channel_id") @db.Uuid
+  channel     ContactChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  purpose     String         @default("login")
+  codeHash    String         @map("code_hash")
+  expiresAt   DateTime       @map("expires_at")
+  attempts    Int            @default(0)
+  lockedUntil DateTime?      @map("locked_until")
+  usedAt      DateTime?      @map("used_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@index([channelId, createdAt])
+  @@map("otp_challenges")
+}
+
+model Case {
+  id        String       @id @default(uuid()) @db.Uuid
+  title     String
+  status    String       @default("active")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  members   CaseMember[]
+  invites   Invite[]
+
+  @@map("cases")
+}
+
+model CaseMember {
+  id         String    @id @default(uuid()) @db.Uuid
+  caseId     String    @map("case_id") @db.Uuid
+  case       Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId     String    @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberRole String    @map("member_role")
+  canManage  Boolean   @default(false) @map("can_manage")
+  canReview  Boolean   @default(false) @map("can_review")
+  status     String    @default("active")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@unique([caseId, userId])
+  @@index([userId])
+  @@map("case_members")
+}
+
+model Invite {
+  id         String    @id @default(uuid()) @db.Uuid
+  codeHash   String    @unique @map("code_hash")
+  sentToEnc  String    @map("sent_to_enc")
+  caseId     String    @map("case_id") @db.Uuid
+  case       Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  role       String
+  expiresAt  DateTime  @map("expires_at")
+  usedAt     DateTime? @map("used_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdBy  String    @map("created_by") @db.Uuid
+  creator    User      @relation("InviteCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@index([caseId])
+  @@map("invites")
 }
