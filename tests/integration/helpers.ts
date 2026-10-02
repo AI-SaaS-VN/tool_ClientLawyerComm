@@ -6,6 +6,8 @@ import { SESSION_COOKIE, createSession } from "@/modules/auth/session";
 import { fakeEmailProvider } from "@/server/providers/email/fake";
 
 export async function resetDatabase(): Promise<void> {
+  await prisma.fileVariant.deleteMany();
+  await prisma.file.deleteMany();
   await prisma.translationVersion.deleteMany();
   await prisma.notificationTask.deleteMany();
   await prisma.reviewTask.deleteMany();
@@ -46,6 +48,28 @@ export function sendJson(
 
 export function cookieHeader(cookie: string | null): Record<string, string> {
   return cookie ? { cookie } : {};
+}
+
+export function uploadFileRequest(
+  caseId: string,
+  cookie: string,
+  name: string,
+  bytes: Buffer,
+): NextRequest {
+  const form = new FormData();
+  form.set("file", new File([new Uint8Array(bytes)], name));
+  return new NextRequest(`http://localhost/api/cases/${caseId}/files`, {
+    method: "POST",
+    headers: { cookie },
+    body: form,
+  });
+}
+
+export function getRequest(
+  path: string,
+  headers: Record<string, string> = {},
+): NextRequest {
+  return new NextRequest(`http://localhost${path}`, { method: "GET", headers });
 }
 
 export function postMessage(

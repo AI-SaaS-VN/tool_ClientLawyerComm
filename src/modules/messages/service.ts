@@ -9,7 +9,7 @@ import {
   type TranslationView,
 } from "@/modules/translation/service";
 import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
-import { listAlertIssueReviewTaskIds, registerHoldAlerts } from "@/server/jobs/queue";
+import { listAlertIssueReviewTaskIds, registerCheckFailedAlerts, registerHoldAlerts } from "@/server/jobs/queue";
 import { publishToCase } from "@/server/sse/hub";
 
 export const MESSAGE_MAX_CHARS = 4000;
@@ -115,11 +115,20 @@ async function runPipeline(message: MessageWithAuthor): Promise<MessageWithAutho
     result = normalizeCheckResult(await getMessageChecker().check(message));
   } catch {
     // REQ-MSG-03: check failure is a distinct state, never auto-published.
-    // TODO(T08): content-free alert to the Coordinator (check_failed_alert).
-    return prisma.message.update({
-      where: { id: message.id },
-      data: { status: "check_failed" },
-      include: { author: true },
+    // The state change and one content-free alert per reviewer (kind
+    // check_failed_alert) commit in the same transaction.
+    return prisma.$transaction(async (tx) => {
+      const failed = await tx.message.update({
+        where: { id: message.id },
+        data: { status: "check_failed" },
+        include: { author: true },
+      });
+      await registerCheckFailedAlerts(tx, {
+        caseId: message.caseId,
+        targetId: message.id,
+        authorId: message.authorId,
+      });
+      return failed;
     });
   }
   if (result.outcome === "needs_review") {

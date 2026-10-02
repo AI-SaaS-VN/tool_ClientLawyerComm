@@ -28,6 +28,7 @@ model User {
   reviewTasksAssigned ReviewTask[]
   reviewTasksDecided ReviewTask[] @relation("ReviewTaskDecider")
   notificationTasksReceived NotificationTask[]
+  filesUploaded    File[]            @relation("FileUploader")
 
   @@map("users")
 }
@@ -97,6 +98,7 @@ model Case {
   messages      Message[]
   reviewTasks   ReviewTask[]
   notificationTasks NotificationTask[]
+  files         File[]
 
   @@map("cases")
 }
@@ -285,4 +287,47 @@ model NotificationTask {
   @@index([caseId, kind])
   @@index([reviewTaskId])
   @@map("notification_tasks")
+}
+
+// Status state machine: SPEC 8.1 (status CHECK is hand-added in the
+// migration). storage_key points into the private quarantine prefix and is
+// never exposed through API views (REQ-FILE-02); originals are immutable —
+// orig_hash/uploader/time are set once at upload (REQ-FILE-04).
+model File {
+  id           String    @id @default(uuid()) @db.Uuid
+  caseId       String    @map("case_id") @db.Uuid
+  case         Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  uploaderId   String    @map("uploader_id") @db.Uuid
+  uploader     User      @relation("FileUploader", fields: [uploaderId], references: [id])
+  status       String    @default("uploaded")
+  origHash     String    @map("orig_hash")
+  storageKey   String    @map("storage_key")
+  mime         String
+  sizeBytes    Int       @map("size_bytes")
+  originalName String    @map("original_name")
+  publishedAt  DateTime? @map("published_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  variants     FileVariant[]
+
+  @@index([caseId, status])
+  @@map("files")
+}
+
+// kind CHECK is hand-added in the migration ('original'/'shared_copy';
+// 'bilingual' is P1 and not created). Shared copies are stored separately
+// from the original and linked back via source_version (REQ-FILE-04).
+model FileVariant {
+  id            String   @id @default(uuid()) @db.Uuid
+  fileId        String   @map("file_id") @db.Uuid
+  file          File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  kind          String
+  version       Int
+  storageKey    String   @map("storage_key")
+  sourceVersion Int?     @map("source_version")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([fileId, kind, version])
+  @@map("file_variants")
 }

@@ -2,6 +2,7 @@ import type { ReviewTask, User } from "@prisma/client";
 
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
+import { copySharedVersion } from "@/modules/files/service";
 import { toMessageView } from "@/modules/messages/service";
 import { requireCaseMember } from "@/server/guards/case-guards";
 import {
@@ -69,7 +70,20 @@ async function loadTargetAuthor(task: ReviewTask): Promise<{ authorId: string; d
       sourceText: message.sourceText,
     };
   }
-  // 'file' targets arrive with T08.
+  if (task.targetType === "file") {
+    const file = await prisma.file.findUnique({
+      where: { id: task.targetId },
+      include: { uploader: true },
+    });
+    if (!file) throw new ApiError(404, "not_found");
+    // REQ-REV-05 minimum: the reviewer sees the file name under review; the
+    // content itself is pulled through the authorized download path.
+    return {
+      authorId: file.uploaderId,
+      displayName: file.uploader.displayName,
+      sourceText: file.originalName,
+    };
+  }
   throw new ApiError(400, "unsupported_target");
 }
 
@@ -162,6 +176,16 @@ export async function decideReviewTask(
   const taskStatus = action === "approve" ? "approved" : action === "return" ? "returned" : "rejected";
   const messageStatus = action === "approve" ? "published" : taskStatus;
 
+  // REQ-FILE-04/05: approving a file stores the shared copy separately from
+  // the immutable original BEFORE the decision transaction, so a storage
+  // failure leaves the task open and the file unpublished.
+  let sharedCopy: { storageKey: string; version: number } | null = null;
+  if (task.targetType === "file" && action === "approve") {
+    const file = await prisma.file.findUnique({ where: { id: task.targetId } });
+    if (!file) throw new ApiError(404, "not_found");
+    sharedCopy = await copySharedVersion(file);
+  }
+
   const published = await prisma.$transaction(async (tx) => {
     await tx.reviewTask.update({
       where: { id: task.id },
@@ -185,6 +209,26 @@ export async function decideReviewTask(
             include: { author: true },
           })
         : null;
+    if (task.targetType === "file") {
+      await tx.file.update({
+        where: { id: task.targetId },
+        data: {
+          status: messageStatus,
+          publishedAt: action === "approve" ? now : null,
+        },
+      });
+      if (sharedCopy) {
+        await tx.fileVariant.create({
+          data: {
+            fileId: task.targetId,
+            kind: "shared_copy",
+            version: sharedCopy.version,
+            storageKey: sharedCopy.storageKey,
+            sourceVersion: 1,
+          },
+        });
+      }
+    }
     await cancelQueuedAlertsForReviewTask(tx, task.id, now);
     return message;
   });

@@ -131,6 +131,42 @@ export async function registerEscalationAlerts(input: {
   return recipientUserIds.length;
 }
 
+// REQ-FILE-08 / REQ-NTF-05: entering check_failed registers one content-free
+// alert per reviewer in the same transaction as the state change. Recipients
+// are the case's can_review coordinators minus the author (backups only when
+// no reviewer remains, mirroring REQ-NTF-07). The dedupe key carries a
+// per-failure sequence so a failed scan-retry alerts again exactly once.
+export async function registerCheckFailedAlerts(
+  tx: DbTx,
+  input: { caseId: string; targetId: string; authorId: string },
+): Promise<void> {
+  const { reviewers, backups } = await loadReviewersAndBackups(tx, input.caseId);
+  const reviewerOthers = reviewers.filter((id) => id !== input.authorId);
+  const recipientIds =
+    reviewerOthers.length > 0
+      ? reviewerOthers
+      : backups.filter((id) => id !== input.authorId);
+  for (const userId of recipientIds) {
+    const prefix = `check_failed_alert:${input.targetId}:${userId}:`;
+    const seq = (await tx.notificationTask.count({
+      where: { dedupeKey: { startsWith: prefix } },
+    })) + 1;
+    const channel = await pickEmailChannel(tx, userId);
+    // REQ-NTF-12: no valid channel still leaves a visible, failed record.
+    await tx.notificationTask.create({
+      data: {
+        kind: "check_failed_alert",
+        caseId: input.caseId,
+        recipientUserId: userId,
+        recipientChannelId: channel?.id ?? null,
+        status: channel ? "queued" : "failed",
+        lastError: channel ? null : "no_channel",
+        dedupeKey: `${prefix}${seq}`,
+      },
+    });
+  }
+}
+
 // REQ-NTF-13: completing a review cancels its unsent (queued) alerts.
 export async function cancelQueuedAlertsForReviewTask(
   tx: DbTx,

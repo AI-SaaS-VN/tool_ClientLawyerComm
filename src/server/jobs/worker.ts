@@ -4,7 +4,7 @@ import {
   backoffDelayMs,
   groupAlertsIntoBatches,
 } from "@/modules/notifications/dedupe";
-import { buildReviewAlertEmail } from "@/modules/notifications/templates";
+import { buildCheckFailedAlertEmail, buildReviewAlertEmail } from "@/modules/notifications/templates";
 import { prisma } from "@/lib/db";
 import { getEmailProvider } from "@/server/providers/email";
 import type { EmailProvider } from "@/server/providers/email/interface";
@@ -103,7 +103,7 @@ async function sendDueAlerts(
   const now = clock.now();
   const due = await prisma.notificationTask.findMany({
     where: {
-      kind: "review_alert",
+      kind: { in: ["review_alert", "check_failed_alert"] },
       status: "queued",
       OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
     },
@@ -120,8 +120,17 @@ async function sendDueAlerts(
     else summary.failed += 1;
   }
 
-  for (const batch of groupAlertsIntoBatches(sendable).values()) {
-    await submitBatch(batch, clock, emailProvider, summary);
+  // Batches are per (kind, case, recipient): each kind has its own template.
+  const byKind = new Map<string, DueAlert[]>();
+  for (const alert of sendable) {
+    const group = byKind.get(alert.kind);
+    if (group) group.push(alert);
+    else byKind.set(alert.kind, [alert]);
+  }
+  for (const [kind, alerts] of byKind) {
+    for (const batch of groupAlertsIntoBatches(alerts).values()) {
+      await submitBatch(kind, batch, clock, emailProvider, summary);
+    }
   }
 }
 
@@ -190,6 +199,7 @@ async function preSendRecheck(
 // REQ-NTF-10: one email per (case, recipient) batch; every alert in the batch
 // is marked, so a merged batch never drops a pending item.
 async function submitBatch(
+  kind: string,
   batch: Array<{
     id: string;
     caseId: string;
@@ -203,14 +213,18 @@ async function submitBatch(
 ): Promise<void> {
   const first = batch[0]!;
   const now = clock.now();
-  const pendingCount = await prisma.reviewTask.count({
-    where: { caseId: first.caseId, status: "open" },
-  });
-  const email = buildReviewAlertEmail({
-    pendingCount,
-    taskRef: first.reviewTaskId ?? first.id,
-    baseUrl: BASE_URL,
-  });
+  // REQ-FILE-08: check_failed alerts carry no file name or content — only a
+  // non-sensitive alert reference and a login-required link.
+  const email =
+    kind === "check_failed_alert"
+      ? buildCheckFailedAlertEmail({ alertRef: first.id, baseUrl: BASE_URL })
+      : buildReviewAlertEmail({
+          pendingCount: await prisma.reviewTask.count({
+            where: { caseId: first.caseId, status: "open" },
+          }),
+          taskRef: first.reviewTaskId ?? first.id,
+          baseUrl: BASE_URL,
+        });
   const to = decryptText(first.recipientChannel!.valueEnc);
 
   let accepted = false;
