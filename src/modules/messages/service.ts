@@ -4,6 +4,10 @@ import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { getMessageChecker, normalizeCheckResult } from "@/modules/messages/check";
 import { detectSourceLang } from "@/modules/messages/lang";
+import {
+  attachTranslations,
+  type TranslationView,
+} from "@/modules/translation/service";
 import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
 import { publishToCase } from "@/server/sse/hub";
 
@@ -165,13 +169,20 @@ export async function publishMessage(messageId: string): Promise<MessageWithAuth
   return published;
 }
 
+export type ReadingMode = "auto" | "manual";
+
+export type MessageListView = ReturnType<typeof toMessageView> & {
+  translation: TranslationView | null;
+};
+
 export async function listMessages(
   caseId: string,
   user: User,
   after: string | null,
-): Promise<Array<ReturnType<typeof toMessageView>>> {
+  mode: ReadingMode = "auto",
+): Promise<MessageListView[]> {
   await requireCaseMember(caseId, user);
-  if (after) return backfillMessages(caseId, after);
+  if (after) return backfillMessages(caseId, user, after, mode);
 
   // REQ-MSG-03: receivers see published only; the author also sees their own
   // pending/returned/rejected states (REQ-MSG-06).
@@ -182,7 +193,7 @@ export async function listMessages(
   });
   const latestPublished = [...rows].reverse().find((m) => m.status === "published");
   if (latestPublished) await advanceLastRead(caseId, user.id, latestPublished);
-  return rows.map(toMessageView);
+  return attachTranslations(rows.map(toMessageView), user, mode);
 }
 
 // REQ-MSG-05: incremental backfill by last received message id. The cursor is
@@ -190,8 +201,10 @@ export async function listMessages(
 // surfaces after older cursors — no loss, no duplication.
 async function backfillMessages(
   caseId: string,
+  user: User,
   afterId: string,
-): Promise<Array<ReturnType<typeof toMessageView>>> {
+  mode: ReadingMode,
+): Promise<MessageListView[]> {
   const cursor = await prisma.message.findFirst({
     where: { id: afterId, caseId, status: "published" },
   });
@@ -208,7 +221,7 @@ async function backfillMessages(
     include: { author: true },
     orderBy: [{ publishedAt: "asc" }, { id: "asc" }],
   });
-  return rows.map(toMessageView);
+  return attachTranslations(rows.map(toMessageView), user, mode);
 }
 
 // REQ-MSG-07: reading the message list advances the member's own read

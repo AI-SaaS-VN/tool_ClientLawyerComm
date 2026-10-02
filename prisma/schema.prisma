@@ -187,10 +187,34 @@ model Message {
   correctedBy    User?     @relation("MessageCorrector", fields: [correctedById], references: [id])
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
+  translations   TranslationVersion[]
 
   @@unique([caseId, authorId, idempotencyKey])
   @@index([caseId, status, publishedAt])
   @@map("messages")
+}
+
+// One row per translation attempt; revisions/retries insert a higher version
+// and never overwrite older rows (REQ-TR-04). Status/target_lang CHECKs are
+// hand-added in the migration. State machine: SPEC 5.2.
+model TranslationVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  messageId     String   @map("message_id") @db.Uuid
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  targetLang    String   @map("target_lang")
+  version       Int
+  text          String?
+  status        String   @default("queued")
+  provider      String?
+  model         String?
+  promptVersion String?  @map("prompt_version")
+  keyFieldCheck String?  @map("key_field_check")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([messageId, targetLang, version])
+  @@index([messageId, targetLang])
+  @@map("translation_versions")
 }
 
 // target_id is polymorphic (message now, file in T08) and carries no FK.

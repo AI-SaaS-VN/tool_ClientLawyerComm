@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { ApiError } from "@/lib/api-error";
 import { errorResponse, readJson } from "@/lib/http";
 import { requireUser } from "@/modules/auth/require-user";
 import { listMessages, sendMessage } from "@/modules/messages/service";
@@ -23,7 +24,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const user = await requireUser(req);
     const { id: caseId } = await params;
-    const messages = await listMessages(caseId, user, req.nextUrl.searchParams.get("after"));
+    const mode = req.nextUrl.searchParams.get("mode") ?? "auto";
+    if (mode !== "auto" && mode !== "manual") throw new ApiError(400, "invalid_mode");
+    const messages = await listMessages(caseId, user, req.nextUrl.searchParams.get("after"), mode);
     return NextResponse.json({ messages });
   } catch (error) {
     return errorResponse(error);

@@ -1,6 +1,15 @@
 import { normalizeForCheck } from "@/modules/moderation/rules";
 
-import type { FeeIntentInput, FeeIntentVerdict, LlmModerationProvider } from "./interface";
+import type {
+  FeeIntentInput,
+  FeeIntentVerdict,
+  LlmFailureKind,
+  LlmModerationProvider,
+  LlmTranslationProvider,
+  TranslateInput,
+  TranslateResult,
+} from "./interface";
+import { LlmFailure } from "./interface";
 
 // Retainer-fee markers: the subject must be the firm's own fee (律师费/代理费/
 // 委托费/律所收费, phí luật sư, firm/attorney fees) combined with an inquiry or
@@ -51,3 +60,51 @@ class FakeLlmModerationProvider implements LlmModerationProvider {
 }
 
 export const fakeLlmModerationProvider = new FakeLlmModerationProvider();
+
+// Fake translation provider (REQ-TR-08: fixed mock responses verify business
+// logic; real-model evaluation is a separate gate). The default answer echoes
+// the source with a target-language tag, which preserves every key field;
+// tests may pin a fixed response, force a typed failure, and inspect the exact
+// payloads received (REQ-TR-06 minimization assertions).
+class FakeLlmTranslationProvider implements LlmTranslationProvider {
+  readonly id = "fake";
+  readonly calls: TranslateInput[] = [];
+  private fixed: string | ((input: TranslateInput) => string) | null = null;
+  private failure: LlmFailureKind | null = null;
+
+  async translate(input: TranslateInput): Promise<TranslateResult> {
+    this.calls.push({ ...input });
+    if (this.failure) {
+      const kind = this.failure;
+      this.failure = null;
+      throw new LlmFailure(kind);
+    }
+    const text =
+      typeof this.fixed === "function"
+        ? this.fixed(input)
+        : (this.fixed ?? `[${input.targetLang}] ${input.text}`);
+    return {
+      text,
+      model: "fake-translator",
+      modelVersion: "1",
+      promptVersion: "fake-prompt-v1",
+      glossaryVersion: "none",
+    };
+  }
+
+  setFixedResponse(response: string | ((input: TranslateInput) => string)): void {
+    this.fixed = response;
+  }
+
+  failNext(kind: LlmFailureKind): void {
+    this.failure = kind;
+  }
+
+  reset(): void {
+    this.calls.length = 0;
+    this.fixed = null;
+    this.failure = null;
+  }
+}
+
+export const fakeLlmTranslationProvider = new FakeLlmTranslationProvider();

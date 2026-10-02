@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { SESSION_COOKIE, getSessionUser } from "@/modules/auth/session";
 
+import { MessagesPanel } from "./messages-panel";
+
 export const dynamic = "force-dynamic";
 
 export default async function CasePage({ params }: { params: Promise<{ id: string }> }) {
@@ -48,6 +50,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
             </li>
           ))}
       </ul>
+      <MessagesPanel caseId={caseId} />
     </main>
   );
 }
