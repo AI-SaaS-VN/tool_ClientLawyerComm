@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   MAX_NOTIFICATION_ATTEMPTS,
+  URGENT_COOLDOWN_MS,
   backoffDelayMs,
   groupAlertsIntoBatches,
+  isUrgentInCooldown,
+  peerUrgentDedupeKey,
   reviewAlertDedupeKey,
   selectReviewAlertRecipients,
 } from "@/modules/notifications/dedupe";
@@ -90,5 +93,22 @@ describe("groupAlertsIntoBatches (REQ-NTF-10: merged batches)", () => {
       ["a3"],
       ["a4"],
     ]);
+  });
+});
+
+describe("peer urgent cooldown (REQ-NTF-05: 10-minute window)", () => {
+  it("produces per-sequence dedupe keys per case and recipient", () => {
+    expect(peerUrgentDedupeKey("c1", "u1", 1)).toBe("peer_urgent:c1:u1:1");
+    expect(peerUrgentDedupeKey("c1", "u1", 2)).not.toBe(peerUrgentDedupeKey("c1", "u1", 1));
+    expect(peerUrgentDedupeKey("c1", "u2", 1)).not.toBe(peerUrgentDedupeKey("c1", "u1", 1));
+    expect(peerUrgentDedupeKey("c2", "u1", 1)).not.toBe(peerUrgentDedupeKey("c1", "u1", 1));
+  });
+
+  it("keeps clicks inside the window on the existing task and releases them after it", () => {
+    const created = new Date("2026-10-02T12:00:00Z");
+    expect(URGENT_COOLDOWN_MS).toBe(10 * 60_000);
+    expect(isUrgentInCooldown(created, new Date(created.getTime() + 9 * 60_000))).toBe(true);
+    expect(isUrgentInCooldown(created, new Date(created.getTime() + 10 * 60_000))).toBe(false);
+    expect(isUrgentInCooldown(created, new Date(created.getTime() - 1))).toBe(false);
   });
 });

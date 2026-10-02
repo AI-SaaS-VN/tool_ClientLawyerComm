@@ -28,7 +28,7 @@ async function loadReviewersAndBackups(
   };
 }
 
-async function pickEmailChannel(tx: DbTx, userId: string) {
+export async function pickEmailChannel(tx: DbTx, userId: string) {
   return tx.contactChannel.findFirst({
     where: { userId, type: "email", verifiedAt: { not: null }, notifyEnabled: true },
     orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
@@ -176,6 +176,72 @@ export async function cancelQueuedAlertsForReviewTask(
   await tx.notificationTask.updateMany({
     where: { reviewTaskId, status: "queued" },
     data: { status: "cancelled", cancelledAt: now },
+  });
+}
+
+// REQ-NTF-05 / REQ-PM-08: revocation and archive cancel the affected unsent
+// (queued) tasks in the same transaction as the state change; the worker's
+// pre-send re-check remains the backstop for anything registered later.
+export async function cancelQueuedAlertsForRecipient(
+  tx: DbTx,
+  caseId: string,
+  recipientUserId: string,
+  now: Date,
+): Promise<void> {
+  await tx.notificationTask.updateMany({
+    where: { caseId, recipientUserId, status: "queued" },
+    data: { status: "cancelled", cancelledAt: now },
+  });
+}
+
+export async function cancelQueuedAlertsForCase(
+  tx: DbTx,
+  caseId: string,
+  now: Date,
+): Promise<void> {
+  await tx.notificationTask.updateMany({
+    where: { caseId, status: "queued" },
+    data: { status: "cancelled", cancelledAt: now },
+  });
+}
+
+// REQ-NTF-05: a peer_urgent task that reaches its final failure notifies
+// every active can_review coordinator of the case with a content-free
+// urgent_failed_alert, so the delivery failure is never silent. One notice
+// per (failed task, coordinator) — the dedupe key makes re-runs idempotent.
+export async function registerUrgentFailedNotices(input: {
+  caseId: string;
+  peerTaskId: string;
+}): Promise<void> {
+  const coordinators = await prisma.caseMember.findMany({
+    where: {
+      caseId: input.caseId,
+      status: "active",
+      memberRole: "coordinator",
+      canReview: true,
+    },
+    select: { userId: true },
+  });
+  if (coordinators.length === 0) return;
+  await prisma.$transaction(async (tx) => {
+    for (const { userId } of coordinators) {
+      const dedupeKey = `urgent_failed_alert:${input.peerTaskId}:${userId}`;
+      const existing = await tx.notificationTask.findUnique({ where: { dedupeKey } });
+      if (existing) continue;
+      const channel = await pickEmailChannel(tx, userId);
+      // REQ-NTF-12: no valid channel still leaves a visible, failed record.
+      await tx.notificationTask.create({
+        data: {
+          kind: "urgent_failed_alert",
+          caseId: input.caseId,
+          recipientUserId: userId,
+          recipientChannelId: channel?.id ?? null,
+          status: channel ? "queued" : "failed",
+          lastError: channel ? null : "no_channel",
+          dedupeKey,
+        },
+      });
+    }
   });
 }
 

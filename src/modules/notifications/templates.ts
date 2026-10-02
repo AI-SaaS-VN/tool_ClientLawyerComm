@@ -36,3 +36,72 @@ export function buildCheckFailedAlertEmail(input: {
     ].join("\n"),
   };
 }
+
+// REQ-NTF-01/03: the urgent alert goes out in the platform's name, in the
+// recipient's own language, with neutral "please log in to view" wording —
+// no counterparty contact details, no message bodies or attachments, no
+// sensitive case titles, and never the counterparty as Reply-To.
+const PEER_URGENT_COPY: Record<
+  string,
+  { subject: string; body: string; ref: string; link: string }
+> = {
+  "zh-Hans": {
+    subject: "您有案件紧急事项待处理",
+    body: "您有案件紧急事项，请登录查看。",
+    ref: "任务标识",
+    link: "链接（需登录）",
+  },
+  "zh-Hant": {
+    subject: "您有案件緊急事項待處理",
+    body: "您有案件緊急事項，請登入查看。",
+    ref: "任務標識",
+    link: "連結（需登入）",
+  },
+  vi: {
+    subject: "Bạn có việc khẩn cấp trong vụ án cần xử lý",
+    body: "Bạn có việc khẩn cấp trong vụ án, vui lòng đăng nhập để xem.",
+    ref: "Mã tham chiếu",
+    link: "Liên kết (cần đăng nhập)",
+  },
+  en: {
+    subject: "You have an urgent case matter to handle",
+    body: "You have an urgent case matter. Please log in to view it.",
+    ref: "Reference",
+    link: "Link (login required)",
+  },
+};
+
+export function buildPeerUrgentEmail(input: {
+  lang: string | null;
+  taskRef: string;
+  caseId: string;
+  baseUrl: string;
+}): { subject: string; text: string } {
+  const copy = (input.lang && PEER_URGENT_COPY[input.lang]) || PEER_URGENT_COPY["zh-Hans"]!;
+  return {
+    subject: copy.subject,
+    text: [
+      copy.body,
+      `${copy.ref}: ${input.taskRef}`,
+      `${copy.link}: ${input.baseUrl}/cases/${input.caseId}`,
+    ].join("\n"),
+  };
+}
+
+// REQ-NTF-05: when a peer urgent alert reaches its final failure, each
+// can_review coordinator gets this content-free notice so the delivery
+// failure is not silent — no message body and no contact address.
+export function buildUrgentFailedAlertEmail(input: {
+  alertRef: string;
+  baseUrl: string;
+}): { subject: string; text: string } {
+  return {
+    subject: "案件紧急提醒未能送达 / Lợi nhắc khẩn cấp không gửi được",
+    text: [
+      "案件中的一条紧急提醒多次尝试后未能送达，请登录后台跟进。",
+      "Một lợi nhắc khẩn cấp trong vụ án không gửi được sau nhiều lần thử, vui lòng đăng nhập để xử lý.",
+      `任务标识 / Mã tham chiếu: ${input.alertRef}`,
+      `链接（需登录）/ Liên kết (cần đăng nhập): ${input.baseUrl}`,
+    ].join("\n"),
+  };
+}

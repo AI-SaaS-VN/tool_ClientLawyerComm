@@ -6,9 +6,12 @@ import {
   requireCaseManager,
   requireWritableCase,
 } from "@/server/guards/case-guards";
+import { cancelQueuedAlertsForRecipient } from "@/server/jobs/queue";
 
 // Revocation is idempotent and takes effect on the very next request because
-// every guard re-reads this row (REQ-PM-08).
+// every guard re-reads this row (REQ-PM-08). The member's unsent notification
+// tasks (peer_urgent included, REQ-NTF-05) are cancelled in the same
+// transaction; the worker's pre-send re-check is the backstop.
 export async function revokeMember(
   caseId: string,
   targetUserId: string,
@@ -21,9 +24,12 @@ export async function revokeMember(
   });
   if (!member) throw new ApiError(404, "not_found");
   if (member.status !== "revoked") {
-    await prisma.caseMember.update({
-      where: { id: member.id },
-      data: { status: "revoked", revokedAt: new Date() },
+    await prisma.$transaction(async (tx) => {
+      await tx.caseMember.update({
+        where: { id: member.id },
+        data: { status: "revoked", revokedAt: new Date() },
+      });
+      await cancelQueuedAlertsForRecipient(tx, caseId, targetUserId, new Date());
     });
   }
   // TODO(T11): audit; close the member's live SSE connections (T04/T11)

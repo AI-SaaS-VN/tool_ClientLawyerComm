@@ -9,6 +9,7 @@ import {
   requireCaseMember,
   requireWritableCase,
 } from "@/server/guards/case-guards";
+import { cancelQueuedAlertsForCase } from "@/server/jobs/queue";
 
 export { assertValidTitle } from "@/modules/cases/title";
 
@@ -113,9 +114,15 @@ export async function getCaseDetail(caseId: string, user: User) {
 export async function archiveCase(caseId: string, actor: User): Promise<Case> {
   await requireCaseManager(caseId, actor);
   await requireWritableCase(caseId);
-  const kase = await prisma.case.update({
-    where: { id: caseId },
-    data: { status: "archived" },
+  const kase = await prisma.$transaction(async (tx) => {
+    const updated = await tx.case.update({
+      where: { id: caseId },
+      data: { status: "archived" },
+    });
+    // REQ-NTF-05 / REQ-CASE-05: unsent reminders die with the archive in the
+    // same transaction; the worker's stale-alert sweep is the backstop.
+    await cancelQueuedAlertsForCase(tx, caseId, new Date());
+    return updated;
   });
   // TODO(T11): audit
   return kase;

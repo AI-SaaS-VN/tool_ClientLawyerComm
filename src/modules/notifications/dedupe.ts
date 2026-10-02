@@ -13,6 +13,27 @@ export function backoffDelayMs(failedAttempts: number): number | null {
   return minutes === undefined ? null : minutes * 60_000;
 }
 
+// REQ-NTF-05 cooldown: repeated urgent clicks for the same case and recipient
+// inside the window keep only one valid (non-terminal) task; the per-sequence
+// dedupe key below guarantees uniqueness once a new task must be created.
+export const URGENT_COOLDOWN_MS = 10 * 60_000;
+
+// Task states that still count as a live alert for cooldown purposes.
+export const URGENT_OPEN_STATUSES = ["queued", "submitted", "unknown"] as const;
+
+export function peerUrgentDedupeKey(
+  caseId: string,
+  recipientUserId: string,
+  seq: number,
+): string {
+  return `peer_urgent:${caseId}:${recipientUserId}:${seq}`;
+}
+
+export function isUrgentInCooldown(createdAt: Date, now: Date): boolean {
+  const elapsed = now.getTime() - createdAt.getTime();
+  return elapsed >= 0 && elapsed < URGENT_COOLDOWN_MS;
+}
+
 // One alert record per review task, recipient, and escalation level
 // (REQ-NTF-10); re-registration with the same key is a no-op.
 export function reviewAlertDedupeKey(

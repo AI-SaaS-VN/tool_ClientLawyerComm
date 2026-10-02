@@ -4,13 +4,18 @@ import {
   backoffDelayMs,
   groupAlertsIntoBatches,
 } from "@/modules/notifications/dedupe";
-import { buildCheckFailedAlertEmail, buildReviewAlertEmail } from "@/modules/notifications/templates";
+import {
+  buildCheckFailedAlertEmail,
+  buildPeerUrgentEmail,
+  buildReviewAlertEmail,
+  buildUrgentFailedAlertEmail,
+} from "@/modules/notifications/templates";
 import { prisma } from "@/lib/db";
 import { getEmailProvider } from "@/server/providers/email";
 import type { EmailProvider } from "@/server/providers/email/interface";
 
 import { systemClock, type Clock } from "./clock";
-import { registerEscalationAlerts } from "./queue";
+import { registerEscalationAlerts, registerUrgentFailedNotices } from "./queue";
 
 // REQ-NTF-11 [O03]: escalate to the backup coordinator after 30 minutes
 // unpicked, to the operations lead after 2 hours unhandled — elapsed clock
@@ -103,7 +108,7 @@ async function sendDueAlerts(
   const now = clock.now();
   const due = await prisma.notificationTask.findMany({
     where: {
-      kind: { in: ["review_alert", "check_failed_alert"] },
+      kind: { in: ["review_alert", "check_failed_alert", "peer_urgent", "urgent_failed_alert"] },
       status: "queued",
       OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
     },
@@ -134,11 +139,14 @@ async function sendDueAlerts(
   }
 }
 
-// REQ-NTF-13: re-validate the review task, the case, the coordinator's
-// permission, and the channel immediately before sending.
+// REQ-NTF-13: re-validate the review task, the case, the recipient's
+// permission, and the channel immediately before sending. peer_urgent
+// recipients only need an active membership (any role); the coordinator
+// alerts require the reviewer/backup duty flags (or an active ops lead).
 async function preSendRecheck(
   alert: {
     id: string;
+    kind: string;
     recipientUserId: string;
     caseId: string;
     reviewTask: { status: string } | null;
@@ -167,17 +175,21 @@ async function preSendRecheck(
     return "cancel";
   }
   const authorized =
-    alert.recipientUser.globalRole === "ops_lead"
-      ? alert.recipientUser.status === "active"
-      : (await prisma.caseMember.findFirst({
-          where: {
-            caseId: alert.caseId,
-            userId: alert.recipientUserId,
-            status: "active",
-            memberRole: "coordinator",
-            OR: [{ canReview: true }, { isBackup: true }],
-          },
-        })) !== null;
+    alert.kind === "peer_urgent"
+      ? (await prisma.caseMember.findFirst({
+          where: { caseId: alert.caseId, userId: alert.recipientUserId, status: "active" },
+        })) !== null
+      : alert.recipientUser.globalRole === "ops_lead"
+        ? alert.recipientUser.status === "active"
+        : (await prisma.caseMember.findFirst({
+            where: {
+              caseId: alert.caseId,
+              userId: alert.recipientUserId,
+              status: "active",
+              memberRole: "coordinator",
+              OR: [{ canReview: true }, { isBackup: true }],
+            },
+          })) !== null;
   if (!authorized) {
     await prisma.notificationTask.update({
       where: { id: alert.id },
@@ -206,6 +218,7 @@ async function submitBatch(
     reviewTaskId: string | null;
     attempts: number;
     recipientChannel: { valueEnc: string } | null;
+    recipientUser: { preferredLang: string | null; uiLang: string | null };
   }>,
   clock: Clock,
   emailProvider: EmailProvider,
@@ -213,18 +226,10 @@ async function submitBatch(
 ): Promise<void> {
   const first = batch[0]!;
   const now = clock.now();
-  // REQ-FILE-08: check_failed alerts carry no file name or content — only a
-  // non-sensitive alert reference and a login-required link.
-  const email =
-    kind === "check_failed_alert"
-      ? buildCheckFailedAlertEmail({ alertRef: first.id, baseUrl: BASE_URL })
-      : buildReviewAlertEmail({
-          pendingCount: await prisma.reviewTask.count({
-            where: { caseId: first.caseId, status: "open" },
-          }),
-          taskRef: first.reviewTaskId ?? first.id,
-          baseUrl: BASE_URL,
-        });
+  // REQ-FILE-08 / REQ-NTF-01: alert emails carry only neutral wording and a
+  // non-sensitive reference — never message bodies, file names, case titles,
+  // or anyone's contact address. peer_urgent uses the recipient's language.
+  const email = await buildEmailForKind(kind, first);
   const to = decryptText(first.recipientChannel!.valueEnc);
 
   let accepted = false;
@@ -254,12 +259,16 @@ async function submitBatch(
     const attempts = alert.attempts + 1;
     const delay = backoffDelayMs(attempts);
     if (delay === null || attempts >= MAX_NOTIFICATION_ATTEMPTS) {
-      // Final failure stays visible (REQ-NTF-05/12).
+      // Final failure stays visible (REQ-NTF-05/12); a failed peer urgent
+      // alert also notifies the case's can_review coordinators, content-free.
       summary.failed += 1;
       await prisma.notificationTask.update({
         where: { id: alert.id },
         data: { status: "failed", attempts, lastError: "provider_rejected" },
       });
+      if (kind === "peer_urgent") {
+        await registerUrgentFailedNotices({ caseId: alert.caseId, peerTaskId: alert.id });
+      }
     } else {
       summary.retried += 1;
       await prisma.notificationTask.update({
@@ -272,6 +281,38 @@ async function submitBatch(
       });
     }
   }
+}
+
+async function buildEmailForKind(
+  kind: string,
+  first: {
+    id: string;
+    caseId: string;
+    reviewTaskId: string | null;
+    recipientUser: { preferredLang: string | null; uiLang: string | null };
+  },
+): Promise<{ subject: string; text: string }> {
+  if (kind === "check_failed_alert") {
+    return buildCheckFailedAlertEmail({ alertRef: first.id, baseUrl: BASE_URL });
+  }
+  if (kind === "peer_urgent") {
+    return buildPeerUrgentEmail({
+      lang: first.recipientUser.preferredLang ?? first.recipientUser.uiLang,
+      taskRef: first.id,
+      caseId: first.caseId,
+      baseUrl: BASE_URL,
+    });
+  }
+  if (kind === "urgent_failed_alert") {
+    return buildUrgentFailedAlertEmail({ alertRef: first.id, baseUrl: BASE_URL });
+  }
+  return buildReviewAlertEmail({
+    pendingCount: await prisma.reviewTask.count({
+      where: { caseId: first.caseId, status: "open" },
+    }),
+    taskRef: first.reviewTaskId ?? first.id,
+    baseUrl: BASE_URL,
+  });
 }
 
 // Dev-runtime driver: first attempt well inside the 30-second internal

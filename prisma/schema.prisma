@@ -28,6 +28,7 @@ model User {
   reviewTasksAssigned ReviewTask[]
   reviewTasksDecided ReviewTask[] @relation("ReviewTaskDecider")
   notificationTasksReceived NotificationTask[]
+  notificationTasksSent NotificationTask[] @relation("UrgentAlertSender")
   filesUploaded    File[]            @relation("FileUploader")
 
   @@map("users")
@@ -257,9 +258,12 @@ model ReviewTask {
 
 // Persistent notification queue (SPEC 10.1 state machine). kind/status CHECKs
 // are hand-added in the migration; 'peer_urgent'/'check_failed_alert' kinds
-// are registered by T08/T10. recipient_channel_id is nullable: a recipient
-// without a verified email channel still gets a row (status failed,
-// last_error no_channel) so the anomaly is visible (REQ-NTF-12).
+// are registered by T08/T10, 'urgent_failed_alert' by T10 (REQ-NTF-05 final-
+// failure notice to can_review coordinators). sender_user_id is set on
+// peer_urgent tasks so the sender can track delivery status (REQ-NTF-04).
+// recipient_channel_id is nullable: a recipient without a verified email
+// channel still gets a row (status failed, last_error no_channel) so the
+// anomaly is visible (REQ-NTF-12).
 model NotificationTask {
   id                 String          @id @default(uuid()) @db.Uuid
   kind               String
@@ -267,6 +271,8 @@ model NotificationTask {
   case               Case            @relation(fields: [caseId], references: [id], onDelete: Cascade)
   reviewTaskId       String?         @map("review_task_id") @db.Uuid
   reviewTask         ReviewTask?     @relation(fields: [reviewTaskId], references: [id], onDelete: Cascade)
+  senderUserId       String?         @map("sender_user_id") @db.Uuid
+  sender             User?           @relation("UrgentAlertSender", fields: [senderUserId], references: [id], onDelete: SetNull)
   recipientUserId    String          @map("recipient_user_id") @db.Uuid
   recipientUser      User            @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
   recipientChannelId String?         @map("recipient_channel_id") @db.Uuid
@@ -286,6 +292,7 @@ model NotificationTask {
   @@index([status, nextRetryAt])
   @@index([caseId, kind])
   @@index([reviewTaskId])
+  @@index([senderUserId])
   @@map("notification_tasks")
 }
 
