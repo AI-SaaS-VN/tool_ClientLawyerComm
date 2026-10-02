@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"email" | "code">("email");
   const [message, setMessage] = useState("");
+  // Hydration gate: server-rendered controls have no handlers yet.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   async function requestOtp(event: React.FormEvent) {
     event.preventDefault();
@@ -46,9 +52,10 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
+            data-testid="login-email"
             className="border px-3 py-2"
           />
-          <button type="submit" className="border px-3 py-2">
+          <button type="submit" className="border px-3 py-2" data-testid="login-send-code" disabled={!mounted}>
             Send code
           </button>
         </form>
@@ -60,14 +67,15 @@ export default function LoginPage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="6-digit code"
+            data-testid="login-code"
             className="border px-3 py-2"
           />
-          <button type="submit" className="border px-3 py-2">
+          <button type="submit" className="border px-3 py-2" data-testid="login-verify" disabled={!mounted}>
             Verify
           </button>
         </form>
       )}
-      {message && <p className="mt-4 text-sm">{message}</p>}
+      {message && <p className="mt-4 text-sm" data-testid="login-message">{message}</p>}
     </main>
   );
 }

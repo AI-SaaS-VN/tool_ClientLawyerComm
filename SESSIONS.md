@@ -659,3 +659,39 @@ Implement PLAN.md T11 (Permission Revocation / Archive / admin MFA / Audit Trail
 Implement PLAN.md T12 (E2E dual-user + backup/restore drill + real-channel acceptance): Playwright dual-browser journeys, the REQ-OPS-07 admin test-case runbook (`POST /api/admin/test-cases`), backup/restore drill scripts, deployment docs. External resources O02/O05/O07/O08 gate the real-delivery and network items — mark them Blocked, not passed, if resources are not in place. Do not redo T01–T08/T10/T11.<br>实现 PLAN.md T12（端到端双用户＋备份恢复演练＋真实链路验收）：Playwright 双浏览器旅程、REQ-OPS-07 管理员测试案件指引（`POST /api/admin/test-cases`）、备份恢复演练脚本、部署文档。外部资源 O02/O05/O07/O08 会卡住真实送达与网络项——资源未到位时标「阻塞」而非通过。不要重做 T01–T08/T10/T11。
 
 ---
+
+## Session 2026-10-02-11 (Ended) / 会话 2026-10-02-11（已结束）
+
+- Date/Timezone: 2026-10-02, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-02，UTC（研发 VPS 上的 Kimi Code）
+- Goal: implement the coding-side deliverables of PLAN.md T12 — admin test-case endpoint (REQ-OPS-07), Playwright dual-browser E2E, backup/restore drill, deployment/runbook docs; external-resource items marked Blocked, not simulated.<br>本次目标：实现 PLAN.md T12 编码侧交付——管理员测试案件端点（REQ-OPS-07）、Playwright 双浏览器 E2E、备份/恢复演练、部署/运行文档；外部资源项如实标阻塞，不以模拟冒充。
+
+### Actual Actions / 实际动作
+
+1. Read PROGRESS/PLAN/SESSIONS per the resume protocol; verified containers healthy and the 274/274 baseline.<br>按恢复指引读 PROGRESS/PLAN/SESSIONS；核实容器健康与 274/274 基线。
+2. Built `POST /api/admin/test-cases` (`src/modules/admin/test-cases.ts` + route): `requireAdminMfa`, title/three-distinct-emails/optional display names validation, pending-recipient pre-creation, guard-free `issueInvite` extracted from `src/modules/invites/service.ts` (createInvite keeps its guards), admin never a member, `case.create` + 3× `invite.create` audit rows. 6 integration tests.<br>实现 `POST /api/admin/test-cases`：`requireAdminMfa`、标题/三个互异邮箱/可选显示名校验、预建 pending 接收人、从邀请服务抽出无守卫 `issueInvite`（createInvite 守卫不变）、管理员不成为成员、`case.create`＋3 条 `invite.create` 审计。6 个集成测试。
+3. E2E infrastructure: dedicated dev server :3100 + disposable `clc_e2e` (globalSetup rebuild + migrate deploy); test hooks `GET/DELETE /api/test/outbox` and `POST /api/test/worker` (non-production + fake provider only); worker driven in-process via `src/instrumentation.ts` (`NOTIFICATION_WORKER=off` opt-out) — resolving the T07/T10 leftover with the least-change option.<br>E2E 基建：3100 端口专用 dev server＋一次性 `clc_e2e`（globalSetup 重建＋重放迁移）；测试钩子 `GET/DELETE /api/test/outbox` 与 `POST /api/test/worker`（仅非生产＋fake provider）；worker 经 `src/instrumentation.ts` 进程内驱动（`NOTIFICATION_WORKER=off` 关闭）——以最少改动解决 T07/T10 遗留。
+4. Minimal UI additions: compose box + SSE live refresh + 10s backstop refetch + hydration gates (`useSyncExternalStore` mounted; pre-hydration clicks were a real flake source) + data-testids. No page rewrites.<br>最小 UI 补齐：输入框＋SSE 实时刷新＋10 秒兜底重拉＋水合门（`useSyncExternalStore`；水合前点击是真实不稳定源）＋data-testid。未重写页面。
+5. Three journey specs: dual-user (AC03), review-alert (AC05/AC12), admin-test-case (REQ-OPS-07) — paths detailed in PROGRESS.md T12 section.<br>三个旅程 spec：dual-user（AC03）、review-alert（AC05/AC12）、admin-test-case（REQ-OPS-07）——路径详见 PROGRESS.md T12 节。
+6. Fixed the dev host for browsers without root: `apt-get download` + `dpkg -x` of the missing Chromium libraries (libnspr4/libnss3/libatk/libX11 stack) and fonts (DejaVu + Noto CJK — missing fontconfig config was crashing the renderer with a Skia FATAL) into `~/.cache/clc-e2e-libs`; `npm run test:e2e` exports LD_LIBRARY_PATH/FONTCONFIG_FILE pointing there.<br>免 root 修复本机浏览器运行环境：用 `apt-get download`＋`dpkg -x` 把缺失的 Chromium 库（libnspr4/libnss3/libatk/libX11 系列）与字体（DejaVu＋Noto CJK——缺 fontconfig 配置曾使渲染器 Skia FATAL 崩溃）装入 `~/.cache/clc-e2e-libs`；`npm run test:e2e` 导出指向该处的 LD_LIBRARY_PATH/FONTCONFIG_FILE。
+7. `scripts/backup.sh` (pg_dump + openssl AES-256-CBC/PBKDF2, key via env only), `scripts/restore-drill.sh` (isolated `clc_restore_check`, row-count comparison, 11 integrity checks, timing report, cleanup), `npm run drill:restore`; drill executed for real: PASS.<br>`scripts/backup.sh`（pg_dump＋openssl AES-256-CBC/PBKDF2，密钥仅经环境传入）、`scripts/restore-drill.sh`（隔离 `clc_restore_check`、行数对照、11 项完整性核查、计时报告、清理）、`npm run drill:restore`；演练实际执行：PASS。
+8. Docs: `docs/runbook/mvp-test-case.md`, `docs/deployment.md` (no secrets/addresses/topology). Updated PROGRESS.md/PLAN.md with the honest split: coding side done vs Blocked external-resource items (real email delivery AC01/AC08/AC12, AC10, production-scale drill).<br>文档：`docs/runbook/mvp-test-case.md`、`docs/deployment.md`（无密钥/地址/拓扑）。PROGRESS.md/PLAN.md 如实拆分：编码侧完成 vs 外部资源阻塞项（真实邮件送达 AC01/AC08/AC12、AC10、生产规模演练）。
+
+### Changed Files / 变更文件
+
+- Added: `src/modules/admin/test-cases.ts`, `src/app/api/admin/test-cases/route.ts`, `src/app/api/test/outbox/route.ts`, `src/app/api/test/worker/route.ts`, `src/instrumentation.ts`, `tests/integration/admin/test-cases.test.ts`, `tests/e2e/{config,global-setup,helpers,dual-user.spec,review-alert.spec,admin-test-case.spec}.ts`, `scripts/backup.sh`, `scripts/restore-drill.sh`, `docs/runbook/mvp-test-case.md`, `docs/deployment.md`.<br>新增：上述文件。
+- Modified: `src/modules/invites/service.ts` (issueInvite extraction), `src/app/(app)/cases/[id]/messages-panel.tsx` (compose/SSE/backstop/hydration/testids), `src/app/(app)/cases/[id]/page.tsx`, `src/app/(app)/cases/page.tsx`, `src/app/(app)/review/review-queue.tsx`, `src/app/(auth)/login/page.tsx`, `src/app/(auth)/invite/page.tsx` (testids/hydration gates), `playwright.config.ts`, `package.json` (test:e2e env, drill:restore), `.env.example` (NOTIFICATION_WORKER), `.gitignore` (backups/), PLAN.md, PROGRESS.md, SESSIONS.md.<br>修改：上述文件。
+
+### Verification Results / 验证结果
+
+- `npm run test`: 40 files, 280/280 passed (was 274; +6 admin/test-cases integration). `npm run test:e2e`: 4/4 passed (3 new specs + smoke), repeated green across consecutive runs. `npm run lint`: clean. `npx tsc --noEmit`: clean. `npm run build`: success. `npm run drill:restore`: RESULT PASS (integrity checks zero; decrypt+restore ~1s at trivial data volume; RPO/RTO targets measured, not asserted).<br>`npm run test`：40 个文件 280/280 通过（原 274；新增 6 个 admin/test-cases 集成测试）。`npm run test:e2e`：4/4 通过（3 个新 spec＋冒烟），连续多次运行均绿。`npm run lint`：无错误。`npx tsc --noEmit`：无错误。`npm run build`：成功。`npm run drill:restore`：RESULT PASS（完整性核查全零；极小数据量下解密＋恢复约 1 秒；RPO/RTO 为实测记录而非达标断言）。
+
+### Unfinished Items / 未完成项
+
+- Blocked on external resources (see PROGRESS.md T12): real email delivery acceptance (AC01/AC08/AC12 real-channel parts — needs real EmailProvider + real addresses, O05/O07), AC10 China–Vietnam network test (O07), production-scale restore drill (O08). Real Kimi calls still gated on O05.<br>外部资源阻塞（见 PROGRESS.md T12）：真实邮件送达验收（AC01/AC08/AC12 真实渠道部分——需真实 EmailProvider＋真实地址，O05/O07）、AC10 中越网络测试（O07）、生产规模恢复演练（O08）。真实 Kimi 调用仍待 O05。
+- The pre-existing next-env.d.ts dev/build path flip-flop persists (Next rewrites it per last command); committed in the build form.<br>既有的 next-env.d.ts dev/build 路径来回改写仍在（Next 按最后命令重写）；以 build 形态提交。
+
+### First Step Next Time / 下次第一步
+
+All P0 coding is done. Next actions need the user/operations lead: real SMTP EmailProvider + real-address acceptance (AC01/AC08/AC12 real parts), the AC10 network window, the production-scale drill; P1 tasks T09/T13 wait for a user decision. Do not redo T01–T08/T10/T11/T12.<br>全部 P0 编码已完成。下一步需用户/运维负责人：真实 SMTP EmailProvider＋真实地址验收（AC01/AC08/AC12 真实部分）、AC10 网络测试窗口、生产规模演练；P1 任务 T09/T13 待用户决定。不要重做 T01–T08/T10/T11/T12。
+
+---

@@ -5,6 +5,7 @@ node_modules/
 dist/
 playwright-report/
 test-results/
+backups/
 *.log
 LOCAL_DEV_NOTES.md
 

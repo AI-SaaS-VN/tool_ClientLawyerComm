@@ -59,19 +59,30 @@ export async function createInvite(input: {
   const email = normalizeEmail(input.email ?? "");
   if (!email || !email.includes("@")) throw new ApiError(400, "email_required");
 
+  return issueInvite({ caseId: input.caseId, actorId: input.actor.id, email, role: input.role });
+}
+
+// Guard-free core shared with the REQ-OPS-07 admin test-case endpoint: one
+// invite row, one audit record, one activation email to the entered address.
+export async function issueInvite(input: {
+  caseId: string;
+  actorId: string;
+  email: string;
+  role: InvitableRole;
+}): Promise<{ invite: Invite; code: string }> {
   const code = generateInviteCode();
   const invite = await prisma.invite.create({
     data: {
       codeHash: hashInviteCode(code),
-      sentToEnc: encryptText(email),
+      sentToEnc: encryptText(input.email),
       caseId: input.caseId,
       role: input.role,
       expiresAt: new Date(Date.now() + INVITE_TTL_MS),
-      createdBy: input.actor.id,
+      createdBy: input.actorId,
     },
   });
   await recordAudit(prisma, {
-    actorId: input.actor.id,
+    actorId: input.actorId,
     action: "invite.create",
     result: "success",
     targetType: "invite",
@@ -79,7 +90,7 @@ export async function createInvite(input: {
     caseId: input.caseId,
     meta: { role: input.role },
   });
-  await sendInviteEmail(email, code);
+  await sendInviteEmail(input.email, code);
   return { invite, code };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 export default function InvitePage() {
   const [inviteCode, setInviteCode] = useState("");
@@ -8,6 +8,12 @@ export default function InvitePage() {
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"start" | "otp">("start");
   const [message, setMessage] = useState("");
+  // Hydration gate: server-rendered controls have no handlers yet.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   async function requestOtp(event: React.FormEvent) {
     event.preventDefault();
@@ -65,6 +71,7 @@ export default function InvitePage() {
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value)}
             placeholder="Invitation code"
+            data-testid="invite-code"
             className="border px-3 py-2"
           />
           <input
@@ -73,12 +80,13 @@ export default function InvitePage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Your own email"
+            data-testid="invite-email"
             className="border px-3 py-2"
           />
-          <button type="submit" className="border px-3 py-2">
+          <button type="submit" className="border px-3 py-2" data-testid="invite-send-otp" disabled={!mounted}>
             Send verification code
           </button>
-          <button type="button" onClick={acceptWhileLoggedIn} className="border px-3 py-2">
+          <button type="button" onClick={acceptWhileLoggedIn} className="border px-3 py-2" data-testid="invite-accept-direct" disabled={!mounted}>
             I am signed in — accept directly
           </button>
         </form>
@@ -90,14 +98,15 @@ export default function InvitePage() {
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             placeholder="6-digit code"
+            data-testid="invite-otp"
             className="border px-3 py-2"
           />
-          <button type="submit" className="border px-3 py-2">
+          <button type="submit" className="border px-3 py-2" data-testid="invite-verify" disabled={!mounted}>
             Verify and join
           </button>
         </form>
       )}
-      {message && <p className="mt-4 text-sm">{message}</p>}
+      {message && <p className="mt-4 text-sm" data-testid="invite-message">{message}</p>}
     </main>
   );
 }

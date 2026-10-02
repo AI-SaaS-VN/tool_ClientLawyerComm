@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 interface ReviewTaskItem {
   id: string;
@@ -16,6 +16,12 @@ interface ReviewTaskItem {
 
 export function ReviewQueue({ initialTasks }: { initialTasks: ReviewTaskItem[] }) {
   const [tasks, setTasks] = useState(initialTasks);
+  // Hydration gate: server-rendered controls have no handlers yet.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   async function decide(taskId: string, action: "approve" | "return" | "reject", selfRelease = false) {
     const body: Record<string, unknown> = {};
@@ -34,12 +40,16 @@ export function ReviewQueue({ initialTasks }: { initialTasks: ReviewTaskItem[] }
   }
 
   if (tasks.length === 0) {
-    return <p className="text-sm">没有待审核内容。 / Không có nội dung chờ duyệt.</p>;
+    return (
+      <p className="text-sm" data-testid="review-empty">
+        没有待审核内容。 / Không có nội dung chờ duyệt.
+      </p>
+    );
   }
   return (
     <ul className="flex flex-col gap-3">
       {tasks.map((task) => (
-        <li key={task.id} className="border px-4 py-3">
+        <li key={task.id} className="border px-4 py-3" data-testid="review-task">
           <div className="text-sm">
             {task.caseTitle} · {task.targetType} · {task.submitterDisplayName} ·{" "}
             {new Date(task.createdAt).toLocaleString()}
@@ -60,14 +70,16 @@ export function ReviewQueue({ initialTasks }: { initialTasks: ReviewTaskItem[] }
           <div className="mt-3 flex gap-2 text-sm">
             <button
               className="border px-3 py-1"
+              data-testid="review-approve"
+              disabled={!mounted}
               onClick={() => decide(task.id, "approve", task.selfReleaseRequired)}
             >
               批准 / Duyệt
             </button>
-            <button className="border px-3 py-1" onClick={() => decide(task.id, "return")}>
+            <button className="border px-3 py-1" disabled={!mounted} onClick={() => decide(task.id, "return")}>
               退回 / Trả lại
             </button>
-            <button className="border px-3 py-1" onClick={() => decide(task.id, "reject")}>
+            <button className="border px-3 py-1" disabled={!mounted} onClick={() => decide(task.id, "reject")}>
               拒绝 / Từ chối
             </button>
           </div>

@@ -10,7 +10,8 @@
     "setup": "npm install && prisma migrate deploy && prisma generate",
     "test": "vitest run",
     "test:int": "vitest run tests/integration",
-    "test:e2e": "playwright test",
+    "test:e2e": "LD_LIBRARY_PATH=\"$HOME/.cache/clc-e2e-libs/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}\" FONTCONFIG_FILE=\"$HOME/.cache/clc-e2e-libs/fonts.conf\" playwright test",
+    "drill:restore": "BACKUP_ENCRYPTION_KEY=\"${BACKUP_ENCRYPTION_KEY:-$(openssl rand -hex 32)}\"; export BACKUP_ENCRYPTION_KEY; bash scripts/backup.sh && bash scripts/restore-drill.sh",
     "bootstrap:admin": "node scripts/bootstrap-admin.ts"
   },
   "dependencies": {

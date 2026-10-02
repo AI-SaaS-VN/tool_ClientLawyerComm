@@ -27,7 +27,7 @@ export default async function CasesPage() {
         <ul className="flex flex-col gap-2">
           {memberships.map((m) => (
             <li key={m.caseId} className="border px-4 py-3">
-              <Link href={`/cases/${m.caseId}`} className="font-medium underline">
+              <Link href={`/cases/${m.caseId}`} className="font-medium underline" data-testid="case-link">
                 {m.case.title}
               </Link>
               <span className="ml-3 text-sm">

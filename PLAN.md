@@ -265,8 +265,8 @@
 - 同步测试：`tests/e2e/dual-user.spec.ts`、`tests/e2e/review-alert.spec.ts`、`tests/e2e/admin-test-case.spec.ts`。
 - Test commands: `npm run test:e2e`, `npm run drill:restore`.
 - 测试命令：`npm run test:e2e`、`npm run drill:restore`。
-- Status: P0, not started. Implement only after the dependencies above are accepted.
-- 状态：P0，未开始。须待上方依赖验收后再实现。
+- Status: P0, coding side done (2026-10-02); real-channel acceptance items Blocked on external resources. 280/280 tests green (was 274; +6 integration `tests/integration/admin/test-cases.test.ts`), E2E 4/4 green (3 new specs + smoke), lint/tsc/build clean, `npm run drill:restore` executed with PASS. `POST /api/admin/test-cases` (REQ-OPS-07) live behind `requireAdminMfa`; Playwright dual-browser journeys cover AC03/AC05/AC12 key paths on the mock chain; `docs/runbook/mvp-test-case.md` + `docs/deployment.md` written; worker is driven in-process via `src/instrumentation.ts` (`NOTIFICATION_WORKER=off` for external drivers). Blocked (external resources, not passable by simulation): real email delivery acceptance (AC01/AC08/AC12 real-channel parts — needs the operator SMTP mailbox wired to a real EmailProvider and real recipient addresses, O05/O07), AC10 China-Vietnam real-network test (needs the O07 test window/devices), production-scale recovery drill (needs O08 environment resources; local drill at trivial data volume done and passing). Details in PROGRESS.md.
+- 状态：P0，编码侧已完成（2026-10-02）；真实渠道验收项因外部资源阻塞。280/280 测试通过（原 274；新增 6 个集成测试 `tests/integration/admin/test-cases.test.ts`），E2E 4/4 通过（3 个新 spec＋冒烟），lint/tsc/build 无错误，`npm run drill:restore` 实际执行为 PASS。`POST /api/admin/test-cases`（REQ-OPS-07）在 `requireAdminMfa` 后上线；Playwright 双浏览器旅程在模拟链路上覆盖 AC03/AC05/AC12 关键路径；`docs/runbook/mvp-test-case.md` 与 `docs/deployment.md` 已写；worker 经 `src/instrumentation.ts` 进程内驱动（外部驱动时设 `NOTIFICATION_WORKER=off`）。阻塞项（外部资源，不以模拟冒充）：真实邮件送达验收（AC01/AC08/AC12 真实渠道部分——需要运营方 SMTP 接入真实 EmailProvider 并用真实收件地址验证，O05/O07）、AC10 中越真机网络测试（需 O07 测试窗口/设备）、生产规模恢复演练（需 O08 环境资源；本地小数据量演练已完成且通过）。详见 PROGRESS.md。
 
 ## T13 Daily Case Digest Email (P1, Added in v1.5) / T13 案件日报邮件（P1，v1.5 新增）
 

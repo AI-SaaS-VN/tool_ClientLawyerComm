@@ -38,7 +38,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
         {kase.alias ? ` · ${kase.alias}` : ""}
       </p>
       <h2 className="mb-2 font-medium">成员 / Thành viên</h2>
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-1" data-testid="member-list">
         {kase.members
           .filter((m) => m.status === "active")
           .map((m) => (

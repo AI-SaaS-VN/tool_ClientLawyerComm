@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 interface TranslationView {
   targetLang: string;
@@ -25,6 +25,14 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [error, setError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [sendError, setSendError] = useState(false);
+  // Hydration gate: server-rendered controls have no handlers yet.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -45,6 +53,38 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
       cancelled = true;
     };
   }, [caseId, mode, refreshKey]);
+
+  // REQ-MSG-05: live push — a published message (or a review release) bumps
+  // the refresh; history itself always comes from the HTTP list. Events that
+  // fall into an SSE reconnect gap are lost (the stream never replays), so a
+  // slow interval refetches the authoritative list as a backstop.
+  useEffect(() => {
+    const source = new EventSource(`/api/cases/${caseId}/stream`);
+    source.addEventListener("message", () => setRefreshKey((key) => key + 1));
+    const backstop = setInterval(() => setRefreshKey((key) => key + 1), 10_000);
+    return () => {
+      source.close();
+      clearInterval(backstop);
+    };
+  }, [caseId]);
+
+  async function send(event: React.FormEvent) {
+    event.preventDefault();
+    const text = draft.trim();
+    if (!text) return;
+    setSendError(false);
+    const res = await fetch(`/api/cases/${caseId}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
+      body: JSON.stringify({ sourceText: text }),
+    });
+    if (res.ok) {
+      setDraft("");
+      setRefreshKey((key) => key + 1);
+    } else {
+      setSendError(true);
+    }
+  }
 
   async function translate(messageId: string) {
     const res = await fetch(`/api/messages/${messageId}/translate`, {
@@ -76,12 +116,14 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
         <>
           <p className="text-sm">{message.sourceText}</p>
           {translation.state === "ready" ? (
-            <p className="mt-1 text-sm opacity-80">
+            <p className="mt-1 text-sm opacity-80" data-testid="translation-text">
               {translation.text} <span className="text-xs">(机翻 v{translation.version})</span>
             </p>
           ) : (
             <button
               className="mt-1 rounded border px-2 py-0.5 text-xs"
+              data-testid="translate-button"
+              disabled={!mounted}
               onClick={() => void translate(message.id)}
             >
               翻译 / Dịch
@@ -95,7 +137,7 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
         return <p className="text-sm">{message.sourceText}</p>;
       case "ready":
         return (
-          <p className="text-sm">
+          <p className="text-sm" data-testid="translation-text">
             {translation.text} <span className="text-xs opacity-60">(机翻 v{translation.version})</span>
           </p>
         );
@@ -105,6 +147,8 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
             <span className="opacity-60">翻译失败 / Dịch thất bại</span>{" "}
             <button
               className="rounded border px-2 py-0.5 text-xs"
+              data-testid="translate-button"
+              disabled={!mounted}
               onClick={() => void translate(message.id)}
             >
               重试 / Thử lại
@@ -125,12 +169,16 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
         <div className="flex gap-1 text-xs">
           <button
             className={`rounded border px-2 py-0.5 ${mode === "auto" ? "font-semibold" : "opacity-60"}`}
+            data-testid="mode-auto"
+            disabled={!mounted}
             onClick={() => switchMode("auto")}
           >
             自动翻译 / Tự động
           </button>
           <button
             className={`rounded border px-2 py-0.5 ${mode === "manual" ? "font-semibold" : "opacity-60"}`}
+            data-testid="mode-manual"
+            disabled={!mounted}
             onClick={() => switchMode("manual")}
           >
             原文·手动 / Thủ công
@@ -138,9 +186,9 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
         </div>
       </div>
       {error ? <p className="text-sm opacity-60">加载失败 / Tải thất bại</p> : null}
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-3" data-testid="message-list">
         {messages.map((message) => (
-          <li key={message.id} className="rounded border p-3">
+          <li key={message.id} className="rounded border p-3" data-testid="message-item">
             <p className="mb-1 text-xs opacity-60">
               {message.authorDisplayName} · {message.sourceLang}
             </p>
@@ -148,6 +196,23 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
           </li>
         ))}
       </ul>
+      <form onSubmit={send} className="mt-4 flex flex-col gap-2">
+        <textarea
+          required
+          rows={3}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="输入消息… / Nhập tin nhắn…"
+          className="border px-3 py-2 text-sm"
+          data-testid="message-input"
+        />
+        <button type="submit" className="self-start border px-3 py-1 text-sm" data-testid="message-send" disabled={!mounted}>
+          发送 / Gửi
+        </button>
+        {sendError ? (
+          <p className="text-sm opacity-60">发送失败，请重试。 / Gửi thất bại, thử lại.</p>
+        ) : null}
+      </form>
     </section>
   );
 }
