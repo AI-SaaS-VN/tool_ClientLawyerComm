@@ -11,7 +11,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const user = await requireUser(req);
     const { id } = await params;
     const file = await retryFileScan(id, user);
-    // TODO(T11): audit
     return NextResponse.json({ file }, { status: 200 });
   } catch (error) {
     return errorResponse(error);

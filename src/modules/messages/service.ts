@@ -9,6 +9,7 @@ import {
   type TranslationView,
 } from "@/modules/translation/service";
 import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
+import { recordAudit } from "@/server/audit/log";
 import { listAlertIssueReviewTaskIds, registerCheckFailedAlerts, registerHoldAlerts } from "@/server/jobs/queue";
 import { publishToCase } from "@/server/sse/hub";
 
@@ -103,7 +104,14 @@ export async function sendMessage(
     }
     throw error;
   }
-  // TODO(T11): audit (message received)
+  await recordAudit(prisma, {
+    actorId: author.id,
+    action: "message.send",
+    result: "success",
+    targetType: "message",
+    targetId: message.id,
+    caseId,
+  });
   const view = toMessageView(await runPipeline(message));
   return { view: (await annotateAlertIssues([view], author.id))[0]!, replayed: false };
 }

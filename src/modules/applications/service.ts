@@ -3,6 +3,7 @@ import type { Case, CaseApplication, User } from "@prisma/client";
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { assertValidTitle } from "@/modules/cases/service";
+import { recordAudit } from "@/server/audit/log";
 
 export function toApplicationView(application: CaseApplication) {
   return {
@@ -38,13 +39,21 @@ export async function submitApplication(
   if (typeof body.summary !== "string" || body.summary.trim().length === 0) {
     throw new ApiError(400, "invalid_summary");
   }
-  return prisma.caseApplication.create({
+  const application = await prisma.caseApplication.create({
     data: {
       lawyerId: lawyer.id,
       clientProfileId: profile.id,
       summary: body.summary.trim(),
     },
   });
+  await recordAudit(prisma, {
+    actorId: lawyer.id,
+    action: "case_application.submit",
+    result: "success",
+    targetType: "case_application",
+    targetId: application.id,
+  });
+  return application;
 }
 
 export async function listApplications(user: User): Promise<CaseApplication[]> {
@@ -120,6 +129,14 @@ export async function decideApplication(
     });
     return { application: updated, kase };
   });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: actor.id,
+    action: "case_application.decide",
+    result: "success",
+    targetType: "case_application",
+    targetId: decided.application.id,
+    caseId: decided.kase?.id ?? null,
+    meta: { decision },
+  });
   return decided;
 }

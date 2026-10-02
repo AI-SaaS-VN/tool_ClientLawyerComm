@@ -14,21 +14,28 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const user = await requireUser(req);
     const { id: caseId } = await params;
-    // Membership is re-validated against the database on every connection.
+    // Membership is re-validated against the database on every connection;
+    // a revocation force-closes this stream via disconnectCaseUser (T11).
     await requireCaseMember(caseId, user);
-    // TODO(T11): audit; close this stream immediately when the membership is revoked.
 
     const encoder = new TextEncoder();
     let unsubscribe: (() => void) | undefined;
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(encoder.encode(": subscribed\n\n"));
-        unsubscribe = subscribeCase(caseId, {
+        unsubscribe = subscribeCase(caseId, user.id, {
           send: (chunk) => {
             try {
               controller.enqueue(encoder.encode(chunk));
             } catch {
               // client disconnected between publish and enqueue
+            }
+          },
+          close: () => {
+            try {
+              controller.close();
+            } catch {
+              // already closed
             }
           },
         });

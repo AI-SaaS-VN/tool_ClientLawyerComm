@@ -8,6 +8,7 @@ import {
   peerUrgentDedupeKey,
 } from "@/modules/notifications/dedupe";
 import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
+import { recordAudit } from "@/server/audit/log";
 import { pickEmailChannel } from "@/server/jobs/queue";
 
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -130,7 +131,13 @@ export async function sendUrgentAlerts(
   if (activeMembers.length !== recipientIds.length) {
     throw new ApiError(400, "invalid_recipient");
   }
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: actor.id,
+    action: "urgent.send",
+    result: "success",
+    caseId,
+    meta: { recipientCount: recipientIds.length },
+  });
   const tasks: UrgentTaskView[] = [];
   for (const recipientUserId of recipientIds) {
     tasks.push(await createOrReuseTask(caseId, actor.id, recipientUserId, now));
@@ -205,7 +212,14 @@ export async function confirmUrgentAlert(
     });
   }
   const current = await prisma.notificationTask.findUniqueOrThrow({ where: { id: task.id } });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "urgent.confirm",
+    result: "success",
+    targetType: "notification_task",
+    targetId: task.id,
+    caseId: task.caseId,
+  });
   return {
     id: current.id,
     caseId: current.caseId,

@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { decryptText, encryptText, normalizeEmail } from "@/modules/auth/crypto";
 import { generateInviteCode, hashInviteCode } from "@/modules/invites/code";
+import { recordAudit } from "@/server/audit/log";
 import {
   requireCaseManager,
   requireWritableCase,
@@ -41,7 +42,6 @@ async function sendInviteEmail(to: string, code: string): Promise<void> {
       ].join("\n"),
     });
   } catch {
-    // TODO(T11): audit
     console.error("email_send_failed", { category: "invite_activation" });
   }
 }
@@ -70,7 +70,15 @@ export async function createInvite(input: {
       createdBy: input.actor.id,
     },
   });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: input.actor.id,
+    action: "invite.create",
+    result: "success",
+    targetType: "invite",
+    targetId: invite.id,
+    caseId: input.caseId,
+    meta: { role: input.role },
+  });
   await sendInviteEmail(email, code);
   return { invite, code };
 }
@@ -132,7 +140,15 @@ export async function acceptInvite(
     where: { id: user.id, preferredLang: null },
     data: { preferredLang: lang, uiLang: lang },
   });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "invite.accept",
+    result: "success",
+    targetType: "invite",
+    targetId: invite.id,
+    caseId: invite.caseId,
+    meta: { role: invite.role, alreadyMember: Boolean(existing) },
+  });
   return { caseId: invite.caseId, role: invite.role, alreadyMember: Boolean(existing) };
 }
 
@@ -144,7 +160,14 @@ export async function revokeInvite(inviteId: string, actor: User): Promise<void>
   if (!invite.revokedAt) {
     await prisma.invite.update({ where: { id: invite.id }, data: { revokedAt: new Date() } });
   }
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: actor.id,
+    action: "invite.revoke",
+    result: "success",
+    targetType: "invite",
+    targetId: invite.id,
+    caseId: invite.caseId,
+  });
 }
 
 // Resend issues a fresh code (the old one stops matching immediately) and
@@ -164,6 +187,13 @@ export async function resendInvite(inviteId: string, actor: User): Promise<void>
       expiresAt: new Date(Date.now() + INVITE_TTL_MS),
     },
   });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: actor.id,
+    action: "invite.resend",
+    result: "success",
+    targetType: "invite",
+    targetId: invite.id,
+    caseId: invite.caseId,
+  });
   await sendInviteEmail(decryptText(invite.sentToEnc), code);
 }

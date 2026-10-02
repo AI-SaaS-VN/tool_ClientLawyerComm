@@ -13,7 +13,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id: caseId } = await params;
     const body = await readJson(req);
     const result = await sendMessage(caseId, user, body, req.headers);
-    // TODO(T11): audit
     return NextResponse.json({ message: result.view }, { status: result.replayed ? 200 : 201 });
   } catch (error) {
     return errorResponse(error);

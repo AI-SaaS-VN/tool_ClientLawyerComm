@@ -617,3 +617,45 @@ Implement PLAN.md T10 (two-way urgent alerts on the T07 notification core, kind 
 Implement PLAN.md T11 (Permission Revocation / Archive / admin MFA / Audit Trail — all dependencies T03/T04/T07/T08 accepted). The same-transaction queued-task cancellation on revoke/archive and the `TODO(T11)` audit markers in urgent/members/cases services are the seams T10 leaves; PLAN's T11 note about peer-urgent cancellation assertions is satisfied by `tests/integration/urgent/status-visibility.test.ts`. Do not redo T01–T08 or T10.<br>实现 PLAN.md T11（撤权/归档/管理员 MFA/审计——依赖 T03/T04/T07/T08 均已验收）。撤权/归档的同事务 queued 任务取消与 urgent/members/cases 服务中的 `TODO(T11)` 审计埋点是 T10 留下的接缝；PLAN 中 T11 备注的 peer_urgent 取消断言已由 `tests/integration/urgent/status-visibility.test.ts` 满足。不要重做 T01–T08 与 T10。
 
 ---
+
+## Session 2026-10-02-10 (Ended) / 会话 2026-10-02-10（已结束）
+
+- Date/Timezone: 2026-10-02, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-02，UTC（研发 VPS 上的 Kimi Code）
+- Goal: continue the MVP task sequence — T03 → T04 → T05 → T06 → T07 → T08 → T10 → T11 in this one working session, per the user's standing instruction to proceed without per-step confirmation.<br>本次目标：按用户「少确认、按建议推进」的指示，在一个工作会话内连续推进 T03 → T04 → T05 → T06 → T07 → T08 → T10 → T11。
+
+### Actual Actions / 实际动作
+
+1. Read PROGRESS/PLAN/SESSIONS per the resume protocol; verified containers healthy and the 31/31 baseline before starting T03.<br>按恢复指引读 PROGRESS/PLAN/SESSIONS；开工 T03 前核实容器健康、基线 31/31 全绿。
+2. Ran each task through a coder subagent in TDD rhythm (failing tests → minimal implementation → green → refactor), then personally re-verified after every task: full `npm run test`, `npm run lint`, `npx tsc --noEmit`, plus `npm run build` at each task boundary; each task committed and pushed to origin main by its subagent.<br>每个任务经 coder 子代理按 TDD 节奏完成（失败测试→最小实现→全绿→重构），每任务结束后本人复核：全量 `npm run test`、`npm run lint`、`npx tsc --noEmit`，任务边界跑 `npm run build`；各任务由子代理提交并推送 origin main。
+3. Per-task results (all verified personally before the next task started): T03 `12f0329` 51/51; T04 `52143e0` 80/80; T05 `0efca10` 140/140; T06 `42633c1` 165/165; T07 `92dd032` 198/198; T08 `836cba8` 221/221; T10 `964f09a` 243/243. Details are in PLAN.md/PROGRESS.md per-task sections.<br>逐任务结果（均在下一任务开工前本人复核）：T03 `12f0329` 51/51；T04 `52143e0` 80/80；T05 `0efca10` 140/140；T06 `42633c1` 165/165；T07 `92dd032` 198/198；T08 `836cba8` 221/221；T10 `964f09a` 243/243。细节见 PLAN.md/PROGRESS.md 各任务节。
+4. Interruptions handled: the T03 subagent hit the 2-hour wall-clock timeout twice (resumed, completed); a mid-run permission rejection was a user mis-click (resumed, completed); the T07 subagent hit the provider 5-hour quota window (resumed after reset, completed).<br>中断处理：T03 子代理两次触 2 小时墙钟超时（恢复后完成）；一次权限拒绝为用户误点（恢复后完成）；T07 子代理触供应商 5 小时配额窗口（窗口重置后恢复完成）。
+5. T11: the subagent finished essentially all code, tests, migrations, and the PROGRESS/PLAN updates, but the agent call was interrupted before its result was recorded (no commit, no SESSIONS entry). Parent verified the working tree directly: 274/274 tests green (39 files), lint/tsc/build clean, zero remaining `TODO(T11)` markers, then wrote this entry and committed.<br>T11：子代理基本完成全部代码、测试、迁移与 PROGRESS/PLAN 更新，但代理调用在记录结果前被中断（未提交、未写 SESSIONS）。主代理直接复核工作区：274/274 测试通过（39 个文件）、lint/tsc/build 无错误、`TODO(T11)` 标记清零，随后补写本条并提交。
+
+### T11 Summary / T11 摘要
+
+- Migration `20261002132754_t11_audit_mfa`: append-only `audit_logs`; `users` +`mfa_secret_ref` (AES-256-GCM) / `mfa_enrolled_at`.<br>迁移 `20261002132754_t11_audit_mfa`：append-only `audit_logs`；`users` 增加 `mfa_secret_ref`（AES-256-GCM）与 `mfa_enrolled_at`。
+- Revocation immediacy: SSE hub `disconnectCaseUser` force-closes a revoked member's live streams post-commit; per-resource-family 403 asserted (messages/files/downloads/SSE/translate/urgent).<br>撤权即时生效：SSE hub `disconnectCaseUser` 在撤权提交后强制关闭存量连接；逐资源族 403 断言（消息/文件/下载/SSE/翻译/紧急提醒）。
+- Archive read-only: 409 `case_archived` across all write families; reads stay open; archive audited in-transaction.<br>归档只读：全部写族 409 `case_archived`；读路径开放；归档同事务入审计。
+- Zero-dependency RFC 6238 TOTP (RFC Appendix B vectors unit-tested); `requireAdminMfa` gates all admin APIs via per-request `x-totp-code`; `GET /api/admin/audit-logs` MFA-guarded with filters.<br>零依赖 RFC 6238 TOTP（按 RFC 附录 B 向量单测）；`requireAdminMfa` 以逐请求 `x-totp-code` 拦截全部管理 API；`GET /api/admin/audit-logs` 受 MFA 守卫并支持过滤。
+- All 31 `TODO(T11)` markers are real audit rows via `src/server/audit/log.ts` (same-transaction where atomicity matters; meta_json forbidden-key guard); REQ-OPS-01 checklist and whole-trail no-sensitive-content scan asserted end-to-end; console-capture test covers REQ-OPS-02.<br>31 个 `TODO(T11)` 标记全部经 `src/server/audit/log.ts` 落为真实审计行（须原子处同事务；meta_json 禁用键守卫）；REQ-OPS-01 清单与整轨无敏感内容扫描端到端断言；console 捕获测试覆盖 REQ-OPS-02。
+
+### Changed Files / 变更文件
+
+- T03–T11 code/docs: see each task's commit (`12f0329`, `52143e0`, `0efca10`, `42633c1`, `92dd032`, `836cba8`, `964f09a`) and PLAN/PROGRESS per-task sections.<br>T03–T11 代码与文档：见各任务提交（`12f0329`、`52143e0`、`0efca10`、`42633c1`、`92dd032`、`836cba8`、`964f09a`）及 PLAN/PROGRESS 各任务节。
+- This commit: T11 code + tests + migration + PLAN/PROGRESS updates + this SESSIONS entry.<br>本次提交：T11 代码＋测试＋迁移＋PLAN/PROGRESS 更新＋本 SESSIONS 记录。
+
+### Verification Results / 验证结果
+
+- `npm run test`: 39 files, 274/274 passed. `npm run lint`: clean. `npx tsc --noEmit`: clean. `npm run build`: success.<br>`npm run test`：39 个文件 274/274 通过。`npm run lint`：无错误。`npx tsc --noEmit`：无错误。`npm run build`：成功。
+- AC coverage after this session: AC02 (privilege-escalation + revocation parts), AC03 (dedup/reconnect/multilingual-display parts), AC04, AC05, AC06, AC08 (mock), AC09 (archive part), AC11 (audit/logging part), AC12 (mock). Real-channel acceptance (AC01/AC08/AC12 real email), AC10 network test, and the backup/restore drill remain with T12.<br>本会话后的 AC 覆盖：AC02（越权＋撤权）、AC03（去重/重连/多语显示）、AC04、AC05、AC06、AC08（模拟）、AC09（归档）、AC11（审计/日志）、AC12（模拟）。真实渠道验收（AC01/AC08/AC12 真实邮件）、AC10 网络测试与备份恢复演练仍属 T12。
+
+### Unfinished Items / 未完成项
+
+- T11 known items recorded in PROGRESS.md (per-request TOTP without replay cache; no MFA reset flow; id-cursor pagination only).<br>T11 已知项已记入 PROGRESS.md（逐请求 TOTP 无重放缓存；无 MFA 重置流程；仅 id 游标分页）。
+- Historical commit cea7e37 still contains the old topology paragraph in CONTEXT.md; history rewrite remains pending the user's decision.<br>历史提交 cea7e37 中 CONTEXT.md 仍含旧拓扑段落；是否改写历史仍待用户决定。
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T12 (E2E dual-user + backup/restore drill + real-channel acceptance): Playwright dual-browser journeys, the REQ-OPS-07 admin test-case runbook (`POST /api/admin/test-cases`), backup/restore drill scripts, deployment docs. External resources O02/O05/O07/O08 gate the real-delivery and network items — mark them Blocked, not passed, if resources are not in place. Do not redo T01–T08/T10/T11.<br>实现 PLAN.md T12（端到端双用户＋备份恢复演练＋真实链路验收）：Playwright 双浏览器旅程、REQ-OPS-07 管理员测试案件指引（`POST /api/admin/test-cases`）、备份恢复演练脚本、部署文档。外部资源 O02/O05/O07/O08 会卡住真实送达与网络项——资源未到位时标「阻塞」而非通过。不要重做 T01–T08/T10/T11。
+
+---

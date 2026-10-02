@@ -13,7 +13,6 @@ export function decisionRoute(action: ReviewAction) {
       const { id } = await params;
       const body = await readJson(req);
       const result = await decideReviewTask(id, user, action, body);
-      // TODO(T11): audit
       return NextResponse.json({ task: result });
     } catch (error) {
       return errorResponse(error);

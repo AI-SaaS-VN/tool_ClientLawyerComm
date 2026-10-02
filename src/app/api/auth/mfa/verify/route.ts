@@ -1,18 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { errorResponse, readJson } from "@/lib/http";
+import { verifyMfaEnrollment } from "@/modules/admin/mfa";
 import { requireUser } from "@/modules/auth/require-user";
-import { appealReviewTask } from "@/modules/review/service";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const { id } = await params;
     const body = await readJson(req);
-    await appealReviewTask(id, user, body);
-    return NextResponse.json({ ok: true });
+    const result = await verifyMfaEnrollment(user, body.code);
+    return NextResponse.json(result);
   } catch (error) {
     return errorResponse(error);
   }

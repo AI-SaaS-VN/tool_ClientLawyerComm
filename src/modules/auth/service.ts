@@ -14,11 +14,12 @@ import {
   utcDayStart,
 } from "@/modules/auth/otp";
 import { acceptInvite, getValidInvite } from "@/modules/invites/service";
+import { recordAudit } from "@/server/audit/log";
 import { getEmailProvider } from "@/server/providers/email";
 
 export type OtpPurpose = "login" | "bind";
 
-async function sendOtpEmail(to: string, code: string): Promise<void> {
+async function sendOtpEmail(to: string, code: string, channelId: string): Promise<void> {
   try {
     await getEmailProvider().send({
       to,
@@ -26,8 +27,13 @@ async function sendOtpEmail(to: string, code: string): Promise<void> {
       text: `Your verification code is: ${code}\nIt is valid for 10 minutes.`,
     });
   } catch {
-    // TODO(T11): audit
     console.error("email_send_failed", { category: "otp" });
+    await recordAudit(prisma, {
+      action: "auth.otp_send",
+      result: "failed",
+      targetType: "contact_channel",
+      targetId: channelId,
+    });
   }
 }
 
@@ -68,14 +74,24 @@ async function issueChallenge(
 }
 
 // Neutral endpoint: unregistered addresses always look like a success and
-// never receive a code (anti-enumeration).
+// never receive a code (anti-enumeration). The audit trail records the
+// attempt either way, keyed by channel id — never by address (REQ-OPS-01).
 export async function requestLoginOtp(email: string, now: Date = new Date()) {
   const channel = await prisma.contactChannel.findUnique({
     where: { valueHash: hashEmail(email) },
   });
-  if (!channel || !channel.verifiedAt) return { sent: false };
+  if (!channel || !channel.verifiedAt) {
+    await recordAudit(prisma, { action: "auth.otp_request", result: "ignored" });
+    return { sent: false };
+  }
   const code = await issueChallenge(channel, "login", now);
-  await sendOtpEmail(decryptText(channel.valueEnc), code);
+  await sendOtpEmail(decryptText(channel.valueEnc), code, channel.id);
+  await recordAudit(prisma, {
+    action: "auth.otp_request",
+    result: "success",
+    targetType: "contact_channel",
+    targetId: channel.id,
+  });
   return { sent: true };
 }
 
@@ -106,7 +122,14 @@ export async function requestInviteOtp(email: string, inviteCode: string, now: D
     });
   }
   const code = await issueChallenge(channel, "login", now);
-  await sendOtpEmail(normalized, code);
+  await sendOtpEmail(normalized, code, channel.id);
+  await recordAudit(prisma, {
+    action: "auth.otp_request",
+    result: "success",
+    targetType: "contact_channel",
+    targetId: channel.id,
+    meta: { purpose: "invite" },
+  });
   return { sent: true };
 }
 
@@ -131,7 +154,15 @@ export async function requestBindOtp(user: User, email: string, now: Date = new 
     });
   }
   const code = await issueChallenge(channel, "bind", now);
-  await sendOtpEmail(normalized, code);
+  await sendOtpEmail(normalized, code, channel.id);
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "auth.otp_request",
+    result: "success",
+    targetType: "contact_channel",
+    targetId: channel.id,
+    meta: { purpose: "bind" },
+  });
   return { sent: true };
 }
 
@@ -169,9 +200,29 @@ export async function verifyLoginOtp(input: {
     where: { valueHash: hashEmail(input.email) },
     include: { user: true },
   });
-  if (!channel) throw new ApiError(401, "invalid_code");
+  if (!channel) {
+    await recordAudit(prisma, {
+      action: "auth.login",
+      result: "denied",
+      meta: { reason: "invalid_code" },
+    });
+    throw new ApiError(401, "invalid_code");
+  }
 
-  await verifyChallenge(channel, "login", input.code, now);
+  try {
+    await verifyChallenge(channel, "login", input.code, now);
+  } catch (error) {
+    // REQ-OPS-01: failed verification attempts are auditable too, keyed by
+    // user id with the error category — never the submitted code.
+    await recordAudit(prisma, {
+      action: "auth.login",
+      result: "denied",
+      targetType: "user",
+      targetId: channel.userId,
+      meta: { reason: error instanceof ApiError ? error.code : "invalid_code" },
+    });
+    throw error;
+  }
   await prisma.contactChannel.update({
     where: { id: channel.id },
     data: { verifiedAt: channel.verifiedAt ?? now },
@@ -193,7 +244,14 @@ export async function verifyLoginOtp(input: {
     }
   }
   const user = await prisma.user.findUniqueOrThrow({ where: { id: channel.userId } });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "auth.login",
+    result: "success",
+    targetType: "user",
+    targetId: user.id,
+    meta: { inviteAccepted },
+  });
   return { user, inviteAccepted, inviteError };
 }
 
@@ -202,11 +260,29 @@ export async function verifyBindOtp(user: User, email: string, code: string, now
     where: { valueHash: hashEmail(email) },
   });
   if (!channel || channel.userId !== user.id) throw new ApiError(401, "invalid_code");
-  await verifyChallenge(channel, "bind", code, now);
+  try {
+    await verifyChallenge(channel, "bind", code, now);
+  } catch (error) {
+    await recordAudit(prisma, {
+      actorId: user.id,
+      action: "auth.channel_bind",
+      result: "denied",
+      targetType: "contact_channel",
+      targetId: channel.id,
+      meta: { reason: error instanceof ApiError ? error.code : "invalid_code" },
+    });
+    throw error;
+  }
   const updated = await prisma.contactChannel.update({
     where: { id: channel.id },
     data: { verifiedAt: channel.verifiedAt ?? now },
   });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "auth.channel_bind",
+    result: "success",
+    targetType: "contact_channel",
+    targetId: channel.id,
+  });
   return updated;
 }

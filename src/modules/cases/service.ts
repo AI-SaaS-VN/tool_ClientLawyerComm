@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { assertValidTitle } from "@/modules/cases/title";
 import { getUnreadCount } from "@/modules/messages/unread";
+import { recordAudit } from "@/server/audit/log";
 import {
   requireCaseManager,
   requireCaseMember,
@@ -64,7 +65,14 @@ export async function createCase(
       },
     },
   });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: actor.id,
+    action: "case.create",
+    result: "success",
+    targetType: "case",
+    targetId: kase.id,
+    caseId: kase.id,
+  });
   return kase;
 }
 
@@ -122,8 +130,16 @@ export async function archiveCase(caseId: string, actor: User): Promise<Case> {
     // REQ-NTF-05 / REQ-CASE-05: unsent reminders die with the archive in the
     // same transaction; the worker's stale-alert sweep is the backstop.
     await cancelQueuedAlertsForCase(tx, caseId, new Date());
+    // REQ-OPS-03: the archive itself is auditable, in the same transaction.
+    await recordAudit(tx, {
+      actorId: actor.id,
+      action: "case.archive",
+      result: "success",
+      targetType: "case",
+      targetId: caseId,
+      caseId,
+    });
     return updated;
   });
-  // TODO(T11): audit
   return kase;
 }

@@ -13,6 +13,8 @@ model User {
   status           String            @default("active")
   preferredLang    String?           @map("preferred_lang")
   uiLang           String?           @map("ui_lang")
+  mfaSecretRef     String?           @map("mfa_secret_ref")
+  mfaEnrolledAt    DateTime?         @map("mfa_enrolled_at")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   sessions         Session[]
@@ -294,6 +296,27 @@ model NotificationTask {
   @@index([reviewTaskId])
   @@index([senderUserId])
   @@map("notification_tasks")
+}
+
+// Append-only (no updated_at). REQ-OPS-01: operator, action, target, case,
+// result, time — never message bodies, attachment bytes, OTPs, tokens, or
+// registered contact channels (meta_json included). actor_id/target_id are
+// polymorphic and carry no FKs, like review_tasks.target_id.
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String
+  targetType String?  @map("target_type")
+  targetId   String?  @map("target_id") @db.Uuid
+  caseId     String?  @map("case_id") @db.Uuid
+  result     String
+  metaJson   Json?    @map("meta_json")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([caseId, createdAt])
+  @@index([action, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
 }
 
 // Status state machine: SPEC 8.1 (status CHECK is hand-added in the

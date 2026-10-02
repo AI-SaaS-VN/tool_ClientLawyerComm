@@ -18,7 +18,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       throw new ApiError(400, "invalid_multipart");
     }
     const file = await uploadFile(caseId, user, form);
-    // TODO(T11): audit
     return NextResponse.json({ file }, { status: 201 });
   } catch (error) {
     return errorResponse(error);

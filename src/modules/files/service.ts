@@ -5,6 +5,7 @@ import type { File as FileRow, User } from "@prisma/client";
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { findRuleHits } from "@/modules/moderation/rules";
+import { recordAudit } from "@/server/audit/log";
 import {
   requireCaseMember,
   requireCaseReviewer,
@@ -82,7 +83,15 @@ export async function uploadFile(
     });
     return created;
   });
-  // TODO(T11): audit (file uploaded into quarantine)
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "file.upload",
+    result: "success",
+    targetType: "file",
+    targetId: file.id,
+    caseId,
+    meta: { sizeBytes: file.sizeBytes, mime: file.mime },
+  });
   return toFileView(await runScanPipeline(file));
 }
 
@@ -204,7 +213,17 @@ export async function downloadFile(
     orderBy: { version: "desc" },
   });
   if (!variant) throw new ApiError(404, "not_found");
-  // TODO(T11): audit (file download authorized)
+  // REQ-OPS-01: every authorized download is auditable; the variant kind
+  // (original/shared_copy) is recorded, never the bytes or storage key.
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "file.download",
+    result: "success",
+    targetType: "file",
+    targetId: file.id,
+    caseId: file.caseId,
+    meta: { variantKind },
+  });
   return {
     data: await getStorageProvider().getObject(variant.storageKey),
     mime: file.mime,
@@ -226,7 +245,14 @@ export async function retryFileScan(
   if (!file) throw new ApiError(404, "not_found");
   await requireCaseReviewer(file.caseId, user);
   if (file.status !== "check_failed") throw new ApiError(409, "scan_not_retryable");
-  // TODO(T11): audit (scan retry)
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "file.scan_retry",
+    result: "success",
+    targetType: "file",
+    targetId: file.id,
+    caseId: file.caseId,
+  });
   return toFileView(await runScanPipeline(file));
 }
 
@@ -238,7 +264,14 @@ export async function rejectFailedFile(fileId: string, user: User): Promise<void
   await requireCaseReviewer(file.caseId, user);
   if (file.status !== "check_failed") throw new ApiError(409, "not_rejectable");
   await prisma.file.update({ where: { id: file.id }, data: { status: "rejected" } });
-  // TODO(T11): audit (check_failed file rejected)
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "file.reject",
+    result: "success",
+    targetType: "file",
+    targetId: file.id,
+    caseId: file.caseId,
+  });
 }
 
 // Review-console hook (T07 decision API): on approve, the shared copy is

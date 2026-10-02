@@ -5,7 +5,8 @@ import { prisma } from "@/lib/db";
 import { checkKeyFields } from "@/modules/translation/key-field-check";
 import { isSupportedLang, isZhConversionPair } from "@/modules/translation/langs";
 import { convertZh } from "@/modules/translation/zh-convert";
-import { requireCaseMember } from "@/server/guards/case-guards";
+import { recordAudit } from "@/server/audit/log";
+import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
 import { getLlmTranslationProvider } from "@/server/providers/llm";
 
 export type TranslationState =
@@ -112,11 +113,20 @@ async function createAndRun(message: Message, targetLang: string): Promise<Trans
     });
   } catch {
     // REQ-MSG-10: timeout/rate-limit/format faults mark the version failed;
-    // the source text stays published and untouched. TODO(T11): audit.
-    return prisma.translationVersion.update({
+    // the source text stays published and untouched.
+    const failed = await prisma.translationVersion.update({
       where: { id: row.id },
       data: { status: "failed", provider: provider.id },
     });
+    await recordAudit(prisma, {
+      action: "translation.run",
+      result: "failed",
+      targetType: "message",
+      targetId: message.id,
+      caseId: message.caseId,
+      meta: { targetLang },
+    });
+    return failed;
   }
 }
 
@@ -152,6 +162,8 @@ export async function requestTranslation(
   const message = await prisma.message.findUnique({ where: { id: messageId } });
   if (!message) throw new ApiError(404, "not_found");
   await requireCaseMember(message.caseId, user);
+  // REQ-CASE-05: archived cases accept no new translation requests.
+  await requireWritableCase(message.caseId);
 
   // REQ-TR-09: only approved (published) source text may reach the provider.
   // Non-authors cannot even see unpublished messages, so they get a plain 404.
@@ -170,7 +182,15 @@ export async function requestTranslation(
         where: { id: message.id },
         data: { sourceLang: override, correctedById: user.id },
       });
-      // TODO(T11): audit (source language corrected, re-translation triggered)
+      await recordAudit(prisma, {
+        actorId: user.id,
+        action: "translation.source_lang_corrected",
+        result: "success",
+        targetType: "message",
+        targetId: message.id,
+        caseId: message.caseId,
+        meta: { sourceLang: override },
+      });
     }
   }
 
@@ -187,6 +207,15 @@ export async function requestTranslation(
   // No version yet, or the latest attempt failed / was flagged: the click (or
   // retry) starts a new version. History rows stay untouched (REQ-TR-04).
   const row = await createAndRun(effective, targetLang);
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "translation.request",
+    result: "success",
+    targetType: "message",
+    targetId: effective.id,
+    caseId: effective.caseId,
+    meta: { targetLang },
+  });
   return { view: viewFromVersion(targetLang, row), created: true };
 }
 

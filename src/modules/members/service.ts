@@ -2,16 +2,19 @@ import type { User } from "@prisma/client";
 
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
+import { recordAudit } from "@/server/audit/log";
 import {
   requireCaseManager,
   requireWritableCase,
 } from "@/server/guards/case-guards";
 import { cancelQueuedAlertsForRecipient } from "@/server/jobs/queue";
+import { disconnectCaseUser } from "@/server/sse/hub";
 
 // Revocation is idempotent and takes effect on the very next request because
 // every guard re-reads this row (REQ-PM-08). The member's unsent notification
 // tasks (peer_urgent included, REQ-NTF-05) are cancelled in the same
-// transaction; the worker's pre-send re-check is the backstop.
+// transaction; the worker's pre-send re-check is the backstop. Live SSE
+// connections are force-closed right after the transaction commits.
 export async function revokeMember(
   caseId: string,
   targetUserId: string,
@@ -30,9 +33,17 @@ export async function revokeMember(
         data: { status: "revoked", revokedAt: new Date() },
       });
       await cancelQueuedAlertsForRecipient(tx, caseId, targetUserId, new Date());
+      await recordAudit(tx, {
+        actorId: actor.id,
+        action: "member.revoke",
+        result: "success",
+        targetType: "case_member",
+        targetId: member.id,
+        caseId,
+      });
     });
+    disconnectCaseUser(caseId, targetUserId);
   }
-  // TODO(T11): audit; close the member's live SSE connections (T04/T11)
 }
 
 // Duty flags exist only on coordinator memberships (REQ-PM-05); other roles
@@ -62,5 +73,14 @@ export async function updateMemberFlags(
   }
   if (Object.keys(data).length === 0) throw new ApiError(400, "invalid_flags");
   await prisma.caseMember.update({ where: { id: member.id }, data });
-  // TODO(T11): audit
+  await recordAudit(prisma, {
+    actorId: actor.id,
+    action: "member.flags_update",
+    result: "success",
+    targetType: "case_member",
+    targetId: member.id,
+    caseId,
+    meta: { ...(data.canManage !== undefined ? { canManage: data.canManage } : {}),
+      ...(data.canReview !== undefined ? { canReview: data.canReview } : {}) },
+  });
 }

@@ -6,6 +6,7 @@ import { errorResponse, readJson } from "@/lib/http";
 import { decryptText } from "@/modules/auth/crypto";
 import { requireUser } from "@/modules/auth/require-user";
 import { isSupportedLang } from "@/modules/translation/langs";
+import { recordAudit } from "@/server/audit/log";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,17 @@ export async function PATCH(req: NextRequest) {
     }
     if (Object.keys(data).length === 0) throw new ApiError(400, "no_fields");
     const updated = await prisma.user.update({ where: { id: user.id }, data });
-    // TODO(T11): audit
+    await recordAudit(prisma, {
+      actorId: user.id,
+      action: "user.lang_update",
+      result: "success",
+      targetType: "user",
+      targetId: user.id,
+      meta: {
+        ...(data.preferredLang ? { preferredLang: data.preferredLang } : {}),
+        ...(data.uiLang ? { uiLang: data.uiLang } : {}),
+      },
+    });
     return NextResponse.json({
       user: {
         id: updated.id,

@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { copySharedVersion } from "@/modules/files/service";
 import { toMessageView } from "@/modules/messages/service";
+import { recordAudit } from "@/server/audit/log";
 import { requireCaseMember } from "@/server/guards/case-guards";
 import {
   cancelQueuedAlertsForReviewTask,
@@ -230,9 +231,19 @@ export async function decideReviewTask(
       }
     }
     await cancelQueuedAlertsForReviewTask(tx, task.id, now);
+    // REQ-OPS-01: the decision (and a sole-reviewer self-release, REQ-REV-06)
+    // is auditable in the same transaction as the decision itself.
+    await recordAudit(tx, {
+      actorId: user.id,
+      action: "review.decide",
+      result: "success",
+      targetType: "review_task",
+      targetId: task.id,
+      caseId: task.caseId,
+      meta: { decision: action, selfRelease: selfReleased },
+    });
     return message;
   });
-  // TODO(T11): audit (review decision; self_release when applicable)
 
   if (action === "approve" && published) {
     publishToCase(published.caseId, "message", JSON.stringify({ message: toMessageView(published) }));
@@ -270,5 +281,12 @@ export async function appealReviewTask(
     where: { id: task.id },
     data: { appealNote: note, appealedAt: new Date() },
   });
-  // TODO(T11): audit (appeal)
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "review.appeal",
+    result: "success",
+    targetType: "review_task",
+    targetId: task.id,
+    caseId: task.caseId,
+  });
 }
