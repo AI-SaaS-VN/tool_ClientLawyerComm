@@ -26,6 +26,15 @@ T01 unit + smoke passed 2026-10-01. T02 unit + integration passed 2026-10-02 (31
 
 T01 单元＋冒烟于 2026-10-01 通过。T02 单元＋集成于 2026-10-02 通过（31/31，含跨用途 OTP 拒绝、撤销/重发/过期/重放、原子并发接受、Cookie Secure 两种配置、OTP 无明文断言）。AC01 模拟链路部分已覆盖；真实邮件送达属 T12。其余 AC02–AC12 未验收。
 
+## Session Resume Protocol / 会话恢复指引
+
+At the start of every session, in this order / 每次会话开始按此顺序：
+
+1. Read `SESSIONS.md` latest entry → this file (`PROGRESS.md`) → the current task section of `PLAN.md` → the cited sections of `SPEC.md`. Check `git status`/`git log` against what the records claim; trust the working tree over stale records.<br>读 `SESSIONS.md` 最新一条 → 本文件 → `PLAN.md` 当前任务节 → `SPEC.md` 被引用章节。用 `git status`/`git log` 核对记录是否与实际一致；以工作区实际状态为准。
+2. Environment check: `docker compose ps` (clc-postgres + clc-minio healthy; if not, `docker compose up -d`), then `npm run test` must be green before new work. Integration tests use database `clc_test` (vitest globalSetup creates it and replays migrations automatically); the dev database is `clc_dev`.<br>环境检查：`docker compose ps`（clc-postgres 与 clc-minio 应 healthy；否则 `docker compose up -d`），开工前 `npm run test` 必须全绿。集成测试用 `clc_test` 库（vitest globalSetup 自动建库并重放迁移）；开发库为 `clc_dev`。
+3. Standing rules: never read/print the project-root `.env` (read config via `process.env`, append placeholders to `.env.example` only); the local laptop→dev-VPS→Lighthouse topology stays in `LOCAL_DEV_NOTES.md` and must never enter committable files; fictitious test data only; before writing app code consult `node_modules/next/dist/docs/` (Next 16 differs from training data); per-task rhythm = failing test → minimal implementation → green → refactor → update PROGRESS/SESSIONS → commit → push (`git push origin main`).<br>长期规则：严禁读取/打印项目根目录 `.env`（配置只经 `process.env` 读取，占位只写 `.env.example`）；笔记本→研发VPS→Lighthouse 的拓扑只存 `LOCAL_DEV_NOTES.md`，不得进入任何可提交文件；测试只用虚构数据；写应用代码前查 `node_modules/next/dist/docs/`（Next 16 与训练数据有差异）；每任务节奏＝失败测试→最小实现→通过→重构→更新 PROGRESS/SESSIONS→提交→推送（`git push origin main`）。
+4. Current pointer: next task is **T03** (see "Next Steps" below). Git HEAD after this session: docs commit on top of `8dcfd6a` (feat T02) and `cea7e37` (feat T01). Do not redo T01/T02.<br>当前指针：下一任务为 **T03**（见下方「下一步」）。本会话结束时的 Git HEAD 在 `8dcfd6a`（feat T02）与 `cea7e37`（feat T01）之上的 docs 提交。不要重做 T01/T02。
+
 ## Next Steps / 下一步
 
 1. Implement PLAN.md T03 against SPEC.md v0.8 REQ-PM-01~10 and REQ-CASE-01~06: case creation (title 1–80 required) / case-application approval / member grant+revocation / archive entry; unified server-side permission middleware; simple case entry page. Extend the minimal `cases`/`case_members` from the T02 migration. Acceptance: AC02 privilege-escalation part, AC09 archive part. Tests: `tests/integration/cases/{cross-case-denied,revoke,title-required}.test.ts`. Do not redo T01/T02.
