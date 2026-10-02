@@ -6,6 +6,7 @@ import { SESSION_COOKIE, createSession } from "@/modules/auth/session";
 import { fakeEmailProvider } from "@/server/providers/email/fake";
 
 export async function resetDatabase(): Promise<void> {
+  await prisma.message.deleteMany();
   await prisma.otpChallenge.deleteMany();
   await prisma.invite.deleteMany();
   await prisma.caseApplication.deleteMany();
@@ -42,6 +43,18 @@ export function sendJson(
 
 export function cookieHeader(cookie: string | null): Record<string, string> {
   return cookie ? { cookie } : {};
+}
+
+export function postMessage(
+  caseId: string,
+  cookie: string,
+  body: Record<string, unknown>,
+  headers: Record<string, string> = {},
+): NextRequest {
+  return postJson(`/api/cases/${caseId}/messages`, body, {
+    ...cookieHeader(cookie),
+    ...headers,
+  });
 }
 
 export async function sessionCookieFor(userId: string): Promise<string> {

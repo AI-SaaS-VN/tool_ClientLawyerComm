@@ -23,6 +23,8 @@ model User {
   clientProfiles   ClientProfile[]
   caseApplications CaseApplication[] @relation("ApplicationLawyer")
   decidedApplications CaseApplication[] @relation("ApplicationDecider")
+  messagesAuthored  Message[] @relation("MessageAuthor")
+  messagesCorrected Message[] @relation("MessageCorrector")
 
   @@map("users")
 }
@@ -88,6 +90,7 @@ model Case {
   updatedAt     DateTime     @updatedAt @map("updated_at")
   members       CaseMember[]
   invites       Invite[]
+  messages      Message[]
 
   @@map("cases")
 }
@@ -104,6 +107,7 @@ model CaseMember {
   status       String    @default("active")
   revokedAt    DateTime? @map("revoked_at")
   digestOptOut Boolean   @default(false) @map("digest_opt_out")
+  lastReadMessageId String? @map("last_read_message_id") @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
@@ -163,4 +167,26 @@ model Invite {
 
   @@index([caseId])
   @@map("invites")
+}
+
+model Message {
+  id             String    @id @default(uuid()) @db.Uuid
+  caseId         String    @map("case_id") @db.Uuid
+  case           Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  authorId       String    @map("author_id") @db.Uuid
+  author         User      @relation("MessageAuthor", fields: [authorId], references: [id])
+  idempotencyKey String    @map("idempotency_key")
+  sourceLang     String    @map("source_lang")
+  sourceText     String    @map("source_text")
+  status         String    @default("pending_check")
+  seq            Int       @unique @default(autoincrement())
+  publishedAt    DateTime? @map("published_at")
+  correctedById  String?   @map("corrected_by_id") @db.Uuid
+  correctedBy    User?     @relation("MessageCorrector", fields: [correctedById], references: [id])
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@unique([caseId, authorId, idempotencyKey])
+  @@index([caseId, status, publishedAt])
+  @@map("messages")
 }

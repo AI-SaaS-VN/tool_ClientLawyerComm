@@ -3,6 +3,7 @@ import type { Case, User } from "@prisma/client";
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { assertValidTitle } from "@/modules/cases/title";
+import { getUnreadCount } from "@/modules/messages/unread";
 import {
   requireCaseManager,
   requireCaseMember,
@@ -73,14 +74,17 @@ export async function listMyCases(user: User) {
     include: { case: true },
     orderBy: { case: { updatedAt: "desc" } },
   });
-  return memberships.map((m) => ({
-    ...toCaseView(m.case),
-    myMembership: {
-      memberRole: m.memberRole,
-      canManage: m.canManage,
-      canReview: m.canReview,
-    },
-  }));
+  return Promise.all(
+    memberships.map(async (m) => ({
+      ...toCaseView(m.case),
+      myMembership: {
+        memberRole: m.memberRole,
+        canManage: m.canManage,
+        canReview: m.canReview,
+      },
+      unreadCount: await getUnreadCount(m.caseId, m.userId),
+    })),
+  );
 }
 
 // Member lists expose display names and roles only — never contact channels
@@ -94,6 +98,7 @@ export async function getCaseDetail(caseId: string, user: User) {
   if (!kase) throw new ApiError(404, "not_found");
   return {
     ...toCaseView(kase),
+    unreadCount: await getUnreadCount(caseId, user.id),
     members: kase.members.map((m) => ({
       id: m.id,
       memberRole: m.memberRole,
