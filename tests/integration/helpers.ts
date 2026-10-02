@@ -6,6 +6,7 @@ import { SESSION_COOKIE, createSession } from "@/modules/auth/session";
 import { fakeEmailProvider } from "@/server/providers/email/fake";
 
 export async function resetDatabase(): Promise<void> {
+  await prisma.reviewTask.deleteMany();
   await prisma.message.deleteMany();
   await prisma.otpChallenge.deleteMany();
   await prisma.invite.deleteMany();

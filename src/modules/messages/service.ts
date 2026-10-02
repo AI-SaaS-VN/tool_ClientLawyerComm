@@ -2,7 +2,7 @@ import { Prisma, type Message, type User } from "@prisma/client";
 
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
-import { getMessageChecker } from "@/modules/messages/check";
+import { getMessageChecker, normalizeCheckResult } from "@/modules/messages/check";
 import { detectSourceLang } from "@/modules/messages/lang";
 import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
 import { publishToCase } from "@/server/sse/hub";
@@ -101,9 +101,9 @@ export async function sendMessage(
 
 async function runPipeline(message: MessageWithAuthor): Promise<MessageWithAuthor> {
   await prisma.message.update({ where: { id: message.id }, data: { status: "checking" } });
-  let outcome;
+  let result;
   try {
-    outcome = await getMessageChecker().check(message);
+    result = normalizeCheckResult(await getMessageChecker().check(message));
   } catch {
     // REQ-MSG-03: check failure is a distinct state, never auto-published.
     // TODO(T07): content-free alert to the Coordinator.
@@ -113,15 +113,45 @@ async function runPipeline(message: MessageWithAuthor): Promise<MessageWithAutho
       include: { author: true },
     });
   }
-  if (outcome === "needs_review") {
-    // TODO(T05): register the review task in the same transaction.
-    return prisma.message.update({
+  if (result.outcome === "needs_review") {
+    try {
+      return await holdForReview(message, result.reason);
+    } catch {
+      // Registration failure must not leave a held message without a task
+      // (or vice versa); fail safe like any other check-stage failure.
+      return prisma.message.update({
+        where: { id: message.id },
+        data: { status: "check_failed" },
+        include: { author: true },
+      });
+    }
+  }
+  return publishMessage(message.id);
+}
+
+// REQ-NTF-07 (registration part): the hold and the review task land in one
+// transaction, so there is never a pending_review message without a task.
+async function holdForReview(
+  message: MessageWithAuthor,
+  reason: string | null,
+): Promise<MessageWithAuthor> {
+  return prisma.$transaction(async (tx) => {
+    const held = await tx.message.update({
       where: { id: message.id },
       data: { status: "pending_review" },
       include: { author: true },
     });
-  }
-  return publishMessage(message.id);
+    await tx.reviewTask.create({
+      data: {
+        caseId: message.caseId,
+        targetType: "message",
+        targetId: message.id,
+        reason: reason ?? "unspecified",
+      },
+    });
+    // TODO(T07): register one notification event per reviewer in this same transaction.
+    return held;
+  });
 }
 
 // T05/T07 reuse this for reviewer-approved releases.

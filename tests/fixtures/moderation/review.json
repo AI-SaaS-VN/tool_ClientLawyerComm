@@ -1,0 +1,135 @@
+[
+  {
+    "id": "review-email-fullwidth",
+    "lang": "zh-Hans",
+    "category": "email",
+    "text": "材料请发到我邮箱：ｚｈａｎｇ．ｌｉａｎｇ＠ｅｘａｍｐｌｅ．ｃｏｍ，不要走平台。",
+    "note": "full-width email (NFKC variant)"
+  },
+  {
+    "id": "review-email-split",
+    "lang": "zh-Hans",
+    "category": "email",
+    "text": "邮箱是 zhang . liang @ example . com，发完告诉我一声。",
+    "note": "character-split email"
+  },
+  {
+    "id": "review-phone-fullwidth",
+    "lang": "zh-Hans",
+    "category": "phone",
+    "text": "有事打这个号：１３８１２３４５６７８，晚上方便。",
+    "note": "full-width CN mobile"
+  },
+  {
+    "id": "review-phone-split",
+    "lang": "zh-Hans",
+    "category": "phone",
+    "text": "手机 1 3 8 - 1 2 3 4 - 5 6 7 8，随时联系。",
+    "note": "digit-split CN mobile"
+  },
+  {
+    "id": "review-phone-cn-intl",
+    "lang": "zh-Hans",
+    "category": "phone",
+    "text": "也可以打 +86 13812345678 找我。",
+    "note": "+86 prefixed CN mobile"
+  },
+  {
+    "id": "review-phone-vn-local",
+    "lang": "vi",
+    "category": "phone",
+    "text": "Sđt của tôi 0912 345 678, anh gọi ngoài nhé.",
+    "note": "Vietnamese local mobile"
+  },
+  {
+    "id": "review-phone-vn-intl",
+    "lang": "en",
+    "category": "phone",
+    "text": "Call me directly at +84 912 345 678 after hours.",
+    "note": "+84 prefixed VN mobile"
+  },
+  {
+    "id": "review-wechat-zh",
+    "lang": "zh-Hans",
+    "category": "wechat",
+    "text": "细节加我微信聊：wxid_abc123def，平台上说太麻烦。",
+    "note": "WeChat ID"
+  },
+  {
+    "id": "review-wechat-vx",
+    "lang": "zh-Hans",
+    "category": "wechat",
+    "text": "加 vx: abc123xyz 细聊费用之外的事。",
+    "note": "vx shorthand with ID"
+  },
+  {
+    "id": "review-zalo-toneless",
+    "lang": "vi",
+    "category": "zalo",
+    "text": "ban co zalo khong? ket ban qua zalo cho tien nhe.",
+    "note": "tone-less Vietnamese Zalo hint"
+  },
+  {
+    "id": "review-zalo-id",
+    "lang": "vi",
+    "category": "zalo",
+    "text": "Zalo của tôi: nguyenvan_example, nhắn qua đó nhé.",
+    "note": "Zalo ID with tones"
+  },
+  {
+    "id": "review-url-https",
+    "lang": "zh-Hans",
+    "category": "url",
+    "text": "证据我都放在 https://fictitious-drive.example.com/case/123 里了。",
+    "note": "https URL"
+  },
+  {
+    "id": "review-url-fullwidth",
+    "lang": "zh-Hans",
+    "category": "url",
+    "text": "打开 ｗｗｗ．ｆａｋｅ－ｎｅｗｓ．ｃｏｍ 看那个报道。",
+    "note": "full-width www URL"
+  },
+  {
+    "id": "review-qr-zh",
+    "lang": "zh-Hans",
+    "category": "qr",
+    "text": "扫这个二维码加我，二维码在我头像旁边的图片里。",
+    "note": "QR code hint"
+  },
+  {
+    "id": "review-qr-toneless",
+    "lang": "vi",
+    "category": "qr",
+    "text": "quet ma qr trong anh de ket noi voi toi nhe.",
+    "note": "tone-less Vietnamese QR hint"
+  },
+  {
+    "id": "review-fee-zh",
+    "lang": "zh-Hans",
+    "category": "fee_inquiry",
+    "text": "这个案件你们律所收费多少？能不能先给个报价？",
+    "note": "explicit retainer-fee inquiry (REQ-MOD-03 trigger)"
+  },
+  {
+    "id": "review-fee-vi",
+    "lang": "vi",
+    "category": "fee_inquiry",
+    "text": "Cho hỏi phí luật sư vụ này bao nhiêu? Có giảm được không?",
+    "note": "explicit lawyer-fee inquiry, Vietnamese with tones"
+  },
+  {
+    "id": "review-fee-vi-toneless",
+    "lang": "vi",
+    "category": "fee_inquiry",
+    "text": "phi luat su vu nay bao nhieu tien? minh co the thuong luong khong?",
+    "note": "tone-less explicit lawyer-fee inquiry"
+  },
+  {
+    "id": "review-fee-en",
+    "lang": "en",
+    "category": "fee_inquiry",
+    "text": "How much does your firm charge for this case? Can we negotiate the fee?",
+    "note": "explicit firm-fee inquiry, English"
+  }
+]

@@ -402,3 +402,45 @@ Implement PLAN.md T04 against SPEC.md v0.8 REQ-MSG-01~08 (see PROGRESS.md "Next 
 ### First Step Next Time / 下次第一步
 
 Implement PLAN.md T05 against SPEC.md v0.8 REQ-MOD-01~08 (see PROGRESS.md "Next Steps"); wire the real checker into `src/modules/messages/check.ts`. Do not redo T01–T04.<br>按 SPEC.md v0.8 REQ-MOD-01~08 实现 PLAN.md T05（见 PROGRESS.md「下一步」）；把真实检查接入 `src/modules/messages/check.ts`。不要重做 T01–T04。
+
+---
+
+## Session 2026-10-02-05 (Ended) / 会话 2026-10-02-05（已结束）
+
+- Date/Timezone: 2026-10-02, UTC (Kimi Code coder subagent on the dev VPS)<br>日期/时区：2026-10-02，UTC（研发 VPS 上的 Kimi Code coder 子代理）
+- Goal: implement PLAN.md T05 (content check rules and review entry, explicit fee-inquiry trigger) against SPEC.md v0.8 REQ-MOD-01~08 / REQ-MSG-01/03 / REQ-NTF-07 (registration part), TDD, without redoing T01–T04.<br>本次目标：按 SPEC.md v0.8 REQ-MOD-01~08／REQ-MSG-01/03／REQ-NTF-07（登记部分）以 TDD 实现 PLAN.md T05（内容检查规则与审核入口，显式费用问询触发），不重做 T01–T04。
+
+### Actual Actions / 实际动作
+
+1. Re-read the baseline: PLAN T05, SPEC sections 7/13 (REQ-MOD, review_tasks columns), REQ-NTF-07/REQ-REV for task shape, T04 check stub + service pipeline + test helpers, email-provider pattern for the LLM provider seam.<br>重读基线：PLAN T05、SPEC 第 7/13 节（REQ-MOD、review_tasks 列）、REQ-NTF-07/REQ-REV 确定任务表形状、T04 检查桩＋服务流水线＋测试辅助、邮件 provider 模式以套用 LLM provider 接缝。
+2. TDD: wrote fixtures `tests/fixtures/moderation/{pass,review}.json` (14 pass + 19 review, zh/vi/en, fictitious) and 3 test files first (all red on imports), then implemented to green.<br>TDD：先写语料 `tests/fixtures/moderation/{pass,review}.json`（14 放行＋19 待审，中越英，虚构）与 3 个测试文件（导入即红），随后实现至全绿。
+3. Migration `20261002102258_t05_review_tasks`: `review_tasks` per SPEC 13 + hand-added CHECKs (target_type, status, reason 1–200). Repaired the pre-existing T04 checksum mismatch in clc_dev by aligning recorded checksums with on-disk migration files (reset was forbidden); applied the T05 CHECKs to clc_dev and aligned its checksum the same way.<br>迁移 `20261002102258_t05_review_tasks`：按 SPEC 13 建 `review_tasks`＋手工 CHECK（target_type、status、reason 1–200）。通过把记录校验和与磁盘迁移文件对齐修复了 clc_dev 既有的 T04 校验和不一致（禁止 reset）；T05 的 CHECK 同步应用到 clc_dev 并同样对齐校验和。
+4. Implemented `src/modules/moderation/rules.ts` (pure detectors: email/phone/WeChat/Zalo/URL/QR with full-width, split, tone-less variants), `src/server/providers/llm/{interface,fake,index}.ts` (fake = deterministic explicit-fee heuristic + injectable fixed verdict/failure), `src/modules/moderation/{semantic,pipeline}.ts`, rewired `src/modules/messages/check.ts` (default checker = real pipeline; plain-string injections still work), and `holdForReview` in `service.ts` (pending_review + review_tasks in one transaction; failure → check_failed, never published).<br>实现 `src/modules/moderation/rules.ts`（纯检测器：邮箱/手机号/WeChat/Zalo/URL/二维码，含全角、拆字、无声调变形）、`src/server/providers/llm/{interface,fake,index}.ts`（fake＝确定性显式费用启发式＋可注入固定结论/故障）、`src/modules/moderation/{semantic,pipeline}.ts`，改接 `src/modules/messages/check.ts`（默认检查器＝真实管线；纯字符串注入仍可用），并在 `service.ts` 增加 `holdForReview`（pending_review＋review_tasks 一个事务；失败→check_failed，绝不发布）。
+5. Verified personally: `npm run test` 140/140 green (19 files; 71 unit + 69 integration); `npm run lint` clean; `npx tsc --noEmit` clean; `npm run build` succeeded. `.env` untouched; no new env vars required (LLM_PROVIDER optional, defaults to fake); fictitious test data only.<br>本人复核：`npm run test` 140/140 通过（19 个文件；71 单元＋69 集成）；`npm run lint` 无错误；`npx tsc --noEmit` 无错误；`npm run build` 成功。`.env` 未动；无必需新增环境变量（LLM_PROVIDER 可选，默认 fake）；仅用虚构测试数据。
+
+### Changed Files / 变更文件
+
+- Migration `prisma/migrations/20261002102258_t05_review_tasks/migration.sql`; `prisma/schema.prisma` (+ReviewTask, relations).<br>迁移 `prisma/migrations/20261002102258_t05_review_tasks/migration.sql`；`prisma/schema.prisma`（＋ReviewTask 与关联）。
+- Code: `src/modules/moderation/{rules,semantic,pipeline}.ts`; `src/server/providers/llm/{interface,fake,index}.ts`; `src/modules/messages/check.ts` (real default checker); `src/modules/messages/service.ts` (`holdForReview` transaction, `normalizeCheckResult`).<br>代码：`src/modules/moderation/{rules,semantic,pipeline}.ts`；`src/server/providers/llm/{interface,fake,index}.ts`；`src/modules/messages/check.ts`（真实默认检查器）；`src/modules/messages/service.ts`（`holdForReview` 事务、`normalizeCheckResult`）。
+- Tests: `tests/unit/moderation/{rules,fee-vs-amount}.test.ts`, `tests/integration/moderation/pipeline.test.ts`, `tests/fixtures/moderation/{pass,review}.json`, `tests/integration/helpers.ts` (+reviewTask cleanup).<br>测试：`tests/unit/moderation/{rules,fee-vs-amount}.test.ts`、`tests/integration/moderation/pipeline.test.ts`、`tests/fixtures/moderation/{pass,review}.json`、`tests/integration/helpers.ts`（＋reviewTask 清理）。
+- Docs (this commit): PROGRESS.md (T05 done), PLAN.md T05 status → Done, SESSIONS.md this entry.<br>文档（本次提交）：PROGRESS.md（T05 完成）、PLAN.md T05 状态改为完成、SESSIONS.md 本条记录。
+
+### Deviations from the T05 task text (recorded) / 与 T05 任务文本的偏离（已记录）
+
+1. `MessageChecker.check` return widened to `CheckOutcome | CheckResult` (CheckResult carries the hold reason); `normalizeCheckResult` keeps all T04 plain-string injections working unchanged — no T04 test edits were needed.<br>`MessageChecker.check` 返回放宽为 `CheckOutcome | CheckResult`（CheckResult 带拦截原因）；`normalizeCheckResult` 让 T04 全部纯字符串注入原样可用——未改动任何 T04 测试。
+2. Registration-failure path maps to check_failed (fail-safe) instead of surfacing a 500: the rollback test proves no half state (no pending_review without task, no orphan task), and the message ends check_failed.<br>登记失败路径归一为 check_failed（fail-safe）而非抛出 500：回滚测试证明无半态（不存在无任务的 pending_review，也无孤儿任务），消息最终停 check_failed。
+3. The rollback trigger uses the migration's reason-length CHECK (injected 500-char reason) — a real DB constraint failure inside the transaction, not a mocked Prisma.<br>回滚触发用迁移里的 reason 长度 CHECK（注入 500 字符原因）——事务内真实的数据库约束失败，而非 mock Prisma。
+4. review_tasks.status CHECK includes 'cancelled' (T07 escalation/cancel flows) and target_type includes 'file' (T08) so later tasks do not need to alter constraints.<br>review_tasks.status CHECK 含 'cancelled'（T07 升级/取消流程）、target_type 含 'file'（T08），后续任务无需再改约束。
+
+### Verification Results / 验证结果
+
+- `npm run test`: 19 files, 140/140 passed. `npm run lint`: clean. `npx tsc --noEmit`: clean. `npm run build`: success.<br>`npm run test`：19 个文件 140/140 通过。`npm run lint`：无错误。`npx tsc --noEmit`：无错误。`npm run build`：成功。
+- All six PLAN T05 acceptance criteria have direct tests: case amounts (claims/damages/settlement/court fees) published; explicit fee inquiries + obfuscated contacts held with same-transaction review_tasks rows; ambiguous fee mentions published; checker failure → check_failed not published; mid-transaction registration failure → full rollback; pending_review invisible to the receiver (T04 invariant re-asserted). REQ-MOD-08: corpus evaluation counts False Block and Missed Block separately; both zero on the fixture set.<br>PLAN T05 六条验收标准均有直接测试：案件金额（请求/赔偿/和解/诉讼费）放行；显式费用问询＋变形联系方式待审且同事务生成 review_tasks 行；模糊费用提及放行；检查故障→check_failed 不发布；事务中途登记失败→完整回滚；pending_review 对接收方不可见（重断言 T04 不变式）。REQ-MOD-08：语料评估分别统计误拦与漏拦，fixture 集上两者皆为零。
+
+### Unfinished Items / 未完成项
+
+- Notification-event registration per reviewer (REQ-NTF-07 event part) is T07 (`TODO(T07)` inside `holdForReview`); review decision APIs and the review console are T07; the real Kimi LLM adapter is T06; REQ-MOD-06 split-across-messages detection and display_name rejection (REQ-MOD-02 display-name part) are not in this task; audit trail stays T11; threshold freeze judging (REQ-MOD-08) waits for the evaluation-set freeze.<br>按审核人登记通知事件（REQ-NTF-07 事件部分）属 T07（`holdForReview` 内 `TODO(T07)`）；审核决策 API 与审核后台属 T07；真实 Kimi LLM 适配属 T06；REQ-MOD-06 跨消息拆分检测与 display_name 拦截（REQ-MOD-02 显示名部分）不在本任务；审计仍属 T11；阈值冻结判定（REQ-MOD-08）待评测集冻结。
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T07 against SPEC.md v0.8 REQ-REV-01~06 / REQ-NTF-07~13 (see PROGRESS.md "Next Steps"); register notification events at the `TODO(T07)` marker in `holdForReview`. T06 (translation) can alternatively go first. Do not redo T01–T05.<br>按 SPEC.md v0.8 REQ-REV-01~06／REQ-NTF-07~13 实现 PLAN.md T07（见 PROGRESS.md「下一步」）；在 `holdForReview` 的 `TODO(T07)` 标记处登记通知事件。也可先做 T06（翻译）。不要重做 T01–T05。

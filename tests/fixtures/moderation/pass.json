@@ -1,0 +1,86 @@
+[
+  {
+    "id": "pass-zh-claim",
+    "lang": "zh-Hans",
+    "text": "本案诉讼请求金额为人民币500万元，请对方尽快确认。",
+    "note": "litigation claim amount (REQ-MOD-01 release)"
+  },
+  {
+    "id": "pass-zh-damages",
+    "lang": "zh-Hans",
+    "text": "我们主张损害赔偿金 2,300,000 元，另加同期利息。",
+    "note": "damages with thousand separators, not a phone number"
+  },
+  {
+    "id": "pass-zh-settlement",
+    "lang": "zh-Hans",
+    "text": "和解方案：对方一次性支付80万元了结本案，双方互不追究。",
+    "note": "settlement amount"
+  },
+  {
+    "id": "pass-zh-court-fee",
+    "lang": "zh-Hans",
+    "text": "法院诉讼费大约12万元，按判例由败诉方承担。",
+    "note": "court litigation fee is a Case Amount, not a retainer fee"
+  },
+  {
+    "id": "pass-zh-ambiguous-cost",
+    "lang": "zh-Hans",
+    "text": "这个案子要花多少钱打官司？想先了解一下大概的诉讼成本。",
+    "note": "ambiguous cost mention, released by default (REQ-MOD-03)"
+  },
+  {
+    "id": "pass-zh-normal",
+    "lang": "zh-Hans",
+    "text": "请把上次的庭审笔录发给我，谢谢。",
+    "note": "ordinary case message"
+  },
+  {
+    "id": "pass-zh-date",
+    "lang": "zh-Hans",
+    "text": "判决生效日期是2026年10月15日，请注意履行期限。",
+    "note": "date digits are not a phone number"
+  },
+  {
+    "id": "pass-vi-damages",
+    "lang": "vi",
+    "text": "Số tiền bồi thường chúng tôi yêu cầu là 500 triệu đồng, chưa tính lãi.",
+    "note": "damages claim in VND"
+  },
+  {
+    "id": "pass-vi-court-fee",
+    "lang": "vi",
+    "text": "Phí tòa án khoảng 12 triệu đồng, bên thua sẽ phải chịu.",
+    "note": "court fee mention"
+  },
+  {
+    "id": "pass-vi-ambiguous-cost",
+    "lang": "vi",
+    "text": "Vụ án này kiện hết khoảng bao nhiêu tiền? Tôi muốn dự trù chi phí.",
+    "note": "ambiguous lawsuit-cost question, released by default"
+  },
+  {
+    "id": "pass-vi-date",
+    "lang": "vi",
+    "text": "Ngày 15/10/2026 tòa sẽ mở phiên xử tiếp theo, anh nhớ tham dự.",
+    "note": "hearing date, not a phone number"
+  },
+  {
+    "id": "pass-en-damages",
+    "lang": "en",
+    "text": "The claimed damages amount to USD 750,000 plus accrued interest.",
+    "note": "damages in USD"
+  },
+  {
+    "id": "pass-en-court-fee",
+    "lang": "en",
+    "text": "The court filing fee is about USD 3,200 and is due next week.",
+    "note": "court filing fee"
+  },
+  {
+    "id": "pass-en-ambiguous-cost",
+    "lang": "en",
+    "text": "Roughly how much would it cost to take this case to trial?",
+    "note": "ambiguous cost question, released by default"
+  }
+]

@@ -132,8 +132,8 @@
 - 同步测试：`tests/unit/moderation/rules.test.ts`、`tests/unit/moderation/fee-vs-amount.test.ts`、`tests/integration/moderation/pipeline.test.ts`。
 - Test commands: `npm run test -- moderation`, `npm run test:int -- moderation`.
 - 测试命令：`npm run test -- moderation`、`npm run test:int -- moderation`。
-- Status: P0, not started. Implement only after the dependencies above are accepted.
-- 状态：P0，未开始。须待上方依赖验收后再实现。
+- Status: Done (2026-10-02). 140/140 tests green (was 80; +30 unit `tests/unit/moderation/rules.test.ts`, +23 unit `tests/unit/moderation/fee-vs-amount.test.ts`, +7 integration `tests/integration/moderation/pipeline.test.ts`), lint/tsc/build clean. Migration `20261002102258_t05_review_tasks` adds `review_tasks` with target_type/status/reason CHECKs. The T04 pass-through stub in `src/modules/messages/check.ts` is replaced by the real pipeline (`src/modules/moderation/{rules,semantic,pipeline}.ts` + `src/server/providers/llm/{interface,fake,index}.ts`); the hold and the review task register in one transaction, registration failure rolls back to check_failed. Fixture corpus: 14 pass + 19 review samples (zh/vi/en). Details in PROGRESS.md.
+- 状态：已完成（2026-10-02）。140/140 测试通过（原 80；新增 30 单元 `tests/unit/moderation/rules.test.ts`、23 单元 `tests/unit/moderation/fee-vs-amount.test.ts`、7 集成 `tests/integration/moderation/pipeline.test.ts`），lint/tsc/build 无错误。迁移 `20261002102258_t05_review_tasks` 新增 `review_tasks` 并带 target_type/status/reason CHECK。`src/modules/messages/check.ts` 的 T04 直通桩已替换为真实管线（`src/modules/moderation/{rules,semantic,pipeline}.ts`＋`src/server/providers/llm/{interface,fake,index}.ts`）；挂起与审核任务在一个事务内登记，登记失败回滚至 check_failed。fixture 语料：14 条放行＋19 条待审（中越英）。详见 PROGRESS.md。
 
 ## T06 Translation Service and Dual Reading Modes (Simplified/Traditional Chinese / Vietnamese / English) / T06 翻译服务与双阅读模式（中简繁/越/英）
 

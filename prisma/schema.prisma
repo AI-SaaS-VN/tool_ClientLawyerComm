@@ -25,6 +25,7 @@ model User {
   decidedApplications CaseApplication[] @relation("ApplicationDecider")
   messagesAuthored  Message[] @relation("MessageAuthor")
   messagesCorrected Message[] @relation("MessageCorrector")
+  reviewTasksAssigned ReviewTask[]
 
   @@map("users")
 }
@@ -91,6 +92,7 @@ model Case {
   members       CaseMember[]
   invites       Invite[]
   messages      Message[]
+  reviewTasks   ReviewTask[]
 
   @@map("cases")
 }
@@ -189,4 +191,26 @@ model Message {
   @@unique([caseId, authorId, idempotencyKey])
   @@index([caseId, status, publishedAt])
   @@map("messages")
+}
+
+// target_id is polymorphic (message now, file in T08) and carries no FK.
+// Status/target_type/reason CHECK constraints are hand-added in the migration.
+model ReviewTask {
+  id              String    @id @default(uuid()) @db.Uuid
+  caseId          String    @map("case_id") @db.Uuid
+  case            Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  targetType      String    @map("target_type")
+  targetId        String    @map("target_id") @db.Uuid
+  assigneeId      String?   @map("assignee_id") @db.Uuid
+  assignee        User?     @relation(fields: [assigneeId], references: [id])
+  status          String    @default("open")
+  reason          String
+  escalationLevel Int       @default(0) @map("escalation_level")
+  decidedAt       DateTime? @map("decided_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([caseId, status])
+  @@index([targetType, targetId])
+  @@map("review_tasks")
 }
