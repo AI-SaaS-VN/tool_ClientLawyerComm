@@ -323,3 +323,43 @@ Implement PLAN.md T02 against SPEC.md v0.8 REQ-AUTH-01 and REQ-AUTH-12. The invi
 ### First Step Next Time / 下次第一步
 
 Implement PLAN.md T03 against SPEC.md v0.8 REQ-PM-01~10 / REQ-CASE-01~06 (see PROGRESS.md "Next Steps"). Do not redo T01/T02.<br>按 SPEC.md v0.8 REQ-PM-01~10／REQ-CASE-01~06 实现 PLAN.md T03（见 PROGRESS.md「下一步」）。不要重做 T01/T02。
+
+---
+
+## Session 2026-10-02-03 (Ended) / 会话 2026-10-02-03（已结束）
+
+- Date/Timezone: 2026-10-02, UTC (Kimi Code coder subagent on the dev VPS)<br>日期/时区：2026-10-02，UTC（研发 VPS 上的 Kimi Code coder 子代理）
+- Goal: implement PLAN.md T03 (case and member management + permission middleware) against SPEC.md v0.8 REQ-PM-01~10 / REQ-CASE-01~06, TDD, without redoing T01/T02.<br>本次目标：按 SPEC.md v0.8 REQ-PM-01~10／REQ-CASE-01~06 以 TDD 实现 PLAN.md T03（案件与成员管理＋权限中间件），不重做 T01/T02。
+
+### Actual Actions / 实际动作
+
+1. Re-read the baseline: schema (T02 minimal `cases`/`case_members`), SPEC sections 2/4/13/14, PLAN T03, T02 code and tests; checked Next 16 docs (`dist/docs/01-app/03-api-reference/03-file-conventions/route.md`, `page.md`) before writing app code. Dev DB `clc_dev` verified empty before adding required columns.<br>重读基线：schema（T02 最小版 `cases`/`case_members`）、SPEC 第 2/4/13/14 节、PLAN T03、T02 代码与测试；写应用代码前查了 Next 16 文档（route.md、page.md）。加必填列前确认开发库 `clc_dev` 为空。
+2. Wrote schema extension + migration `20261002062836_t03_cases_members_profiles_applications` (added CHECK constraints by hand: title 1–80 no line breaks, status/role enums); `migrate reset --force` replayed all three migrations on the empty dev DB.<br>编写 schema 扩展与迁移 `20261002062836_t03_cases_members_profiles_applications`（手工加入 CHECK：title 1–80 不含换行、状态/角色枚举）；空开发库上 `migrate reset --force` 干净重放全部三个迁移。
+3. TDD: wrote 5 failing integration files + 1 unit file first (title boundaries, cross-case/admin/non-member denial, invite email required, revoke immediacy, duty flags, archive read-only, client profiles, case applications), then implemented to green.<br>TDD：先写 5 个集成测试文件＋1 个单元文件（title 边界、跨案件/admin/非成员拒绝、邀请必须带邮箱、撤销即时生效、职责标记、归档只读、客户档案、建案申请），随后实现至全绿。
+4. Implemented: `src/server/guards/case-guards.ts` (per-request DB re-validation; admin always 403; role consistency; writable-case check); modules `cases` (create/list/detail/archive + pure `title.ts`), `members` (revoke, duty-flag PATCH), `clients` (profiles scoped to owning lawyer), `applications` (submit/list/decide; approval creates the case in one transaction); routes for all of the above; T02 invites service switched to the shared guards + archived-case rejection (create and accept); simple pages `src/app/(app)/cases/**` (list + detail, non-member 404, unauthenticated → /login).<br>实现：`src/server/guards/case-guards.ts`（每次请求查库；admin 一律 403；角色一致性；可写案件检查）；模块 `cases`（建案/列表/详情/归档＋纯函数 `title.ts`）、`members`（撤销、职责标记 PATCH）、`clients`（档案限所属律师）、`applications`（提交/列表/审批；批准单事务建案）；对应全部路由；T02 邀请服务改用共享守卫＋归档案拒绝（发出与接受）；简易页面 `src/app/(app)/cases/**`（列表＋详情，非成员 404，未登录跳 /login）。
+5. Verified personally: `npm run test` 51/51 green (10 files; 17 unit + 34 integration); `npm run lint` clean; `npx tsc --noEmit` clean; `npm run build` succeeded (23 routes incl. `/cases` pages). `.env` untouched; no new env vars needed; only fictitious test data.<br>本人复核：`npm run test` 51/51 通过（10 个文件；17 单元＋34 集成）；`npm run lint` 无错误；`npx tsc --noEmit` 无错误；`npm run build` 成功（23 条路由，含 `/cases` 页面）。`.env` 未动；无需新增环境变量；仅用虚构测试数据。
+
+### Changed Files / 变更文件
+
+- Code commit 12f0329 (29 files): migration `20261002062836_t03_cases_members_profiles_applications`; `prisma/schema.prisma`; `src/server/guards/case-guards.ts`; `src/modules/{cases/{service,title},members/service,clients/service,applications/service}.ts`; `src/modules/invites/service.ts` (shared guards + archived-case checks); API routes `src/app/api/cases/{route,[id]/route,[id]/archive/route,[id]/members/[uid]/route}.ts`, `src/app/api/client-profiles/{route,[id]/route}.ts`, `src/app/api/case-applications/{route,[id]/route}.ts`; pages `src/app/(app)/cases/{page,[id]/page}.tsx`; tests `tests/integration/cases/{title-required,cross-case-denied,revoke,archive,case-applications}.test.ts`, `tests/unit/cases/title-rules.test.ts`, `tests/integration/{helpers.ts,auth/invite-flow.test.ts}` (clientOrgName on seed cases); `.gitignore` +`tsconfig.tsbuildinfo`.<br>代码提交 12f0329（29 个文件）：迁移 `20261002062836_t03_cases_members_profiles_applications`；`prisma/schema.prisma`；`src/server/guards/case-guards.ts`；`src/modules/{cases/{service,title},members/service,clients/service,applications/service}.ts`；`src/modules/invites/service.ts`（共享守卫＋归档案检查）；API 路由 `src/app/api/cases/**`、`src/app/api/client-profiles/**`、`src/app/api/case-applications/**`；页面 `src/app/(app)/cases/**`；测试 `tests/integration/cases/*`、`tests/unit/cases/title-rules.test.ts`、`tests/integration/{helpers.ts,auth/invite-flow.test.ts}`（种子案件补 clientOrgName）；`.gitignore` 增加 `tsconfig.tsbuildinfo`。
+- Docs (this commit): PROGRESS.md rewritten (T03 done), PLAN.md T03 status → Done, SESSIONS.md this entry.<br>文档（本次提交）：PROGRESS.md 重写（T03 完成）、PLAN.md T03 状态改为完成、SESSIONS.md 本条记录。
+
+### Deviations from the T03 task text (recorded) / 与 T03 任务文本的偏离（已记录）
+
+1. `POST /api/cases` admits any active coordinator account rather than checking per-case `can_manage` — a first-time coordinator has no membership to check against; the can_manage guard applies to all subsequent management operations. Recorded in PROGRESS.md.<br>`POST /api/cases` 对任何协调员账号开放，而非校验按案件 `can_manage`——首次建案的协调员没有成员关系可查；can_manage 守卫适用于此后所有管理操作。已记入 PROGRESS.md。
+2. Missing/invalid invite email now returns code `email_required` (was `invalid_email`); status stays 400 as required.<br>邀请缺邮箱的错误码改为 `email_required`（原 `invalid_email`）；状态码仍为 400。
+3. Member-flag changes use `PATCH /api/cases/:id/members/:uid` (SPEC Section 14 lists only DELETE; PATCH added to satisfy "flags may be turned off individually", REQ-CASE-02).<br>成员职责标记调整使用 `PATCH /api/cases/:id/members/:uid`（SPEC 第 14 节仅列 DELETE；PATCH 为满足 REQ-CASE-02「标记可单独关闭」而加）。
+4. `case_applications.decided_at` was not added (SPEC key fields list only `decided_by`).<br>`case_applications` 未加 `decided_at`（SPEC 关键字段仅列 `decided_by`）。
+
+### Verification Results / 验证结果
+
+- `npm run test`: 10 files, 51/51 passed. `npm run lint`: clean. `npx tsc --noEmit`: clean. `npm run build`: success (23 routes).<br>`npm run test`：10 个文件 51/51 通过。`npm run lint`：无错误。`npx tsc --noEmit`：无错误。`npm run build`：成功（23 条路由）。
+- All seven PLAN T03 acceptance criteria have direct tests: title 1–80 rejection; invite email required + membership inactive before acceptance; lawyer-in-two-cases denied on a third; non-member denied; revoke effective immediately; no platform-wide client listing for lawyers; admin denied everywhere + case creation limited to coordinators / the application-approval path.<br>PLAN T03 七条验收标准均有直接测试：title 1–80 拒绝；邀请必须带邮箱＋接受前成员不激活；律师参与两案时第三案被拒；非成员被拒；撤销立即生效；律师无全平台客户列表；admin 处处被拒＋建案仅限协调员或申请审批流程。
+
+### Unfinished Items / 未完成项
+
+- Audit trail remains T11 (`TODO(T11)` markers); closing live SSE connections on revoke is T04/T11; messages/files/alerts entities are T04+, so archive read-only is currently enforced on the T03-scope write endpoints only.<br>审计仍属 T11（代码中有 `TODO(T11)` 标记）；撤权断存量 SSE 属 T04/T11；消息/文件/提醒实体属 T04+，故归档只读当前仅在 T03 范围内的写端点上强制。
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T04 against SPEC.md v0.8 REQ-MSG-01~08 (see PROGRESS.md "Next Steps"). Do not redo T01–T03.<br>按 SPEC.md v0.8 REQ-MSG-01~08 实现 PLAN.md T04（见 PROGRESS.md「下一步」）。不要重做 T01–T03。

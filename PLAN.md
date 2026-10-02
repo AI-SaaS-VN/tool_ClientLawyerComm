@@ -92,8 +92,8 @@
 - 同步测试：`tests/integration/cases/cross-case-denied.test.ts`、`tests/integration/cases/revoke.test.ts`、`tests/integration/cases/title-required.test.ts`。
 - Test commands: `npm run test:int -- cases`.
 - 测试命令：`npm run test:int -- cases`。
-- Status: P0, not started. Implement only after the dependencies above are accepted.
-- 状态：P0，未开始。须待上方依赖验收后再实现。
+- Status: Done (2026-10-02, commit 12f0329). 51/51 tests green (was 31; +18 integration in `tests/integration/cases/` + 2 unit in `tests/unit/cases/`), lint/tsc/build clean. Migration `20261002062836_t03_cases_members_profiles_applications` extends `cases` (client_org_name, ref_no, alias, created_by, title/status CHECKs) and `case_members` (digest_opt_out, role/status CHECKs) and adds `client_profiles` + `case_applications`. Guards in `src/server/guards/case-guards.ts` re-validate membership against the DB on every request; revoke is immediate; archive is read-only (409 on writes). Details in PROGRESS.md.
+- 状态：已完成（2026-10-02，提交 12f0329）。51/51 测试通过（原 31；新增 `tests/integration/cases/` 18 项集成 + `tests/unit/cases/` 2 项单元），lint/tsc/build 无错误。迁移 `20261002062836_t03_cases_members_profiles_applications` 扩展 `cases`（client_org_name、ref_no、alias、created_by、title/status CHECK）与 `case_members`（digest_opt_out、角色/状态 CHECK），并新增 `client_profiles` 与 `case_applications`。权限中间件在 `src/server/guards/case-guards.ts`，每次请求重新查库校验成员资格；撤销即时生效；归档只读（写操作 409）。详见 PROGRESS.md。
 
 ## T04 Message Pipeline and SSE Reconnect Backfill / T04 消息流水线与 SSE 断线补拉
 
