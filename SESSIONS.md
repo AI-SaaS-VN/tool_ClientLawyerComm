@@ -363,3 +363,42 @@ Implement PLAN.md T03 against SPEC.md v0.8 REQ-PM-01~10 / REQ-CASE-01~06 (see PR
 ### First Step Next Time / 下次第一步
 
 Implement PLAN.md T04 against SPEC.md v0.8 REQ-MSG-01~08 (see PROGRESS.md "Next Steps"). Do not redo T01–T03.<br>按 SPEC.md v0.8 REQ-MSG-01~08 实现 PLAN.md T04（见 PROGRESS.md「下一步」）。不要重做 T01–T03。
+
+---
+
+## Session 2026-10-02-04 (Ended) / 会话 2026-10-02-04（已结束）
+
+- Date/Timezone: 2026-10-02, UTC (Kimi Code coder subagent on the dev VPS)<br>日期/时区：2026-10-02，UTC（研发 VPS 上的 Kimi Code coder 子代理）
+- Goal: implement PLAN.md T04 (message pipeline and SSE reconnect backfill) against SPEC.md v0.8 REQ-MSG-01~08, TDD, without redoing T01–T03.<br>本次目标：按 SPEC.md v0.8 REQ-MSG-01~08 以 TDD 实现 PLAN.md T04（消息流水线与 SSE 断线补拉），不重做 T01–T03。
+
+### Actual Actions / 实际动作
+
+1. Re-read the baseline: PLAN T04, SPEC sections 5/13 (message state machine, messages table), T03 guards/services/test helpers, Next 16 docs (`dist/docs/01-app/03-api-reference/03-file-conventions/route.md` — streaming responses via `ReadableStream`, `params` as Promise). Confirmed no prior idempotency-key convention in the codebase (grep).<br>重读基线：PLAN T04、SPEC 第 5/13 节（消息状态机、messages 表）、T03 守卫/服务/测试辅助、Next 16 文档（route.md——`ReadableStream` 流式响应、params 为 Promise）。grep 确认项目无幂等键既有约定。
+2. Schema + migration `20261002095350_t04_messages_unread`: `messages` (unique `(case_id, author_id, idempotency_key)`, `seq` SERIAL, `published_at`, `corrected_by_id`; hand-added status CHECK with the full SPEC 5.1 enum) and `case_members.last_read_message_id`. Applied to clc_dev; clc_test replayed the edited migration via vitest globalSetup.<br>Schema 与迁移 `20261002095350_t04_messages_unread`：`messages`（唯一约束 `(case_id, author_id, idempotency_key)`、`seq` SERIAL、`published_at`、`corrected_by_id`；手工加入 SPEC 5.1 完整枚举状态 CHECK）与 `case_members.last_read_message_id`。已应用到 clc_dev；clc_test 经 vitest globalSetup 重放了修订后的迁移。
+3. TDD: wrote 5 integration files + 1 unit file first (all red on imports), then implemented to green: `src/modules/messages/{service,check,lang,unread}.ts`, `src/server/sse/hub.ts`, routes `src/app/api/cases/[id]/{messages,stream}/route.ts`, unread counts in `src/modules/cases/service.ts` (list + detail), `tests/integration/helpers.ts` (+message cleanup, +postMessage helper).<br>TDD：先写 5 个集成测试文件＋1 个单元文件（导入即红），随后实现至全绿：`src/modules/messages/{service,check,lang,unread}.ts`、`src/server/sse/hub.ts`、路由 `src/app/api/cases/[id]/{messages,stream}/route.ts`、`src/modules/cases/service.ts` 加未读数（列表＋详情）、`tests/integration/helpers.ts`（消息清理与 postMessage 辅助）。
+4. Verified personally: `npm run test` 80/80 green (16 files; 18 unit + 62 integration); `npm run lint` clean; `npx tsc --noEmit` clean; `npm run build` succeeded (25 routes incl. `/api/cases/[id]/messages` and `/api/cases/[id]/stream`). `.env` untouched; no new env vars; fictitious test data only.<br>本人复核：`npm run test` 80/80 通过（16 个文件；18 单元＋62 集成）；`npm run lint` 无错误；`npx tsc --noEmit` 无错误；`npm run build` 成功（25 条路由，含 `/api/cases/[id]/messages` 与 `/api/cases/[id]/stream`）。`.env` 未动；无新增环境变量；仅用虚构测试数据。
+
+### Changed Files / 变更文件
+
+- Code commit 52143e0 (16 files): migration `20261002095350_t04_messages_unread`; `prisma/schema.prisma`; `src/modules/messages/{service,check,lang,unread}.ts`; `src/server/sse/hub.ts`; API routes `src/app/api/cases/[id]/messages/route.ts`, `src/app/api/cases/[id]/stream/route.ts`; `src/modules/cases/service.ts` (unreadCount); tests `tests/integration/messages/{idempotency,visibility,sse-reconnect,send-rules,unread}.test.ts`, `tests/unit/messages/lang.test.ts`, `tests/integration/helpers.ts`.<br>代码提交 52143e0（16 个文件）：迁移 `20261002095350_t04_messages_unread`；`prisma/schema.prisma`；`src/modules/messages/{service,check,lang,unread}.ts`；`src/server/sse/hub.ts`；API 路由 `src/app/api/cases/[id]/messages/route.ts`、`src/app/api/cases/[id]/stream/route.ts`；`src/modules/cases/service.ts`（unreadCount）；测试 `tests/integration/messages/*`、`tests/unit/messages/lang.test.ts`、`tests/integration/helpers.ts`。
+- Docs (this commit): PROGRESS.md rewritten (T04 done), PLAN.md T04 status → Done, SESSIONS.md this entry.<br>文档（本次提交）：PROGRESS.md 重写（T04 完成）、PLAN.md T04 状态改为完成、SESSIONS.md 本条记录。
+
+### Deviations from the T04 task text (recorded) / 与 T04 任务文本的偏离（已记录）
+
+1. Backfill cursor is `(published_at, id)`, not insert order — so a message published late after review (T05/T07) still surfaces after older cursors; this satisfies "no loss, no duplication" beyond the stub path. `seq` is kept as the display order for the full list.<br>补拉游标用 `(published_at, id)` 而非插入顺序——审核后延迟发布的消息（T05/T07）也能在旧游标之后浮出；这比桩路径更稳地满足「无丢失无重复」。`seq` 保留为完整列表的展示顺序。
+2. `Idempotency-Key` header is mandatory (400 when missing); a replayed submission returns 200 with the original row (first create 201), making replays observable.<br>`Idempotency-Key` 请求头为必填（缺失 400）；重放返回 200 与原行（首次创建 201），便于观测重放。
+3. Unknown `after=` cursor returns 400 `invalid_cursor` (not an empty/all list) — a client with a lost cursor must do a full refetch.<br>未知 `after=` 游标返回 400 `invalid_cursor`（而非空列表或全量）——游标丢失的客户端须全量重拉。
+4. Send-status display wording (REQ-MSG-06 labels) stays frontend-side; the API returns the raw status enum, which is complete in the DB CHECK.<br>发送状态展示措辞（REQ-MSG-06 标签）留给前端；API 返回原始状态枚举，数据库 CHECK 已含完整枚举。
+
+### Verification Results / 验证结果
+
+- `npm run test`: 16 files, 80/80 passed. `npm run lint`: clean. `npx tsc --noEmit`: clean. `npm run build`: success (25 routes).<br>`npm run test`：16 个文件 80/80 通过。`npm run lint`：无错误。`npx tsc --noEmit`：无错误。`npm run build`：成功（25 条路由）。
+- All six PLAN T04 acceptance criteria have direct tests: sequential + concurrent (5-way) idempotent replay; pending invisible to receiver on list/backfill/SSE and author sees own status; backfill after-disconnect boundaries (middle cursor, newest cursor → empty, unknown → 400); non-member/revoked SSE denial; coordinator member posting through the same pipeline; archived-case 409 and >4000-char 400.<br>PLAN T04 六条验收标准均有直接测试：顺序＋并发（5 路）幂等重放；pending 对接收方在列表/补拉/SSE 不可见且作者可见本人状态；断线补拉边界（中间游标、最新游标→空、未知→400）；非成员/被撤销成员 SSE 拒绝；协调员成员走同一流水线发言；归档案 409 与超 4000 字符 400。
+
+### Unfinished Items / 未完成项
+
+- Audit trail remains T11 (`TODO(T11)` markers on send/subscribe); closing live SSE connections on revoke is T11; the real content check (T05) replaces the pass-through stub in `src/modules/messages/check.ts` and registers `review_tasks`; check_failed Coordinator alerts are T07; send-status display labels are frontend work.<br>审计仍属 T11（发送/订阅处有 `TODO(T11)` 标记）；撤权断开存量 SSE 属 T11；真实内容检查（T05）将替换 `src/modules/messages/check.ts` 的直通桩并登记 `review_tasks`；check_failed 协调员告警属 T07；发送状态展示标签属前端工作。
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T05 against SPEC.md v0.8 REQ-MOD-01~08 (see PROGRESS.md "Next Steps"); wire the real checker into `src/modules/messages/check.ts`. Do not redo T01–T04.<br>按 SPEC.md v0.8 REQ-MOD-01~08 实现 PLAN.md T05（见 PROGRESS.md「下一步」）；把真实检查接入 `src/modules/messages/check.ts`。不要重做 T01–T04。

@@ -111,8 +111,8 @@
 - 同步测试：`tests/integration/messages/idempotency.test.ts`、`tests/integration/messages/visibility.test.ts`、`tests/integration/messages/sse-reconnect.test.ts`。
 - Test commands: `npm run test:int -- messages`.
 - 测试命令：`npm run test:int -- messages`。
-- Status: P0, not started. Implement only after the dependencies above are accepted.
-- 状态：P0，未开始。须待上方依赖验收后再实现。
+- Status: Done (2026-10-02, commit 52143e0). 80/80 tests green (was 51; +26 integration in `tests/integration/messages/` + 3 unit in `tests/unit/messages/lang.test.ts`), lint/tsc/build clean. Migration `20261002095350_t04_messages_unread` adds `messages` (full SPEC 5.1 status CHECK, `seq` cursor, `published_at`, unique `(case_id, author_id, idempotency_key)`) and `case_members.last_read_message_id`. The check stage is the pass-through stub `src/modules/messages/check.ts` (tests inject needs_review/throw); SSE is an in-process hub behind `GET /api/cases/:id/stream`, backfill is `GET .../messages?after=` with a `(published_at, id)` cursor (late-published messages still surface). Unread counts ride on `GET /api/cases` and `GET /api/cases/:id` (self only). Details in PROGRESS.md.
+- 状态：已完成（2026-10-02，提交 52143e0）。80/80 测试通过（原 51；新增 `tests/integration/messages/` 26 项集成＋`tests/unit/messages/lang.test.ts` 3 项单元），lint/tsc/build 无错误。迁移 `20261002095350_t04_messages_unread` 新增 `messages`（SPEC 5.1 完整状态 CHECK、`seq` 游标、`published_at`、唯一约束 `(case_id, author_id, idempotency_key)`）与 `case_members.last_read_message_id`。检查阶段为直通桩 `src/modules/messages/check.ts`（测试注入 needs_review/抛错）；SSE 为进程内 hub，挂载在 `GET /api/cases/:id/stream`；补拉走 `GET .../messages?after=`，游标为 `(published_at, id)`（延迟发布的消息也能浮出）。未读数挂在 `GET /api/cases` 与 `GET /api/cases/:id`（仅本人）。详见 PROGRESS.md。
 
 ## Continued: T05–T12 in the Next Section (Part Two of This File) / 续：T05–T12 见下节（本文件第二部分）
 
