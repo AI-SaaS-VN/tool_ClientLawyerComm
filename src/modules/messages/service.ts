@@ -9,6 +9,7 @@ import {
   type TranslationView,
 } from "@/modules/translation/service";
 import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
+import { listAlertIssueReviewTaskIds, registerHoldAlerts } from "@/server/jobs/queue";
 import { publishToCase } from "@/server/sse/hub";
 
 export const MESSAGE_MAX_CHARS = 4000;
@@ -68,7 +69,7 @@ export async function sendMessage(
   author: User,
   body: Record<string, unknown>,
   headers: Headers,
-): Promise<{ view: ReturnType<typeof toMessageView>; replayed: boolean }> {
+): Promise<{ view: MessageView; replayed: boolean }> {
   await requireCaseMember(caseId, author);
   await requireWritableCase(caseId);
   const idempotencyKey = readIdempotencyKey(headers);
@@ -80,7 +81,10 @@ export async function sendMessage(
     where: uniqueKey,
     include: { author: true },
   });
-  if (existing) return { view: toMessageView(existing), replayed: true };
+  if (existing) {
+    const view = (await annotateAlertIssues([toMessageView(existing)], author.id))[0]!;
+    return { view, replayed: true };
+  }
 
   let message: MessageWithAuthor;
   try {
@@ -95,12 +99,13 @@ export async function sendMessage(
         where: uniqueKey,
         include: { author: true },
       });
-      return { view: toMessageView(winner), replayed: true };
+      return { view: (await annotateAlertIssues([toMessageView(winner)], author.id))[0]!, replayed: true };
     }
     throw error;
   }
   // TODO(T11): audit (message received)
-  return { view: toMessageView(await runPipeline(message)), replayed: false };
+  const view = toMessageView(await runPipeline(message));
+  return { view: (await annotateAlertIssues([view], author.id))[0]!, replayed: false };
 }
 
 async function runPipeline(message: MessageWithAuthor): Promise<MessageWithAuthor> {
@@ -110,7 +115,7 @@ async function runPipeline(message: MessageWithAuthor): Promise<MessageWithAutho
     result = normalizeCheckResult(await getMessageChecker().check(message));
   } catch {
     // REQ-MSG-03: check failure is a distinct state, never auto-published.
-    // TODO(T07): content-free alert to the Coordinator.
+    // TODO(T08): content-free alert to the Coordinator (check_failed_alert).
     return prisma.message.update({
       where: { id: message.id },
       data: { status: "check_failed" },
@@ -133,8 +138,9 @@ async function runPipeline(message: MessageWithAuthor): Promise<MessageWithAutho
   return publishMessage(message.id);
 }
 
-// REQ-NTF-07 (registration part): the hold and the review task land in one
-// transaction, so there is never a pending_review message without a task.
+// REQ-NTF-07 (registration part): the hold, the review task, and one alert
+// per recipient land in one transaction, so there is never a pending_review
+// message without a task nor a task without its alert records.
 async function holdForReview(
   message: MessageWithAuthor,
   reason: string | null,
@@ -145,7 +151,7 @@ async function holdForReview(
       data: { status: "pending_review" },
       include: { author: true },
     });
-    await tx.reviewTask.create({
+    const task = await tx.reviewTask.create({
       data: {
         caseId: message.caseId,
         targetType: "message",
@@ -153,7 +159,11 @@ async function holdForReview(
         reason: reason ?? "unspecified",
       },
     });
-    // TODO(T07): register one notification event per reviewer in this same transaction.
+    await registerHoldAlerts(tx, {
+      caseId: message.caseId,
+      reviewTaskId: task.id,
+      authorId: message.authorId,
+    });
     return held;
   });
 }
@@ -171,9 +181,35 @@ export async function publishMessage(messageId: string): Promise<MessageWithAuth
 
 export type ReadingMode = "auto" | "manual";
 
-export type MessageListView = ReturnType<typeof toMessageView> & {
+export type MessageView = ReturnType<typeof toMessageView> & { reviewAlertIssue: boolean };
+
+export type MessageListView = MessageView & {
   translation: TranslationView | null;
 };
+
+// REQ-NTF-12: when a held message has no live alert (no valid channel, all
+// alerts failed), the anomaly is visible to the submitter on their own
+// message views, alongside the review-queue flag for coordinators.
+async function annotateAlertIssues(
+  views: Array<ReturnType<typeof toMessageView>>,
+  userId: string,
+): Promise<Array<ReturnType<typeof toMessageView> & { reviewAlertIssue: boolean }>> {
+  const heldIds = views
+    .filter((v) => v.authorId === userId && v.status === "pending_review")
+    .map((v) => v.id);
+  const issueMessageIds = new Set<string>();
+  if (heldIds.length > 0) {
+    const tasks = await prisma.reviewTask.findMany({
+      where: { targetType: "message", targetId: { in: heldIds }, status: "open" },
+      select: { id: true, targetId: true },
+    });
+    const issueTaskIds = await listAlertIssueReviewTaskIds(tasks.map((t) => t.id));
+    for (const task of tasks) {
+      if (issueTaskIds.has(task.id)) issueMessageIds.add(task.targetId);
+    }
+  }
+  return views.map((v) => ({ ...v, reviewAlertIssue: issueMessageIds.has(v.id) }));
+}
 
 export async function listMessages(
   caseId: string,
@@ -193,7 +229,8 @@ export async function listMessages(
   });
   const latestPublished = [...rows].reverse().find((m) => m.status === "published");
   if (latestPublished) await advanceLastRead(caseId, user.id, latestPublished);
-  return attachTranslations(rows.map(toMessageView), user, mode);
+  const views = await annotateAlertIssues(rows.map(toMessageView), user.id);
+  return attachTranslations(views, user, mode);
 }
 
 // REQ-MSG-05: incremental backfill by last received message id. The cursor is
@@ -221,7 +258,8 @@ async function backfillMessages(
     include: { author: true },
     orderBy: [{ publishedAt: "asc" }, { id: "asc" }],
   });
-  return attachTranslations(rows.map(toMessageView), user, mode);
+  const views = await annotateAlertIssues(rows.map(toMessageView), user.id);
+  return attachTranslations(views, user, mode);
 }
 
 // REQ-MSG-07: reading the message list advances the member's own read

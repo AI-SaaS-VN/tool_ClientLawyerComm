@@ -26,6 +26,8 @@ model User {
   messagesAuthored  Message[] @relation("MessageAuthor")
   messagesCorrected Message[] @relation("MessageCorrector")
   reviewTasksAssigned ReviewTask[]
+  reviewTasksDecided ReviewTask[] @relation("ReviewTaskDecider")
+  notificationTasksReceived NotificationTask[]
 
   @@map("users")
 }
@@ -57,6 +59,7 @@ model ContactChannel {
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   otpChallenges OtpChallenge[]
+  notificationTasks NotificationTask[]
 
   @@index([userId])
   @@map("contact_channels")
@@ -93,6 +96,7 @@ model Case {
   invites       Invite[]
   messages      Message[]
   reviewTasks   ReviewTask[]
+  notificationTasks NotificationTask[]
 
   @@map("cases")
 }
@@ -106,6 +110,7 @@ model CaseMember {
   memberRole   String    @map("member_role")
   canManage    Boolean   @default(false) @map("can_manage")
   canReview    Boolean   @default(false) @map("can_review")
+  isBackup     Boolean   @default(false) @map("is_backup")
   status       String    @default("active")
   revokedAt    DateTime? @map("revoked_at")
   digestOptOut Boolean   @default(false) @map("digest_opt_out")
@@ -230,11 +235,54 @@ model ReviewTask {
   status          String    @default("open")
   reason          String
   escalationLevel Int       @default(0) @map("escalation_level")
+  openedAt        DateTime? @map("opened_at")
+  startedAt       DateTime? @map("started_at")
   decidedAt       DateTime? @map("decided_at")
+  decidedById     String?   @map("decided_by_id") @db.Uuid
+  decidedBy       User?     @relation("ReviewTaskDecider", fields: [decidedById], references: [id])
+  decisionReason  String?   @map("decision_reason")
+  selfRelease     Boolean   @default(false) @map("self_release")
+  appealNote      String?   @map("appeal_note")
+  appealedAt      DateTime? @map("appealed_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  notificationTasks NotificationTask[]
 
   @@index([caseId, status])
   @@index([targetType, targetId])
   @@map("review_tasks")
+}
+
+// Persistent notification queue (SPEC 10.1 state machine). kind/status CHECKs
+// are hand-added in the migration; 'peer_urgent'/'check_failed_alert' kinds
+// are registered by T08/T10. recipient_channel_id is nullable: a recipient
+// without a verified email channel still gets a row (status failed,
+// last_error no_channel) so the anomaly is visible (REQ-NTF-12).
+model NotificationTask {
+  id                 String          @id @default(uuid()) @db.Uuid
+  kind               String
+  caseId             String          @map("case_id") @db.Uuid
+  case               Case            @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reviewTaskId       String?         @map("review_task_id") @db.Uuid
+  reviewTask         ReviewTask?     @relation(fields: [reviewTaskId], references: [id], onDelete: Cascade)
+  recipientUserId    String          @map("recipient_user_id") @db.Uuid
+  recipientUser      User            @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+  recipientChannelId String?         @map("recipient_channel_id") @db.Uuid
+  recipientChannel   ContactChannel? @relation(fields: [recipientChannelId], references: [id], onDelete: SetNull)
+  status             String          @default("queued")
+  dedupeKey          String          @unique @map("dedupe_key")
+  attempts           Int             @default(0)
+  nextRetryAt        DateTime?       @map("next_retry_at")
+  providerRef        String?         @map("provider_ref")
+  lastError          String?         @map("last_error")
+  submittedAt        DateTime?       @map("submitted_at")
+  confirmedAt        DateTime?       @map("confirmed_at")
+  cancelledAt        DateTime?       @map("cancelled_at")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  @@index([status, nextRetryAt])
+  @@index([caseId, kind])
+  @@index([reviewTaskId])
+  @@map("notification_tasks")
 }

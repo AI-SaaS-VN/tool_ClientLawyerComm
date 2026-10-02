@@ -7,6 +7,7 @@ import { fakeEmailProvider } from "@/server/providers/email/fake";
 
 export async function resetDatabase(): Promise<void> {
   await prisma.translationVersion.deleteMany();
+  await prisma.notificationTask.deleteMany();
   await prisma.reviewTask.deleteMany();
   await prisma.message.deleteMany();
   await prisma.otpChallenge.deleteMany();
@@ -101,7 +102,7 @@ export async function addMember(
   caseId: string,
   userId: string,
   memberRole: "client" | "lawyer" | "coordinator",
-  flags: { canManage?: boolean; canReview?: boolean } = {},
+  flags: { canManage?: boolean; canReview?: boolean; isBackup?: boolean } = {},
 ) {
   const isCoordinator = memberRole === "coordinator";
   return prisma.caseMember.create({
@@ -111,6 +112,7 @@ export async function addMember(
       memberRole,
       canManage: flags.canManage ?? isCoordinator,
       canReview: flags.canReview ?? isCoordinator,
+      isBackup: flags.isBackup ?? false,
     },
   });
 }

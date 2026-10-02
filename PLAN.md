@@ -170,8 +170,8 @@
 - 同步测试：`tests/integration/review/alert-lifecycle.test.ts`（含重试/去重/升级/取消）、`tests/integration/review/decisions.test.ts`、`tests/unit/notifications/dedupe.test.ts`。
 - Test commands: `npm run test -- notifications`, `npm run test:int -- review`.
 - 测试命令：`npm run test -- notifications`、`npm run test:int -- review`。
-- Status: P0, not started. Implement only after the dependencies above are accepted.
-- 状态：P0，未开始。须待上方依赖验收后再实现。
+- Status: Done (2026-10-02). 198/198 tests green (was 165; +10 unit `tests/unit/notifications/dedupe.test.ts`, +12 integration `tests/integration/review/alert-lifecycle.test.ts`, +11 integration `tests/integration/review/decisions.test.ts`), lint/tsc/build clean. Migration `20261002112314_t07_notification_tasks_review_console` adds `notification_tasks` (kind/status CHECKs, unique dedupe_key), extends `review_tasks` (opened/started/decided stamps, decided_by, decision_reason, self_release, appeal_note), and adds `case_members.is_backup` (coordinator-only CHECK). `holdForReview` now registers one alert per recipient in the hold's transaction; the worker (`src/server/jobs/worker.ts`) runs on an injectable clock with 1/5/15-minute backoff (max 5 attempts), batch merging per (case, recipient), 30-minute/2-hour escalation to backup coordinator → operations lead (`ops_lead` global role), and pre-send re-validation of task status and coordinator permission. Details in PROGRESS.md.
+- 状态：已完成（2026-10-02）。198/198 测试通过（原 165；新增 10 单元 `tests/unit/notifications/dedupe.test.ts`、12 集成 `tests/integration/review/alert-lifecycle.test.ts`、11 集成 `tests/integration/review/decisions.test.ts`），lint/tsc/build 无错误。迁移 `20261002112314_t07_notification_tasks_review_console` 新增 `notification_tasks`（kind/status CHECK、唯一 dedupe_key），扩展 `review_tasks`（打开/接手/完成时间戳、decided_by、decision_reason、self_release、appeal_note），并新增 `case_members.is_backup`（仅协调员 CHECK）。`holdForReview` 现在在挂起事务内按接收人登记提醒；worker（`src/server/jobs/worker.ts`）使用可注入时钟，1/5/15 分钟退避（最多 5 次）、按（案件， 接收人）合并批次、30 分钟/2 小时升级至备用协调员→运营负责人（`ops_lead` 全局角色），发送前重新校验任务状态与协调员权限。详见 PROGRESS.md。
 
 ## T08 File Upload / Isolation / Scanning / Publish / Authorized Download / T08 文件上传/隔离/扫描/发布/授权下载
 
