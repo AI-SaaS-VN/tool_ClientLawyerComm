@@ -1,9 +1,13 @@
-import type { CaseMember, Invite, User } from "@prisma/client";
+import type { Invite, User } from "@prisma/client";
 
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { decryptText, encryptText, normalizeEmail } from "@/modules/auth/crypto";
 import { generateInviteCode, hashInviteCode } from "@/modules/invites/code";
+import {
+  requireCaseManager,
+  requireWritableCase,
+} from "@/server/guards/case-guards";
 import { getEmailProvider } from "@/server/providers/email";
 
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -15,21 +19,6 @@ const ROLE_DEFAULT_LANG: Record<InvitableRole, string> = {
   lawyer: "vi",
   coordinator: "zh-Hans",
 };
-
-async function requireCaseManager(caseId: string, userId: string): Promise<CaseMember> {
-  const member = await prisma.caseMember.findUnique({
-    where: { caseId_userId: { caseId, userId } },
-  });
-  if (
-    !member ||
-    member.status !== "active" ||
-    member.memberRole !== "coordinator" ||
-    !member.canManage
-  ) {
-    throw new ApiError(403, "forbidden");
-  }
-  return member;
-}
 
 function assertInvitableRole(role: unknown): asserts role is InvitableRole {
   // REQ-AUTH-11: an invitation can never produce global_role=admin.
@@ -63,10 +52,12 @@ export async function createInvite(input: {
   email: string;
   role: unknown;
 }): Promise<{ invite: Invite; code: string }> {
-  await requireCaseManager(input.caseId, input.actor.id);
+  // REQ-PM-05: only this case's can_manage coordinators may invite.
+  await requireCaseManager(input.caseId, input.actor);
+  await requireWritableCase(input.caseId);
   assertInvitableRole(input.role);
   const email = normalizeEmail(input.email ?? "");
-  if (!email || !email.includes("@")) throw new ApiError(400, "invalid_email");
+  if (!email || !email.includes("@")) throw new ApiError(400, "email_required");
 
   const code = generateInviteCode();
   const invite = await prisma.invite.create({
@@ -104,6 +95,8 @@ export async function acceptInvite(
     throw new ApiError(403, "role_mismatch");
   }
   assertInvitableRole(invite.role);
+  // Membership cannot begin in an archived case (REQ-CASE-05).
+  await requireWritableCase(invite.caseId);
 
   // Atomically claim the single-use code: this closes the race where two
   // concurrent accepts both pass getValidInvite. The loser gets the same
@@ -146,7 +139,7 @@ export async function acceptInvite(
 export async function revokeInvite(inviteId: string, actor: User): Promise<void> {
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
   if (!invite) throw new ApiError(404, "not_found");
-  await requireCaseManager(invite.caseId, actor.id);
+  await requireCaseManager(invite.caseId, actor);
   if (invite.usedAt) throw new ApiError(410, "invite_used");
   if (!invite.revokedAt) {
     await prisma.invite.update({ where: { id: invite.id }, data: { revokedAt: new Date() } });
@@ -159,7 +152,7 @@ export async function revokeInvite(inviteId: string, actor: User): Promise<void>
 export async function resendInvite(inviteId: string, actor: User): Promise<void> {
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
   if (!invite) throw new ApiError(404, "not_found");
-  await requireCaseManager(invite.caseId, actor.id);
+  await requireCaseManager(invite.caseId, actor);
   if (invite.usedAt) throw new ApiError(410, "invite_used");
   if (invite.revokedAt) throw new ApiError(410, "invite_revoked");
 

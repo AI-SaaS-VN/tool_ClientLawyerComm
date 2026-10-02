@@ -7,18 +7,22 @@ datasource db {
 }
 
 model User {
-  id             String           @id @default(uuid()) @db.Uuid
-  displayName    String           @map("display_name")
-  globalRole     String           @map("global_role") @default("client")
-  status         String           @default("active")
-  preferredLang  String?          @map("preferred_lang")
-  uiLang         String?          @map("ui_lang")
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
-  sessions       Session[]
-  channels       ContactChannel[]
-  memberships    CaseMember[]
-  invitesCreated Invite[]         @relation("InviteCreator")
+  id               String            @id @default(uuid()) @db.Uuid
+  displayName      String            @map("display_name")
+  globalRole       String            @map("global_role") @default("client")
+  status           String            @default("active")
+  preferredLang    String?           @map("preferred_lang")
+  uiLang           String?           @map("ui_lang")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  sessions         Session[]
+  channels         ContactChannel[]
+  memberships      CaseMember[]
+  invitesCreated   Invite[]          @relation("InviteCreator")
+  casesCreated     Case[]            @relation("CaseCreator")
+  clientProfiles   ClientProfile[]
+  caseApplications CaseApplication[] @relation("ApplicationLawyer")
+  decidedApplications CaseApplication[] @relation("ApplicationDecider")
 
   @@map("users")
 }
@@ -72,34 +76,74 @@ model OtpChallenge {
 }
 
 model Case {
-  id        String       @id @default(uuid()) @db.Uuid
-  title     String
-  status    String       @default("active")
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
-  members   CaseMember[]
-  invites   Invite[]
+  id            String       @id @default(uuid()) @db.Uuid
+  title         String
+  refNo         String?      @map("ref_no")
+  alias         String?
+  clientOrgName String       @map("client_org_name")
+  status        String       @default("active")
+  createdBy     String?      @map("created_by") @db.Uuid
+  creator       User?        @relation("CaseCreator", fields: [createdBy], references: [id])
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  members       CaseMember[]
+  invites       Invite[]
 
   @@map("cases")
 }
 
 model CaseMember {
-  id         String    @id @default(uuid()) @db.Uuid
-  caseId     String    @map("case_id") @db.Uuid
-  case       Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  userId     String    @map("user_id") @db.Uuid
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  memberRole String    @map("member_role")
-  canManage  Boolean   @default(false) @map("can_manage")
-  canReview  Boolean   @default(false) @map("can_review")
-  status     String    @default("active")
-  revokedAt  DateTime? @map("revoked_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  caseId       String    @map("case_id") @db.Uuid
+  case         Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId       String    @map("user_id") @db.Uuid
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberRole   String    @map("member_role")
+  canManage    Boolean   @default(false) @map("can_manage")
+  canReview    Boolean   @default(false) @map("can_review")
+  status       String    @default("active")
+  revokedAt    DateTime? @map("revoked_at")
+  digestOptOut Boolean   @default(false) @map("digest_opt_out")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@unique([caseId, userId])
   @@index([userId])
   @@map("case_members")
+}
+
+model ClientProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  lawyerId  String   @map("lawyer_id") @db.Uuid
+  lawyer    User     @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  name      String
+  note      String?
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  applications CaseApplication[]
+
+  @@index([lawyerId])
+  @@map("client_profiles")
+}
+
+model CaseApplication {
+  id              String        @id @default(uuid()) @db.Uuid
+  lawyerId        String        @map("lawyer_id") @db.Uuid
+  lawyer          User          @relation("ApplicationLawyer", fields: [lawyerId], references: [id], onDelete: Cascade)
+  clientProfileId String        @map("client_profile_id") @db.Uuid
+  clientProfile   ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  summary         String
+  status          String        @default("pending")
+  decidedBy       String?       @map("decided_by") @db.Uuid
+  decider         User?         @relation("ApplicationDecider", fields: [decidedBy], references: [id])
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@index([lawyerId])
+  @@index([status])
+  @@map("case_applications")
 }
 
 model Invite {

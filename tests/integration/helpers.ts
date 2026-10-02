@@ -8,6 +8,8 @@ import { fakeEmailProvider } from "@/server/providers/email/fake";
 export async function resetDatabase(): Promise<void> {
   await prisma.otpChallenge.deleteMany();
   await prisma.invite.deleteMany();
+  await prisma.caseApplication.deleteMany();
+  await prisma.clientProfile.deleteMany();
   await prisma.caseMember.deleteMany();
   await prisma.contactChannel.deleteMany();
   await prisma.session.deleteMany();
@@ -21,11 +23,21 @@ export function postJson(
   body: unknown,
   headers: Record<string, string> = {},
 ): NextRequest {
-  return new NextRequest(`http://localhost${path}`, {
-    method: "POST",
-    body: JSON.stringify(body),
+  return sendJson("POST", path, body, headers);
+}
+
+export function sendJson(
+  method: "GET" | "POST" | "PATCH" | "DELETE",
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+): NextRequest {
+  const init: { method: string; headers: Record<string, string>; body?: string } = {
+    method,
     headers: { "content-type": "application/json", ...headers },
-  });
+  };
+  if (method !== "GET") init.body = JSON.stringify(body);
+  return new NextRequest(`http://localhost${path}`, init);
 }
 
 export function cookieHeader(cookie: string | null): Record<string, string> {
@@ -58,18 +70,34 @@ export async function seedCaseWithCoordinator(title = "Fictitious Case") {
     "coordinator",
     "coordinator1@example.com",
   );
-  const kase = await prisma.case.create({ data: { title } });
-  await prisma.caseMember.create({
+  const kase = await prisma.case.create({
     data: {
-      caseId: kase.id,
-      userId: coordinator.id,
-      memberRole: "coordinator",
-      canManage: true,
-      canReview: true,
+      title,
+      clientOrgName: "Fictitious Client Org",
+      createdBy: coordinator.id,
     },
   });
+  await addMember(kase.id, coordinator.id, "coordinator");
   const cookie = await sessionCookieFor(coordinator.id);
   return { coordinator, kase, cookie };
+}
+
+export async function addMember(
+  caseId: string,
+  userId: string,
+  memberRole: "client" | "lawyer" | "coordinator",
+  flags: { canManage?: boolean; canReview?: boolean } = {},
+) {
+  const isCoordinator = memberRole === "coordinator";
+  return prisma.caseMember.create({
+    data: {
+      caseId,
+      userId,
+      memberRole,
+      canManage: flags.canManage ?? isCoordinator,
+      canReview: flags.canReview ?? isCoordinator,
+    },
+  });
 }
 
 export function extractInviteCode(text: string): string {

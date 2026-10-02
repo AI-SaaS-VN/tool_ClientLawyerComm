@@ -127,7 +127,9 @@ describe("invitation + OTP flow", () => {
     const usersBefore = await prisma.user.count();
 
     // A second case, managed by the same coordinator, invites a lawyer again.
-    const case2 = await prisma.case.create({ data: { title: "Second Case" } });
+    const case2 = await prisma.case.create({
+      data: { title: "Second Case", clientOrgName: "Fictitious Org Two" },
+    });
     await prisma.caseMember.create({
       data: {
         caseId: case2.id,
