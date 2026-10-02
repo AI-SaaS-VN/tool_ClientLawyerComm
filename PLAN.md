@@ -73,8 +73,8 @@
 - 同步测试：`tests/unit/auth/otp-rules.test.ts`、`tests/integration/auth/invite-flow.test.ts`、`tests/integration/auth/channel-binding.test.ts`。
 - Test commands: `npm run test -- auth`, `npm run test:int -- auth`.
 - 测试命令：`npm run test -- auth`、`npm run test:int -- auth`。
-- Status: Next (P0).
-- 状态：下一项（P0）。
+- Status: Done (2026-10-02, commit 8dcfd6a). 31/31 tests green, lint/tsc/build clean. The migration also created minimal `cases`/`case_members` (T03 extends them); `otp_challenges` gained a `purpose` column (REQ-AUTH-05); the single-use claim is atomic; the activation email is zh/vi bilingual. Details in PROGRESS.md.
+- 状态：已完成（2026-10-02，提交 8dcfd6a）。31/31 测试通过，lint/tsc/build 无错误。迁移同时创建了最小版 `cases`/`case_members`（由 T03 扩展）；`otp_challenges` 增加 `purpose` 列（REQ-AUTH-05）；单次使用为原子认领；激活邮件中越双语。详见 PROGRESS.md。
 
 ## T03 Case and Member Management + Permission Middleware / T03 案件与成员管理＋权限中间件
 

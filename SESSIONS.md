@@ -283,3 +283,43 @@ Implement PLAN.md T02 against SPEC.md v0.7 REQ-AUTH-01. The MVP invitation is bo
 ### First Step Next Time / 下次第一步
 
 Implement PLAN.md T02 against SPEC.md v0.8 REQ-AUTH-01 and REQ-AUTH-12. The invitation code is not bound to an email. Do not redo T01.<br>按 SPEC.md v0.8 REQ-AUTH-01 与 REQ-AUTH-12 实现 PLAN.md T02。邀请码不绑定邮箱。不要重做 T01。
+
+---
+
+## Session 2026-10-02-02 (Ended) / 会话 2026-10-02-02（已结束）
+
+- Date/Timezone: 2026-10-02, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-02，UTC（研发 VPS 上的 Kimi Code）
+- Goal: user said the design docs were edited outside this session; re-read the modified baseline and continue development (T02).<br>本次目标：用户在设计文档做了修改，要求按修改后的基线继续研发（T02）。
+
+### Actual Actions / 实际动作
+
+1. Re-read the baseline as modified by the user's own commits (228a748 → 7e61952 → 6555886, via Cursor sessions 2026-10-01-02 … 2026-10-02-01): SOW v1.10 / SPEC v0.8 / PLAN v0.8. Key deltas for coding: the invitation code is NOT bound to an email (REQ-AUTH-12 is now MVP and part of T02); the activation email still goes only to the entered address; CURSOR_REVIEW.md and README.md added; `cases.title` required already in T03 for the P1 digest subject.<br>重读用户自行提交的新基线（228a748 → 7e61952 → 6555886，经 Cursor 会话 2026-10-01-02 … 2026-10-02-01）：SOW v1.10 / SPEC v0.8 / PLAN v0.8。对编码的关键变化：邀请码不绑定邮箱（REQ-AUTH-12 升为 MVP 并属 T02）；激活邮件仍只发被输入地址；新增 CURSOR_REVIEW.md 与 README.md；`cases.title` 在 T03 即为必填（供 P1 日报标题）。
+2. Implemented T02 via a coder subagent (TDD), then reviewed and hardened it: atomic single-use claim of the invite code (conditional `updateMany` + concurrency test), zh/vi bilingual activation email (Vietnamese diacritics byte-verified).<br>经 coder 子代理按 TDD 实现 T02，随后复核并加固：邀请码单次使用原子认领（条件 `updateMany`＋并发测试）、激活邮件中越双语（越南语声调按码点核验）。
+3. Verified personally: `npm run test` 31/31 green (15 unit + 16 integration, incl. cross-purpose OTP rejection, revoke/resend/expiry/replay, atomic concurrent accept, cookie Secure both modes, no-plaintext-OTP assertions); `npm run lint` and `npx tsc --noEmit` clean; `npm run build` succeeded (12 routes); `scripts/bootstrap-admin.ts` run against clc_test by the subagent. .env untouched (mtime 2026-10-01); no secrets in code/logs.<br>本人复核：`npm run test` 31/31 通过（15 单元＋16 集成，含跨用途 OTP 拒绝、撤销/重发/过期/重放、原子并发接受、Cookie Secure 两种配置、OTP 无明文断言）；`npm run lint` 与 `npx tsc --noEmit` 无错误；`npm run build` 成功（12 条路由）；子代理已对 clc_test 实测 `scripts/bootstrap-admin.ts`。.env 未动（mtime 2026-10-01）；代码与日志无密钥。
+
+### Changed Files / 变更文件
+
+- Code commit 8dcfd6a (36 files, +2175): migration `20261001171658_t02_auth_invites`; `src/modules/{auth,invites}/**`; `src/server/providers/email/{interface,fake,index}.ts`; API routes under `src/app/api/{auth,cases,invites}/**`; pages `src/app/(auth)/{login,invite}/`; `scripts/bootstrap-admin.ts`; `src/lib/{api-error,http}.ts`; tests `tests/unit/auth/`, `tests/integration/{auth,global-setup.ts,helpers.ts}`; config `.env.example`, `vitest.config.mts`, `package.json`, `prisma/schema.prisma`.<br>代码提交 8dcfd6a（36 个文件，+2175）：迁移 `20261001171658_t02_auth_invites`；`src/modules/{auth,invites}/**`；`src/server/providers/email/{interface,fake,index}.ts`；`src/app/api/{auth,cases,invites}/**` 路由；`src/app/(auth)/{login,invite}/` 页面；`scripts/bootstrap-admin.ts`；`src/lib/{api-error,http}.ts`；测试 `tests/unit/auth/`、`tests/integration/{auth,global-setup.ts,helpers.ts}`；配置 `.env.example`、`vitest.config.mts`、`package.json`、`prisma/schema.prisma`。
+- Docs (this commit): PROGRESS.md rewritten (T02 done), PLAN.md T02 status → Done, SESSIONS.md this entry.<br>文档（本次提交）：PROGRESS.md 重写（T02 完成）、PLAN.md T02 状态改为完成、SESSIONS.md 本条记录。
+
+### Deviations from the T02 task text (recorded, all accepted) / 与 T02 任务文本的偏离（已记录，均已接受）
+
+1. T02 migration also created minimal `cases`/`case_members` (the acceptance criteria need them); T03 extends the remaining columns.<br>T02 迁移同时创建最小版 `cases`/`case_members`（验收标准需要）；其余列由 T03 扩展。
+2. `otp_challenges` gained `purpose` ('login'|'bind') to enforce REQ-AUTH-05 cross-use rejection.<br>`otp_challenges` 增加 `purpose`（'login'|'bind'）以落实 REQ-AUTH-05 跨用途拒绝。
+3. Session token is the `sessions` primary key itself (not hash-stored); re-evaluate at T11.<br>会话令牌直接作 `sessions` 主键（未哈希存储）；T11 再评估。
+4. Unaccepted invite OTP requests leave `status='pending'` user rows; cleanup policy is a later task.<br>未完成的邀请 OTP 请求留下 `status='pending'` 用户行；清理策略属后续任务。
+5. Invite-code validation failures are rejected already at the OTP-request step (400/410); the code itself is a credential, so this is not registration enumeration.<br>邀请码校验失败在 OTP 请求阶段即拒绝（400/410）；邀请码本身是凭据，不构成注册状态枚举。
+
+### Verification Results / 验证结果
+
+- `npm run test`: 4 files, 31/31 passed. `npm run lint`: clean. `npx tsc --noEmit`: clean. `npm run build`: success.<br>`npm run test`：4 个文件 31/31 通过。`npm run lint`：无错误。`npx tsc --noEmit`：无错误。`npm run build`：成功。
+- AC01 mock-chain part covered; real email delivery stays with T12. AC02–AC12 otherwise unaccepted.<br>AC01 模拟链路部分已覆盖；真实邮件送达仍属 T12。其余 AC02–AC12 未验收。
+
+### Unfinished Items / 未完成项
+
+- Audit trail remains T11 (`TODO(T11)` markers in code).<br>审计仍属 T11（代码中有 `TODO(T11)` 标记）。
+- Historical commit cea7e37 still contains the old topology paragraph in CONTEXT.md; history rewrite remains pending the user's decision.<br>历史提交 cea7e37 中 CONTEXT.md 仍含旧拓扑段落；是否改写历史仍待用户决定。
+
+### First Step Next Time / 下次第一步
+
+Implement PLAN.md T03 against SPEC.md v0.8 REQ-PM-01~10 / REQ-CASE-01~06 (see PROGRESS.md "Next Steps"). Do not redo T01/T02.<br>按 SPEC.md v0.8 REQ-PM-01~10／REQ-CASE-01~06 实现 PLAN.md T03（见 PROGRESS.md「下一步」）。不要重做 T01/T02。
