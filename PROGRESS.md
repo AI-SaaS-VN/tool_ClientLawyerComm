@@ -22,11 +22,15 @@ Publish rule (2026-10-03, F11): ordinary messages and clean files publish immedi
 
 Screen language and timestamps (2026-10-03, F13/F14, built and tested): a Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels use that one language. Every visible conversation record and upload record shows a timestamp formatted with that computer's timezone setting, and the offset is printed beside the time. A person can switch from the language control; the choice is stored on the account. Login and invite pages, which have no account yet, follow the browser language. `npm run test` 286/286 and `npm run test:e2e` 7/7 passed after this change. On the development host the clock printed `UTC+0`, which is that computer's zone. Real Vietnamese wording of Chinese messages remains F07, so the test host still shows the fake `[vi]` or `[zh-Hant]` prefix.
 
+Deployment follow-up (2026-10-03, F13/F14): **commit 11d789e is live on the Shanghai test host.** The tree was rsynced from the dev VPS (host `.env` and `docker-compose.lighthouse.yml` left untouched), migration `20261003111500_f14_client_default_zh_hant` was applied, `npx next build` ran on the host, and `systemctl restart clc-web` brought the new build up. Verified: service active, local and public `/api/health` 200, `/login` and `/invite` 200, public `/api/test/outbox` 404. Login copy follows Accept-Language (`zh-TW` → 進入案件, `zh-CN` → 进入案件, `vi` → Vào vụ án). The existing client account is now Traditional Chinese.
+
 Kimi pair (2026-10-03, F07, blocked on O05): automatic mode calls Kimi. Vietnamese from the lawyer is Traditional Chinese for the client. Traditional Chinese from the client is Vietnamese for the lawyer. The test host still uses the fake translator.
 
 Kimi 这一对方向（2026-10-03，F07，阻塞于 O05）：自动模式调用 Kimi。律师的越南语给客户显示成繁体中文。客户的繁体中文给律师显示成越南语。测试机仍用替身翻译。
 
 界面语言与时间戳（2026-10-03，F13/F14，已改界面并测过）：中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮用这一种语言。能看到的每条对话记录和上传记录都按那台电脑的时区设置显示时间，并在旁边标出时区。语言开关写进账号。登录页和邀请页还没有账号，跟随浏览器语言。这次改完后 `npm run test` 286/286、`npm run test:e2e` 7/7 通过。研发主机的钟点标成了 `UTC+0`，因为那台电脑的时区就是 UTC。中文消息的真实越南语译文仍是 F07，测试机上仍是替身前缀 `[vi]` 或 `[zh-Hant]`。
+
+部署跟进（2026-10-03，F13/F14）：**提交 11d789e 已上线上海测试机。** 代码树从研发 VPS 经 rsync 同步（机上 `.env` 与 `docker-compose.lighthouse.yml` 未动），已应用迁移 `20261003111500_f14_client_default_zh_hant`，在机上执行 `npx next build`，并 `systemctl restart clc-web` 完成重启。已验证：服务 active、本机与公网 `/api/health` 200、`/login` 与 `/invite` 200、公网 `/api/test/outbox` 404。登录文案跟随 Accept-Language（`zh-TW` → 進入案件，`zh-CN` → 进入案件，`vi` → Vào vụ án）。现有客户账号已是繁体中文。
 
 发布规则（2026-10-03，F11）：普通消息和扫描通过的文件立即发布。只有消息或文件名显式询问或协商律所诉讼委托费用时才待审。消息或文件名里的联系方式直接发布。显示名含联系渠道时仍拒绝保存。扫描失败不发布。
 
@@ -191,8 +195,8 @@ At the start of every session, in this order / 每次会话开始按此顺序：
 
 ## Next Steps / 下一步
 
-1. F13 and F14 are tested (`npm run test` 286/286, `npm run test:e2e` 7/7). The Shanghai host still serves the previous build until the next deploy. F07 stays blocked on O05.
-1. F13 与 F14 已测过（`npm run test` 286/286，`npm run test:e2e` 7/7）。上海测试机仍在跑上一次构建，要等下一次部署。F07 仍阻塞于 O05。
+1. F13 and F14 (commit 11d789e) are deployed on the Shanghai test host. F07 stays blocked on O05.
+1. F13 与 F14（提交 11d789e）已部署在上海测试机。F07 仍阻塞于 O05。
 2. External-resource acceptance stays blocked: real EmailProvider and real-address delivery for AC01/AC08/AC12 (O05/O07); AC10 China–Vietnam network window (O07); production-scale restore drill (O08).
 2. 外部资源验收仍阻塞：真实 EmailProvider 与 AC01/AC08/AC12 的真实地址送达（O05/O07）；AC10 中越网络窗口（O07）；生产规模恢复演练（O08）。
 3. P1 on user decision: T09 (cross-case UI / bilingual file variant / document translation) and T13 (daily case digest email, depends on the real email channel).

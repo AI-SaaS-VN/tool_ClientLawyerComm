@@ -937,7 +937,6 @@ Real Kimi calls wait for O05. Do not point the Shanghai test host at Kimi while 
 2. Conversation records and upload records print `YYYY-MM-DD HH:mm UTC+8` style times from the computer's timezone. A migration moves client rows that still had the old Simplified default.<br>对话记录和上传记录按电脑时区印出 `YYYY-MM-DD HH:mm UTC+8` 这种时间。一次迁移把仍停在旧简体默认值的客户行改成繁体。
 3. Real Kimi wording stays F07. The test host still shows the fake prefix.<br>真实 Kimi 译文仍是 F07。测试机仍显示替身前缀。
 4. Verification: `npm run test` 286/286 (42 files) and `npm run test:e2e` 7/7. Headless Chromium was aborting when the session bus dropped; the test launch now sets the bus address to `disabled:`. The development host printed `UTC+0` beside the clock, matching that computer's zone.<br>复核：`npm run test` 286/286（42 个文件），`npm run test:e2e` 7/7。无界面 Chromium 曾在会话总线断开时中止；测试启动时把总线地址设为 `disabled:`。研发主机在钟点旁印出 `UTC+0`，与那台电脑的时区一致。
-4. Verification: `npm run test` 286/286 (42 files) and `npm run test:e2e` 7/7. Headless Chromium was aborting when the session bus dropped; the test launch now sets the bus address to `disabled:`. The development host printed `UTC+0` beside the clock, matching that computer's zone.<br>复核：`npm run test` 286/286（42 个文件），`npm run test:e2e` 7/7。无界面 Chromium 曾在会话总线断开时中止；测试启动时把总线地址设为 `disabled:`。研发主机在钟点旁印出 `UTC+0`，与那台电脑的时区一致。
 
 ### Changed Files / 变更文件
 
@@ -946,5 +945,26 @@ Real Kimi calls wait for O05. Do not point the Shanghai test host at Kimi while 
 ### First Step Next Time / 下次第一步
 
 Deploy this build to the Shanghai test host if the user asks. Do not start real Kimi calls.<br>用户要求时再把这次构建部署到上海测试机。不要开始真实 Kimi 调用。
+
+---
+
+## Session 2026-10-03-11 (Ended) / 会话 2026-10-03-11（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: deploy the F13/F14 build (11d789e) to the Shanghai test host.<br>本次目标：把 F13/F14 构建（11d789e）部署到上海测试机。
+
+### Actual Actions / 实际动作
+
+1. Rsynced the dev tree to the host, excluding `.git`, `node_modules`, `.next`, `.env`, `docker-compose.lighthouse.yml`, and `LOCAL_DEV_NOTES.md`. Host `.env` stayed in place.<br>从研发机 rsync 到测试机，排除 `.git`、`node_modules`、`.next`、`.env`、`docker-compose.lighthouse.yml` 与 `LOCAL_DEV_NOTES.md`。机上 `.env` 保持原样。
+2. Applied migration `20261003111500_f14_client_default_zh_hant`. The existing client account is Traditional Chinese. Built with `npx next build` and restarted `clc-web`.<br>应用迁移 `20261003111500_f14_client_default_zh_hant`。现有客户账号为繁体中文。`npx next build` 后重启 `clc-web`。
+3. Smoke checks: service active; local and public `/api/health`, `/login`, `/invite` are 200; public `/api/test/outbox` is 404. Login copy follows Accept-Language.<br>冒烟：服务 active；本机与公网 `/api/health`、`/login`、`/invite` 为 200；公网 `/api/test/outbox` 为 404。登录文案跟随 Accept-Language。
+
+### First Step Next Time / 下次第一步
+
+Continue the pilot on this build. F07 stays blocked on O05. Do not start real Kimi calls.<br>在这次构建上继续试点。F07 仍阻塞于 O05。不要开始真实 Kimi 调用。
+
+---
+
+---
 
 ---
