@@ -1,9 +1,9 @@
 # SPEC.md — Requirements Specification: China–Vietnam Multilingual Case Communication System / 中越多语言案件沟通系统 需求规格
 
-- Version: 0.9 | Date: 2026-10-03
-- 版本：0.9｜日期：2026-10-03
-- Basis: SOW.md v1.11. Activation is one step: the invited email plus the activation code. The code is bound to that email, the Case, and the role (REQ-AUTH-01, REQ-AUTH-12). The repository implements this path. The same email and the same invitation code sign in to that case again.
-- 依据：SOW.md v1.11。激活是一步：受邀邮箱加上激活码。激活码绑定该邮箱、案件与角色（REQ-AUTH-01、REQ-AUTH-12）。本仓库已按此实现。同一邮箱和同一个邀请码可以再次进入该案件。
+- Version: 0.10 | Date: 2026-10-03
+- 版本：0.10｜日期：2026-10-03
+- Basis: SOW.md v1.11. Activation is one step: the invited email plus the activation code. The code is bound to that email, the Case, and the role (REQ-AUTH-01, REQ-AUTH-12). The repository implements this path. The same email and the same invitation code sign in to that case again. v0.10 adds the P1 Administration Console (REQ-ADM, Section 12.1): the System Operations Administrator creates Cases and sets their Chinese Clients, Vietnamese Lawyers, and Coordinators from a page. Not in the MVP.
+- 依据：SOW.md v1.11。激活是一步：受邀邮箱加上激活码。激活码绑定该邮箱、案件与角色（REQ-AUTH-01、REQ-AUTH-12）。本仓库已按此实现。同一邮箱和同一个邀请码可以再次进入该案件。v0.10 新增 P1 管理控制台（REQ-ADM，第 12.1 节）：系统运维管理员在页面上创建案件并设置各案的中国客户、越南律师与协调员。不属于 MVP。
 - Status conventions: "MVP" = P0 acceptance scope; "P1/P2" = later versions, recorded only, not implemented.
 - 状态约定：「MVP」= P0 验收范围；「P1/P2」= 后续版本，仅记录不实现。
 - Numbering conventions: REQ-<domain>-NN denotes behavioral requirements; see Section 13 for the data model, Section 14 for the API, and Section 16 for pending parameters.
@@ -21,8 +21,8 @@ Invitation-based Registration and login (**MVP: email Verification Code (OTP) on
 
 ### 1.2 Later Versions (not implemented in MVP) / 后续版本（不进入 MVP 实现）
 
-- P1: phone-number Verification Code (OTP) registration (+86/+84) and SMS notification channel, simple DOCX Bilingual Parallel Document (original R08), full Cross-case Mix-up Prevention UI, **Daily Case Digest email (REQ-DIG, added in v1.5)**, PDF text/OCR translation, table and header/footer handling, glossary and translation proofreading, more notification channels and advanced escalation policies.
-- P1：手机号验证码注册（+86/+84）与短信通知渠道、简单 DOCX 双语对照（原 R08）、完整防串案界面、**案件日报邮件（REQ-DIG，v1.5 新增）**、PDF 文本/OCR 翻译、表格与页眉页脚处理、术语表与译文校订、更多通知渠道与高级升级策略。
+- P1: phone-number Verification Code (OTP) registration (+86/+84) and SMS notification channel, simple DOCX Bilingual Parallel Document (original R08), full Cross-case Mix-up Prevention UI, **Daily Case Digest email (REQ-DIG, added in v1.5)**, **Administration Console for Case creation and participant setup (REQ-ADM, added in v0.10)**, PDF text/OCR translation, table and header/footer handling, glossary and translation proofreading, more notification channels and advanced escalation policies.
+- P1：手机号验证码注册（+86/+84）与短信通知渠道、简单 DOCX 双语对照（原 R08）、完整防串案界面、**案件日报邮件（REQ-DIG，v1.5 新增）**、**案件创建与参与人设置的管理控制台（REQ-ADM，v0.10 新增）**、PDF 文本/OCR 翻译、表格与页眉页脚处理、术语表与译文校订、更多通知渠道与高级升级策略。
 - P2: more languages/countries/service industries, multiple operating organizations, voice and video, WeChat/Zalo integration.
 - P2：更多语言/国家/服务行业、多运营机构、语音视频、WeChat/Zalo 集成。
 
@@ -297,6 +297,20 @@ Corresponds to R11, SOW Section 10; acceptance AC09/AC11.
 | REQ-OPS-06 | Data retention periods, deletion, and legal hold rules are determined by the user/legal lead before the pilot [O04]; the SPEC does not assume them on its own.<br>数据保留期限、删除与法律保全规则在试点前由用户/法律负责人确定 [O04]；SPEC 不自行假定。 |
 | REQ-OPS-07 | MVP completion includes a guide for the bootstrapped administrator (MFA already enrolled): create one fictitious test Case and enter three emails — Case Coordinator, Chinese Client, and Vietnamese Lawyer. The system sends an activation email to each address and to no one else. Each activation code is bound to that email, the Case, and the role. Acceptance is one step and shows that each recipient joins only that Case in the assigned role, and that the administrator is not added to the Case chat. Real personal addresses and real case facts are not used. A second Case for the same Lawyer email is proved in T02 (REQ-AUTH-12), not by this one-Case guide. The runbook describes this one-step acceptance.<br>MVP 完成包含给已引导创建、且已登记 MFA 的管理员的一份指引：创建一个虚构测试案件，并输入三个邮箱——案件协调员、中国客户、越南律师。系统向这三个地址各发一封激活邮件，不发给其他人。每个激活码都绑定该邮箱、案件与角色。接受只做一步，并表明每位收件人只以指定角色加入该案件，且管理员不被加入案件聊天。不使用真实个人地址和真实案情。同一律师邮箱加入第二个案件由 T02 证明（REQ-AUTH-12），不由这份单案件指引证明。现场操作指引描述这一步接受。 |
 
+### 12.1 Administration Console (REQ-ADM, P1, added in v0.10) / 管理控制台（REQ-ADM，P1，v0.10 新增）
+
+User request 2026-10-03: the System Operations Administrator has a page to create a Case and to set each Case's Chinese Clients, Vietnamese Lawyers, and Coordinators. **P1 — not in the MVP.** The MVP fictitious test-case endpoint (REQ-OPS-07) remains the MVP acceptance path; this console is the general production form of the same capability.
+
+用户 2026-10-03 提出：系统运维管理员有一个页面，可以添加案件，并设置每个案件的中国客户、越南律师与协调员。**P1——不进入 MVP。** MVP 的虚构测试案件端点（REQ-OPS-07）仍是 MVP 验收路径；本控制台是同一能力的通用生产形态。
+
+| ID / 编号 | Requirement / 需求 |
+| --- | --- |
+| REQ-ADM-01 | The administrator has a web console page (behind REQ-AUTH-09 MFA) listing all Cases with metadata only: title, client organization, status, member roster (display name + role + membership status pending/active/revoked). Case content (messages/files) is never shown (REQ-PM-06).<br>管理员拥有一个网页控制台（REQ-AUTH-09 MFA 之后），列出全部案件的纯元数据：案件名称、客户组织、状态、成员名册（显示名＋角色＋成员状态 pending/active/revoked）。案件正文（消息/文件）绝不展示（REQ-PM-06）。 |
+| REQ-ADM-02 | The console creates a Case: required fields follow REQ-CASE-01 (title 1–80 without line breaks, client organization), plus the initial participants — one or more Chinese Clients, Vietnamese Lawyers, and Coordinators — each entered as a notification email with an optional display name.<br>控制台创建案件：必填项遵循 REQ-CASE-01（案件名称 1–80 无换行、客户组织），并设置初始参与人——一名或多名中国客户、越南律师、协调员——每人以一个通知邮箱录入，显示名可选。 |
+| REQ-ADM-03 | Participant setup uses the standard invitation flow (REQ-AUTH-01/12, one-step activation): one activation email per entered address, the code bound to that email, the Case, and the role; resend and revocation follow the existing invite rules. A participant can be added to an existing Case from the console, and a member can be revoked from the console with the same immediate-effect semantics as REQ-PM-08.<br>参与人设置走标准邀请流程（REQ-AUTH-01/12，一步激活）：每个被输入地址一封激活邮件，激活码绑定该邮箱、案件与角色；重发与撤销沿用现有邀请规则。控制台可向既有案件追加参与人，也可撤销成员，即时生效语义同 REQ-PM-08。 |
+| REQ-ADM-04 | The administrator never becomes a Case member and never appears in Case chat (REQ-PM-10); every console operation is audited (REQ-OPS-01) with operator, target Case, time, and result — never message content or contact details beyond the entered notification addresses, which are visible only to the administrator on this page.<br>管理员绝不成为案件成员、绝不出现在案件聊天中（REQ-PM-10）；控制台的每个操作都入审计（REQ-OPS-01），记录操作者、目标案件、时间与结果——不含消息正文；联系方式仅本页面对管理员可见。 |
+| REQ-ADM-05 | Invites issued from the console follow the same safety rules as coordinator-issued invites: role must match the account's global role, activation cannot grant `admin`, and creating an invite for an email whose existing account has a different role is rejected at creation time rather than producing an unusable invite.<br>控制台发出的邀请遵循与协调员邀请相同的安全规则：角色须与账号全局角色一致、激活不能授予 `admin`、向全局角色不符的已有邮箱发邀请在创建时即被拒绝，而不是产出一张不可用的邀请。 |
+
 ## 13. Data Model (Draft) / 数据模型（草案）
 
 PostgreSQL; all business tables include created_at/updated_at; foreign keys and status enums are constrained in migrations. Only core tables and key fields are listed:
@@ -346,8 +360,8 @@ REST 风格，均在服务端鉴权＋案件成员校验；写操作支持 Idemp
 - 通知：`POST /api/cases/:id/urgent`、`GET /api/notifications`、`POST /api/notifications/:id/confirm`
 - Review: `GET /api/review/tasks`, `POST /api/review/tasks/:id/approve|return|reject` (`approve` accepts `self_release=true` only for REQ-REV-06), `POST /api/review/tasks/:id/appeal` (author note; does not publish)
 - 审核：`GET /api/review/tasks`、`POST /api/review/tasks/:id/approve|return|reject`（仅 REQ-REV-06 的批准可以带 `self_release=true`）、`POST /api/review/tasks/:id/appeal`（作者附言；不发布）
-- Administration: `GET /api/admin/audit-logs`, `POST /api/admin/test-cases` (REQ-OPS-07; body is title plus three fictitious emails; MFA-protected; does not add the administrator as a member)
-- 管理：`GET /api/admin/audit-logs`、`POST /api/admin/test-cases`（REQ-OPS-07；请求体为案件名称加三个虚构邮箱；MFA 保护；不把管理员加为成员）
+- Administration: `GET /api/admin/audit-logs`, `POST /api/admin/test-cases` (REQ-OPS-07; body is title plus three fictitious emails; MFA-protected; does not add the administrator as a member). P1 (REQ-ADM): `GET /api/admin/cases`, `POST /api/admin/cases`, `POST /api/admin/cases/:id/invites`, `DELETE /api/admin/cases/:id/members/:uid` — all MFA-protected, metadata-only, administrator never a member.
+- 管理：`GET /api/admin/audit-logs`、`POST /api/admin/test-cases`（REQ-OPS-07；请求体为案件名称加三个虚构邮箱；MFA 保护；不把管理员加为成员）。P1（REQ-ADM）：`GET /api/admin/cases`、`POST /api/admin/cases`、`POST /api/admin/cases/:id/invites`、`DELETE /api/admin/cases/:id/members/:uid`——全部 MFA 保护、仅元数据、管理员绝不成为成员。
 
 Invariants: no response may contain unpublished content or another party's Registered Contact Channel; pending/check_failed content is visible only to the author and coordinators with Review authority.
 
@@ -395,3 +409,4 @@ Invariants: no response may contain unpublished content or another party's Regis
 | AC10 Chinese–Vietnamese network experience<br>AC10 中越网络体验 | SOW 3.3 | T12 (requires O07 resources)<br>T12（需 O07 资源） |
 | AC11 Backup and Restore / logs<br>AC11 备份恢复/日志 | REQ-OPS-01~06 | T11、T12 |
 | AC12 Coordinator automatic alerts (email; SMS P1)<br>AC12 协调员自动提醒（邮件；短信 P1） | REQ-NTF-07~13、REQ-REV-01~05 | T07、T12 (real email)<br>T07、T12（真实邮件） |
+| — (P1, no AC) Administration Console<br>——（P1，无 AC）管理控制台 | REQ-ADM-01~05 | T14 (P1)<br>T14（P1） |

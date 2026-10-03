@@ -968,3 +968,33 @@ Continue the pilot on this build. F07 stays blocked on O05. Do not start real Ki
 ---
 
 ---
+
+## Session 2026-10-03-06 (Ended) / 会话 2026-10-03-06（已结束）
+
+- Date/Timezone: 2026-10-03, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-03，UTC（研发 VPS 上的 Kimi Code）
+- Goal (user request): review the existing code against the design and progress documents, record the conclusions in CURSOR_REVIEW.md with the reviewed scope, and add a new P1 feature to SPEC and PLAN — an Administration Console page where the System Operations Administrator creates a Case and sets its Chinese Clients, Vietnamese Lawyers, and Coordinators. Documentation-only session; no application code changed.<br>本次目标（用户要求）：依据设计文档与进度文档复核现有代码，把结论记入 CURSOR_REVIEW.md 并注明复核范围；在 SPEC 与 PLAN 中新增一个 P1 功能——系统运维管理员在页面上创建案件并设置各案的中国客户、越南律师与协调员。纯文档会话；未改应用代码。
+
+### Actual Actions / 实际动作
+
+1. Aligned with the other agent's newest commits first: F11 (ordinary messages and clean files publish immediately; contact details publish; only explicit retainer-fee inquiries hold), F12 (re-entry with email+code), F13 (viewer-timezone timestamps, REQ-MSG-11), F14 (one language per role on screen) — HEAD was b78cb46, all deployed to the test host.<br>先对齐另一代理的最新提交：F11（普通消息与干净文件立即发布；联系方式直接发布；仅显式委托费用问询待审）、F12（邮箱＋邀请码再次进入）、F13（按观看者电脑时区的时间戳，REQ-MSG-11）、F14（每个角色一种屏幕语言）——当时 HEAD 为 b78cb46，均已部署到测试机。
+2. Ran four read-only review subagents by domain (auth/invites/cases/members; messages/moderation/translation; files/review/notifications; admin/audit/ops + SPEC §14 API surface comparison), then personally spot-checked the highest-severity claims against the code (archived-case approvals, revoked-member re-accept, non-transactional accept — all confirmed).<br>按域并行跑四个只读复核子代理（认证/邀请/案件/成员；消息/审核规则/翻译；文件/审核后台/通知；管理员/审计/运维＋SPEC 第14节 API 面比对），随后对最高严重度的发现逐条亲自取证（归档案批准、被撤成员再接受、非事务接受——均属实）。
+3. Recorded the conclusions as CURSOR_REVIEW.md Section 10: reviewed-scope list; R1–R9 must-fix-before-real-data (each with file evidence); R10–R22 correctness items; hardening list; documentation-vs-implementation deltas (incl. SPEC §14 missing `/api/invites/activate`, PLAN T08's stale review-hold wording pre-F11, the unlisted fifth global role ops_lead). API surface comparison: zero SPEC-listed endpoints missing.<br>结论记入 CURSOR_REVIEW.md 第 10 节：复核范围清单；R1–R9 接入真实数据前必修（均附代码证据）；R10–R22 正确性项；加固清单；文档与实现差异（含 SPEC 第14节缺 `/api/invites/activate`、PLAN T08 过时的审核措辞、未收录的第五种全局角色 ops_lead）。API 面比对：SPEC 列出的端点无一缺失。
+4. Added the new P1 feature: SPEC v0.9 → v0.10 (new Section 12.1 REQ-ADM-01~05, P1 list entry, §14 admin endpoints, §17 mapping row); PLAN v0.9 → v0.10 (overview row, full T14 task section with acceptance criteria/files/tests, F15 follow-up row, F09 row now points at the review findings); CONTEXT.md navigation updated; PROGRESS.md Next Steps gained the review follow-ups and T14.<br>新增 P1 功能：SPEC v0.9→v0.10（新增第 12.1 节 REQ-ADM-01~05、P1 清单条目、第14节管理端点、第17节映射行）；PLAN v0.9→v0.10（总览行、完整 T14 任务节含验收/文件/测试、F15 跟进行、F09 行指向复核结论）；CONTEXT.md 导航已更新；PROGRESS.md 下一步加入复核后续与 T14。
+
+### Changed Files / 变更文件
+
+- Modified: CURSOR_REVIEW.md (Section 10), SPEC.md (v0.10), PLAN.md (v0.10), CONTEXT.md, PROGRESS.md, SESSIONS.md. No source code, no tests.<br>修改：上述文件。未改源代码与测试。
+
+### Verification Results / 验证结果
+
+- Documentation-only. The review subagents read code but changed nothing; the working tree was clean before the doc edits. No tests were run this session (none needed — no code changed); the last verified state remains 281/281 + E2E 7/7.<br>纯文档。复核子代理只读代码、未作改动；文档编辑前工作区干净。本会话未跑测试（未改代码，无需）；最近验证状态仍为 281/281＋E2E 7/7。
+
+### Unfinished Items / 未完成项
+
+- CURSOR_REVIEW.md Section 10 R1–R9 fixes (must precede real data), R10–R22, and the hardening list (with F09). T14 (F15) awaits the user's P1 decision.<br>CURSOR_REVIEW.md 第 10 节 R1–R9 修复（须先于真实数据）、R10–R22、加固清单（并入 F09）。T14（F15）待用户 P1 决定。
+
+### First Step Next Time / 下次第一步
+
+If the user asks: fix R1–R9 (suggested single batch, TDD, one commit per domain), or start T14. F06/F07 stay blocked on O05.<br>若用户要求：修 R1–R9（建议按域分批、TDD、每域一个提交），或开工 T14。F06/F07 仍阻塞于 O05。
+
+---

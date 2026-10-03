@@ -149,3 +149,59 @@
 - 中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮、提示、状态文字，以及自动模式下别人发来的消息，都用这一种语言。同日更正：客户默认由简体改为繁体。用简体输入法打出的字按 Unicode 保存，可以用逐字转换显示成繁体，不会因此变成乱码。对照表外的字保持原样；一个简体字有多个繁体字形时，显示选定的那一个。
 - 能看到的每条对话记录和每条上传记录都按那台电脑的时区设置显示日期和钟点，并在旁边标出时区。中国客户的电脑是 UTC+8，越南律师的电脑是 UTC+7。时区以电脑设置为准，不按角色写死。
 - 中文消息的真实越南语译文仍是 F07，等真实翻译渠道。F13、F14 已在界面实现：一种语言，时间旁标出电脑时区。
+
+## 10. 代码复核（2026-10-03，对照 SOW v1.11 / SPEC v0.9 / PLAN v0.9，含 F11–F14 的现行行为）
+
+本次由 4 个只读复核代理分域核对实现与设计文档的一致性，主代理对最高严重度的发现逐条做了代码取证抽查（均属实）。**复核覆盖的功能域**：①认证/邀请/OTP/会话、权限矩阵、案件与成员（REQ-AUTH-01~12、REQ-PM-01~10、REQ-CASE-01~06）；②消息流水线/SSE/幂等/未读数、内容检查、翻译（REQ-MSG-01~11、REQ-MOD-01~08、REQ-TR-01~09）；③文件、审核后台、通知（REQ-FILE-01~08、REQ-REV-01~06、REQ-NTF-01~13）；④审计/管理员 MFA/生命周期、SPEC 第 14 节 API 面比对、第 15 节通用约定（REQ-OPS-01~07 等）。全部 API 路由与 SPEC 第 14 节逐一比对：SPEC 列出而未实现的端点为零。
+
+### 总体结论
+
+实现与 SPEC v0.9 总体高度一致，未发现让试点立即停摆的缺陷（现有测试 281/281＋E2E 7/7 均绿）。以下发现按严重度分组；与 PLAN F09 已记录缺口（display_name 检查、账号找回 API、后续管理员 API、会话令牌明文）不重复，仅在有更精确证据时提及。
+
+### 10.1 上线前必须修（正确性缺陷，已抽查属实）
+
+| # | 涉及功能 | 问题 | 证据 |
+|---|---|---|---|
+| R1 | 归档/审核（REQ-CASE-05、REQ-REV-03） | 归档案件的待审任务仍可被批准，批准后内容发布进已归档案件并广播 SSE；`retryFileScan` 同样不校验归档 | `src/modules/review/service.ts` decideReviewTask 只过 requireCaseMember；`src/modules/cases/service.ts` archiveCase 不关闭 open 任务 |
+| R2 | 邀请接受（REQ-AUTH-12/REQ-CASE-02） | 被撤销成员重新接受邀请：激活码被占用、审计记成功、会话照发，但成员资格仍是 revoked——该用户永远无法重新加入此案，且无恢复路径 | `src/modules/invites/service.ts` acceptInvite：先占码（updateMany），`if (!existing)` 只在无成员行时建行 |
+| R3 | 邀请接受（REQ-AUTH-01） | 占码与建成员行不在同一事务，中途失败永久废掉该邀请（码已用、成员未建、resend 被 invite_used 挡住） | 同上，invite.updateMany 与 caseMember.create 分离 |
+| R4 | 消息检查失败（REQ-MSG-03、SPEC 5.1） | 消息的 check_failed 无任何恢复路径（文件侧有 scan-retry/拒绝，消息侧没有对应端点）；且 check_failed 告警邮件引导去 /review，但审核队列不含该项——协调员无可处理对象。叠加后果：真实部署在真实审核 provider 落地（O05/F07）之前，每条消息都会终态 check_failed——fail-safe 方向正确，但没有出口 | `src/modules/messages/service.ts` check_failed 只有写入；`src/server/jobs/queue.ts` registerCheckFailedAlerts 不建 review_task |
+| R5 | 申诉入口（REQ-MOD-07） | 被拦消息的作者拿不到中性原因与申诉入口：申诉 API 存在，但作者无法发现 review task id（审核队列对其 403，消息视图不含 task id/原因） | `src/modules/review/service.ts` listReviewTasks 403；`src/modules/messages/service.ts` toMessageView 无 taskId |
+| R6 | 激活安全与审计（REQ-OPS-01） | 激活/接受的全部失败分支（无效码、邮箱不匹配、已撤销/过期、角色不符）完全不入审计，且无任何限流——可无限在线试探邮箱-码组合；OTP 登录路径有失败审计，口径不一致 | `src/modules/invites/service.ts` activateByEmailAndCode/acceptInvite 失败分支无 recordAudit |
+| R7 | 邀请邮件发送（REQ-OPS-01/REQ-NTF-01） | 激活邮件发送失败被静默吞掉：只写一行类别日志，邀请创建审计仍记 success，发起人无从知晓——邀请码只存在这封邮件里，发送失败即该邀请实际不可用 | `src/modules/invites/service.ts` sendInviteEmail 的 catch{} |
+| R8 | 文件上传幂等（SPEC §15.2） | 上传不支持 Idempotency-Key：网络重试/双击产生重复文件与重复扫描审核任务（消息与通知均有唯一键去重） | `src/modules/files/service.ts` uploadFile 每次新建 UUID，files 表无去重键 |
+| R9 | OTP 并发（REQ-AUTH-03/05） | 校验是读-改-写：并发错误尝试可能错超 5 次才锁；并发正确尝试可能各建一个会话（重放未被拒绝） | `src/modules/auth/service.ts` evaluateChallenge、`src/modules/auth/otp.ts` |
+
+### 10.2 应尽早修（正确性缺陷，证据明确）
+
+- R10 归档可见性：审核队列不过滤归档案件（与 R1 同修）。
+- R11 翻译纠正失效（REQ-TR-07）：纠正源语言后若已有 done 版本则直接返回旧译文（按旧源语言生成），纠正被静默吞掉——`src/modules/translation/service.ts`。
+- R12 译文 needs_review 无工作流（REQ-TR-05）：不建审核任务，协调员永远看不到存疑译文；任意成员点一次「翻译」即可绕过。
+- R13 崩溃后状态卡死（SPEC §15.3）：translating/checking 中途崩溃的行永久滞留，无陈旧回收。
+- R14 holdForReview 注册失败的兜底路径漏发 check_failed 告警（REQ-MSG-03）。
+- R15 升级计时按 createdAt 而非「未接手」（REQ-NTF-11）：已打开未决定仍按创建时间升级。
+- R16 channel_unavailable 型终败不触发协调员兜底通知（REQ-NTF-05）；站内确认可确认尚未发出的任务且不重检成员资格（REQ-NTF-06 边界）。
+- R17 邀请创建不校验目标邮箱现有账号角色：角色不符的邮箱会产出一张永远不可用的邀请，管理员测试案件端点同样静默跳过（建议创建期 409）。
+- R18 「开始处理」从未单独记录（REQ-NTF-09）：startedAt 恒等于 decidedAt。
+- R19 前端缺 4000 字符拒绝（REQ-MSG-08 要求双重拒绝）；HTTP 补拉不推进已读位（REQ-MSG-07）。
+- R20 文件侧告警异常无 alertIssue 标注（REQ-NTF-12）；check_failed 告警不关联目标文件。
+- R21 模型版本/术语表版本不落库（REQ-TR-03 要求四项记录，schema 无列；PROGRESS 中「暂随 prompt_version 记录」的表述与代码不符）。
+- R22 detectSourceLang 永不判出 zh-Hant（F14 之后客户默认繁体，启发式仍把一切汉字存为 zh-Hans，导致繁体用户的消息被无谓地做简→繁转换并带机译标记）。
+
+### 10.3 加固建议（非阻断）
+
+哈希未加盐（OTP 6 位裸 SHA-256 可秒级枚举；邮箱哈希可字典还原——建议 HMAC-SHA256(key=APP_DATA_KEY)）；TOTP 验证无失败限流；OTP 锁定后 attempts 不复位（比 SPEC 更严，可接受但应注明）；bootstrap-admin 不写审计行；admin 守卫的 MFA 拒绝不落审计；审核决策非条件更新（并发双批准：消息双发布、文件 500）；registerCheckFailedAlerts 的 count+1 去重键有 P2002 竞态；上传先写 MinIO 后开库事务（孤儿对象）；文件名费用语义检查语言写死 zh-Hans；Kimi 适配器裸 fetch 无超时；`providerRef: "fake-outbox"` 写死；消息列表无分页；ops_lead 角色无创建入口（2 小时升级会落空）；`/api/test/outbox` 依赖 nginx 单层防护（建议加共享密钥或仅 127.0.0.1）；backup.sh 明文临时文件落 /tmp。
+
+### 10.4 文档与实现表述差异（建议同步文档）
+
+- SPEC §14：缺 `POST /api/invites/activate`（一步激活端点），`accept` 的描述仍写「邮箱＋码一步」（实现要求已登录会话、只收 code）；另有一批实现但未列入 §14 的端点（auth/me、client-profiles、case-applications、members PATCH、files/reject、test 钩子）。
+- PLAN T08 状态行仍写「所有通过扫描的文件等待协调员审核」，F11 之后是实现为干净文件立即发布。
+- SPEC 第 2 节角色矩阵未收录代码引入的第五种全局角色 ops_lead（T07 偏离已在 SESSIONS 记录，SPEC 未同步）。
+- deployment.md §6 对 outbox 钩子的门控描述不精确（`CLC_FICTITIOUS_TEST_HOST` 例外只在 §5）；未写明真实部署在真实审核 provider 落地前所有消息终态 check_failed 的后果。
+- REQ-NTF-03：review/check_failed/urgent_failed 模板是固定中越双语，未按收件人偏好语言（F14 之后更显突兀）。
+- REQ-NTF-06「独立于渠道状态记录」：实现直接覆盖 status 为 in_app_confirmed，渠道态被冲掉。
+- REQ-FILE-06「已下载副本无法收回须在产品说明中明示」：docs/ 与 UI 中均无此说明。
+
+### 10.5 处置建议
+
+R1–R9 建议作为下一批修复（可一次提交或按域分批）；R10–R22 随其后；10.3 加固项多数适合与 F09 一起做；10.4 的文档差异在下次 SPEC/PLAN 修订时同步。本次复核只读，未改任何代码与测试。

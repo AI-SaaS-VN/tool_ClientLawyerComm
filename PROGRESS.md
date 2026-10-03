@@ -197,7 +197,9 @@ At the start of every session, in this order / 每次会话开始按此顺序：
 
 1. F13 and F14 (commit 11d789e) are deployed on the Shanghai test host. F07 stays blocked on O05.
 1. F13 与 F14（提交 11d789e）已部署在上海测试机。F07 仍阻塞于 O05。
-2. External-resource acceptance stays blocked: real EmailProvider and real-address delivery for AC01/AC08/AC12 (O05/O07); AC10 China–Vietnam network window (O07); production-scale restore drill (O08).
-2. 外部资源验收仍阻塞：真实 EmailProvider 与 AC01/AC08/AC12 的真实地址送达（O05/O07）；AC10 中越网络窗口（O07）；生产规模恢复演练（O08）。
-3. P1 on user decision: T09 (cross-case UI / bilingual file variant / document translation) and T13 (daily case digest email, depends on the real email channel).
-3. 待用户决定的 P1：T09（防串案界面/双语文件变体/文档翻译）与 T13（案件日报邮件，依赖真实邮件通道）。
+2. Code-review follow-ups (2026-10-03, CURSOR_REVIEW.md Section 10): R1–R9 are must-fix before real data (archived-case approvals publishing, revoked-member re-accept burning the code, non-transactional invite accept, message check_failed with no recovery path, unreachable appeal entry, unaudited activation failures, silent invite-email send failure, non-idempotent file upload, OTP race); R10–R22 right after; hardening list joins F09. No code was changed by the review.
+2. 代码复核后续（2026-10-03，CURSOR_REVIEW.md 第 10 节）：R1–R9 为接入真实数据前必修（归档案仍可批准发布、被撤成员再接受烧码且无法恢复、邀请接受非事务、消息 check_failed 无恢复路径、申诉入口不可达、激活失败无审计、邀请邮件发送失败被静默吞掉、文件上传不幂等、OTP 竞态）；R10–R22 紧随其后；加固项并入 F09。本次复核未改代码。
+3. External-resource acceptance stays blocked: real EmailProvider and real-address delivery for AC01/AC08/AC12 (O05/O07); AC10 China–Vietnam network window (O07); production-scale restore drill (O08).
+3. 外部资源验收仍阻塞：真实 EmailProvider 与 AC01/AC08/AC12 的真实地址送达（O05/O07）；AC10 中越网络窗口（O07）；生产规模恢复演练（O08）。
+4. P1 on user decision: T09 (cross-case UI / bilingual file variant / document translation), T13 (daily case digest email, depends on the real email channel), T14 (Administration Console: Case creation and participant setup — REQ-ADM-01~05, user request 2026-10-03, F15).
+4. 待用户决定的 P1：T09（防串案界面/双语文件变体/文档翻译）、T13（案件日报邮件，依赖真实邮件通道）、T14（管理控制台：案件创建与参与人设置——REQ-ADM-01~05，用户 2026-10-03 提出，F15）。
