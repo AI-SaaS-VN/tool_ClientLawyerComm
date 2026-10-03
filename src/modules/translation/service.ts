@@ -26,8 +26,9 @@ export interface TranslationView {
   version: number | null;
 }
 
-// REQ-TR-01: account preference wins; otherwise Clients/Coordinators default
-// to zh-Hans and Lawyers to vi.
+// Account preference wins. Until F14, a missing preference still falls back
+// to zh-Hans for clients and coordinators, and vi for lawyers. The spec
+// default for a client's screen is zh-Hant.
 export function resolvePreferredLang(user: User): string {
   if (isSupportedLang(user.preferredLang)) return user.preferredLang;
   return user.globalRole === "lawyer" ? "vi" : "zh-Hans";

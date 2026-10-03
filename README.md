@@ -6,9 +6,9 @@ A web-based, case-isolated communication system: Chinese Client — Vietnamese L
 
 ## Status / 状态（2026-10-03）
 
-All P0 (MVP) coding tasks T01–T08 and T10–T12 are done. The Shanghai test host is serving the app over HTTP. After the 2026-10-03 pilot, PLAN.md v0.9 lists follow-ups F01–F11. F02 one-step activation is implemented in the repository. The next pilot item is F01, the case-page attachment control. T09/T13 are P1. See PROGRESS.md.
+All P0 (MVP) coding tasks T01–T08 and T10–T12 are done. The Shanghai test host is serving the app over HTTP. PLAN.md v0.9 follow-ups F01–F12 are done. F13 (timestamps on conversation and upload records, labeled with that computer's timezone, UTC+8 or UTC+7) and F14 (a Chinese client sees Traditional Chinese; a Vietnamese lawyer sees Vietnamese) are specified and not yet on the screen. F07 is the Kimi pair: lawyer Vietnamese becomes the client's Traditional Chinese, and client Traditional Chinese becomes the lawyer's Vietnamese; real calls stay blocked on O05. F06 and F08 stay blocked. T09/T13 are P1. See PROGRESS.md.
 
-全部 P0（MVP）编码任务 T01–T08、T10–T12 已完成。上海测试机已通过 HTTP 提供本应用。2026-10-03 试运行之后，PLAN.md v0.9 列出后续项 F01–F11。F02 一步激活已在仓库实现。下一项试点工作是 F01，案件页的附件控件。T09/T13 为 P1。见 PROGRESS.md。
+全部 P0（MVP）编码任务 T01–T08、T10–T12 已完成。上海测试机已通过 HTTP 提供本应用。PLAN.md v0.9 的跟进项 F01–F12 已完成。F13（对话记录和上传记录的时间戳，并标出该电脑的时区，UTC+8 或 UTC+7）和 F14（中国客户看到繁体中文，越南律师看到越南语）已写入规格，界面尚未改。F07 是 Kimi 这一对：律师的越南语变成客户的繁体中文，客户的繁体中文变成律师的越南语；真实调用仍阻塞于 O05。F06 与 F08 仍阻塞。T09/T13 为 P1。见 PROGRESS.md。
 
 ## Commands / 命令
 

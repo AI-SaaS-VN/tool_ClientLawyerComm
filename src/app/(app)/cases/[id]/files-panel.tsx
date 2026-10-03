@@ -115,14 +115,22 @@ export function FilesPanel({ caseId }: { caseId: string }) {
           </li>
         ))}
       </ul>
-      <div className="mt-4 flex items-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <input
+          id={`file-input-${caseId}`}
           ref={inputRef}
           type="file"
-          className="text-sm"
+          className="sr-only"
           data-testid="file-input"
           onChange={(event) => setSelected(event.target.files?.[0] ?? null)}
         />
+        <label
+          htmlFor={`file-input-${caseId}`}
+          className="cursor-pointer border px-3 py-1 text-sm"
+        >
+          选择文件 / Chọn tệp
+        </label>
+        {selected ? <span className="text-sm">{selected.name}</span> : null}
         <button
           type="button"
           className="border px-3 py-1 text-sm disabled:opacity-50"

@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { GET as downloadFile } from "@/app/api/files/[id]/download/route";
 import { POST as uploadFile } from "@/app/api/cases/[id]/files/route";
-import { POST as approveTask } from "@/app/api/review/tasks/[id]/approve/route";
 import { prisma } from "@/lib/db";
 import { getStorageProvider } from "@/server/providers/storage";
 import { stubFileScanner } from "@/server/providers/scanner/stub";
@@ -12,7 +11,6 @@ import {
   cookieHeader,
   createVerifiedUser,
   getRequest,
-  postJson,
   resetDatabase,
   seedCaseWithCoordinator,
   sessionCookieFor,
@@ -43,15 +41,8 @@ async function publishPdf(caseId: string, uploaderCookie: string, reviewerCookie
   );
   expect(uploadRes.status).toBe(201);
   const { file } = (await uploadRes.json()) as { file: { id: string; status: string } };
-  expect(file.status).toBe("pending_review");
-  const task = await prisma.reviewTask.findFirstOrThrow({
-    where: { targetType: "file", targetId: file.id, status: "open" },
-  });
-  const approve = await approveTask(
-    postJson(`/api/review/tasks/${task.id}/approve`, {}, cookieHeader(reviewerCookie)),
-    params(task.id),
-  );
-  expect(approve.status).toBe(200);
+  expect(file.status).toBe("published");
+  void reviewerCookie;
   return file.id;
 }
 
@@ -120,7 +111,7 @@ describe("authorized proxy download (REQ-FILE-04/06)", () => {
     const outsiderCookie = await sessionCookieFor(outsider.id);
 
     const uploadRes = await uploadFile(
-      uploadFileRequest(kase.id, clientCookie, "draft.pdf", pdfSample()),
+      uploadFileRequest(kase.id, clientCookie, "你们律所收费多少.pdf", pdfSample()),
       params(kase.id),
     );
     const { file } = (await uploadRes.json()) as { file: { id: string } };

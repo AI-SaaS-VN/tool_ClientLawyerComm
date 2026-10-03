@@ -97,22 +97,19 @@ describe("moderation pipeline (REQ-MOD-01~03, REQ-NTF-07 registration)", () => {
     expect(authorList.map((m) => m.status)).toEqual(["pending_review"]);
   });
 
-  it("sends obfuscated contact channels to pending_review with a rule reason", async () => {
+  it("publishes contact details; they are not a retainer-fee inquiry", async () => {
     const { kase, lawyerCookie } = await seedChat();
-    const variants: Array<[string, string]> = [
-      ["ｚｈａｎｇ．ｌｉａｎｇ＠ｅｘａｍｐｌｅ．ｃｏｍ", "email"],
-      ["手机 1 3 8 - 1 2 3 4 - 5 6 7 8", "phone"],
-      ["ban co zalo khong? ket ban nhe", "zalo"],
-      ["扫这个二维码加我", "qr"],
+    const variants = [
+      "ｚｈａｎｇ．ｌｉａｎｇ＠ｅｘａｍｐｌｅ．ｃｏｍ",
+      "手机 1 3 8 - 1 2 3 4 - 5 6 7 8",
+      "ban co zalo khong? ket ban nhe",
+      "扫这个二维码加我",
     ];
-    for (const [index, [text, category]] of variants.entries()) {
+    for (const [index, text] of variants.entries()) {
       const message = await send(kase.id, lawyerCookie, text, `m-contact-${index}`);
-      expect(message.status).toBe("pending_review");
-      const task = await prisma.reviewTask.findFirstOrThrow({
-        where: { targetId: message.id as string },
-      });
-      expect(task.reason).toContain(category);
+      expect(message.status).toBe("published");
     }
+    expect(await prisma.reviewTask.count()).toBe(0);
   });
 
   it("releases ambiguous fee mentions by default (REQ-MOD-03)", async () => {
@@ -166,7 +163,7 @@ describe("moderation pipeline (REQ-MOD-01~03, REQ-NTF-07 registration)", () => {
   it("runs coordinator messages through the same checks (REQ-PM-05)", async () => {
     const { kase, cookie } = await seedChat();
     const message = await send(kase.id, cookie, "加我微信：wxid_abc123def", "m-coord-1");
-    expect(message.status).toBe("pending_review");
-    expect(await prisma.reviewTask.count({ where: { targetId: message.id as string } })).toBe(1);
+    expect(message.status).toBe("published");
+    expect(await prisma.reviewTask.count({ where: { targetId: message.id as string } })).toBe(0);
   });
 });

@@ -31,6 +31,7 @@ test("admin test-case journey: bootstrap → MFA → triangle activation → iso
   const loginPage = await adminContext.newPage();
   await loginPage.goto("/login");
   await loginPage.getByTestId("login-email").fill(adminEmail);
+  await loginPage.getByTestId("login-admin").click();
   await loginPage.getByTestId("login-send-code").click();
   const otpMail = await waitForEmail(request, adminEmail, (e) => e.text.includes("verification code"), "login OTP");
   await loginPage.getByTestId("login-code").fill(extractOtp(otpMail.text));

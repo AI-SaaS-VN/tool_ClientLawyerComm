@@ -45,9 +45,8 @@ test("rule-blocked message → review alert → coordinator approves → visible
     await lawyerPage.goto(`/cases/${triangle.caseId}`);
     await expect(lawyerPage.getByTestId("mode-auto")).toBeVisible();
 
-    // The client sends a message containing an email address: the
-    // deterministic rule holds it, and the author sees it as pending_review.
-    const held = `请直接发到我邮箱 zhangsan-${id}@example.com 谢谢`;
+    // An explicit retainer-fee question is held. Ordinary text is not.
+    const held = `这个案件你们律所收费多少？${id}`;
     await clientPage.goto(`/cases/${triangle.caseId}`);
     await clientPage.getByTestId("message-input").fill(held);
     await clientPage.getByTestId("message-send").click();

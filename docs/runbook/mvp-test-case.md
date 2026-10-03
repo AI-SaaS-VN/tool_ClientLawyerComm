@@ -43,7 +43,7 @@ curl -X POST "$APP_BASE_URL/api/admin/test-cases" \
 
 ## 3. 三角激活 / Triangle activation
 
-每位收件人打开 `$APP_BASE_URL/invite`，输入邮件中的激活码（XXXXX-XXXXX）和收到这封邮件的邮箱，点「Activate and join」。成功后进入 `/cases`。不需要另外的 6 位验证码。换一个浏览器时，只要这个码还没使用、还没过期，用同一个邮箱再做一次即可。
+每位收件人打开 `$APP_BASE_URL/login`，输入收到邀请的邮箱和邮件中的邀请码（XXXXX-XXXXX），点「进入案件」。第一次使用即加入该案件。之后用同一邮箱和同一邀请码再次进入。不需要 6 位验证码。
 
 Each recipient opens `$APP_BASE_URL/invite`, enters the activation code from the email and the address that received it, then clicks "Activate and join". Success opens `/cases`. There is no second 6-digit code. Another browser can do the same while the code is unused and unexpired.
 

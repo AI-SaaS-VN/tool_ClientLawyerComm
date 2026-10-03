@@ -116,7 +116,7 @@ describe("scan failure paths (REQ-FILE-03/08)", () => {
     expect(lawyerDownload.status).toBe(404);
   });
 
-  it("scan-retry by a can_review coordinator re-runs the scan and passes into pending_review", async () => {
+  it("scan-retry by a can_review coordinator re-runs the scan and publishes a clean file", async () => {
     const { kase, coordinatorCookie, clientCookie } = await seedMembers();
     stubFileScanner.inject({ outcome: "timeout", reason: "simulated" });
     const file = await uploadPdf(kase.id, clientCookie);
@@ -128,13 +128,11 @@ describe("scan failure paths (REQ-FILE-03/08)", () => {
     );
     expect(retry.status).toBe(200);
     const retried = ((await retry.json()) as { file: { status: string } }).file;
-    // The stub is clean by default now: scan pass → pending_review, never a
-    // direct publish (no check_failed → published skip path, REQ-FILE-08).
-    expect(retried.status).toBe("pending_review");
+    expect(retried.status).toBe("published");
     const task = await prisma.reviewTask.findFirst({
       where: { targetType: "file", targetId: file.id, status: "open" },
     });
-    expect(task).not.toBeNull();
+    expect(task).toBeNull();
   });
 
   it("scan-retry is forbidden for non-reviewers and conflicts outside check_failed", async () => {
@@ -148,9 +146,8 @@ describe("scan failure paths (REQ-FILE-03/08)", () => {
     );
     expect(byLawyer.status).toBe(403);
 
-    // A clean file is pending_review, not retryable.
     const clean = await uploadPdf(kase.id, clientCookie, "clean.pdf");
-    expect(clean.status).toBe("pending_review");
+    expect(clean.status).toBe("published");
     const conflict = await retryScan(
       postJson(`/api/files/${clean.id}/scan-retry`, {}, cookieHeader(coordinatorCookie)),
       params(clean.id),

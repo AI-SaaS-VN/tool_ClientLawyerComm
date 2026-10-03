@@ -108,20 +108,20 @@ describe("audit trail coverage (REQ-OPS-01)", () => {
     await confirmUrgentAlert(tasks[0]!.id, coordinator);
 
     // File upload → review approve (publish) → authorized download.
-    const uploaded = await uploadFile(kase.id, lawyer, fileForm("fictitious-a.pdf"));
+    const uploaded = await uploadFile(kase.id, lawyer, fileForm("你们律所收费多少-a.pdf"));
     expect(uploaded.status).toBe("pending_review");
     await decideReviewTask(await latestReviewTaskId(uploaded.id), coordinator, "approve", {});
     await downloadFile(uploaded.id, coordinator);
 
     // File upload → reject → appeal by the uploader.
-    const rejected = await uploadFile(kase.id, lawyer, fileForm("fictitious-b.pdf"));
+    const rejected = await uploadFile(kase.id, lawyer, fileForm("你们律所收费多少-b.pdf"));
     const rejectTaskId = await latestReviewTaskId(rejected.id);
     await decideReviewTask(rejectTaskId, coordinator, "reject", { reason: "fictitious reason" });
     await appealReviewTask(rejectTaskId, lawyer, { note: "fictitious appeal" });
 
     // Sole-reviewer self-release (REQ-REV-06): the coordinator is the only
     // reviewer, so their own file publishes only via an explicit self-release.
-    const own = await uploadFile(kase.id, coordinator, fileForm("fictitious-c.pdf"));
+    const own = await uploadFile(kase.id, coordinator, fileForm("你们律所收费多少-c.pdf"));
     await decideReviewTask(await latestReviewTaskId(own.id), coordinator, "approve", {
       selfRelease: true,
     });

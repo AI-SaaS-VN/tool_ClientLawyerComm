@@ -840,3 +840,88 @@ Deploy this build to the Shanghai test host if the user asks, then continue the 
 Pilot usage on the deployed build; F09 when the user asks; F06/F07 need the O05 decision (real EmailProvider / real Kimi). Do not redo F01–F05 or T01–T12.<br>在已部署的构建上继续试点使用；用户提出后做 F09；F06/F07 需要 O05 决定（真实 EmailProvider／真实 Kimi）。不要重做 F01–F05 或 T01–T12。
 
 ---
+
+## Session 2026-10-03-06 (Ended) / 会话 2026-10-03-06（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: record two pilot decisions in the design and planning documents. No application code.<br>本次目标：把试运行中的两项决定写入设计和计划文档。不改应用代码。
+
+### Actual Actions / 实际动作
+
+1. Conversation records and upload records must show a timestamp: calendar date and clock time in the viewer's local timezone (REQ-MSG-11, REQ-FILE-04). The message list does not show a time yet. The file list already prints the upload time.<br>对话记录和上传记录必须显示时间戳：观看者本地时区的日期和钟点（REQ-MSG-11、REQ-FILE-04）。消息列表目前没有时间。文件列表已经印出上传时间。
+2. Restated the default screen. A Chinese client sees Simplified Chinese. A Vietnamese lawyer sees Vietnamese. A coordinator sees Simplified Chinese. Labels and automatic-mode messages from other people use that one language. The lawyer's phone still shows both languages on the same control. Real Vietnamese wording of Chinese messages stays F07.<br>再次写明默认屏幕。中国客户看到简体中文。越南律师看到越南语。协调员看到简体中文。按钮和自动模式下别人发来的消息都用这一种语言。律师手机上同一控件仍并列两种语言。中文消息的真实越南语译文仍是 F07。
+3. PLAN.md records F13 and F14 as specified, not built.<br>PLAN.md 把 F13 和 F14 记为已写入规格、尚未改界面。
+
+### Changed Files / 变更文件
+
+- SOW.md, SPEC.md, CONTEXT.md, GLOSSARY.md, PLAN.md, PROGRESS.md, README.md, VIBE_CODING_INPUT.md, CURSOR_REVIEW.md, SESSIONS.md.<br>上述文件。
+- Application code unchanged. The test host was not rebuilt.<br>应用代码未改。测试机未重新构建。
+
+### Verification Results / 验证结果
+
+- Documentation only. No tests were run.<br>仅文档。未跑测试。
+
+### First Step Next Time / 下次第一步
+
+If the user asks, build F14 (one language on screen) and F13 (message timestamps). Do not treat F07 as already delivering Vietnamese sentences.<br>若用户要求，再做 F14（屏幕上一种语言）和 F13（消息时间戳）。不要把 F07 当成已经给出越南语句子。
+
+---
+
+## Session 2026-10-03-07 (Ended) / 会话 2026-10-03-07（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: record that each computer's timezone setting labels the timestamp. No application code.<br>本次目标：记下时间戳按每台电脑的时区设置标注。不改应用代码。
+
+### Actual Actions / 实际动作
+
+1. The user set the timestamp rule: a Vietnamese lawyer's computer uses UTC+7, a Chinese client's computer uses UTC+8. Each record shows the time in that computer's timezone and prints the offset beside it. The role does not choose the offset.<br>用户确定时间戳规则：越南律师的电脑用 UTC+7，中国客户的电脑用 UTC+8。每条记录按那台电脑的时区显示时间，并在旁边标出时区。时区不按角色写死。
+2. REQ-MSG-11, REQ-FILE-04, and the F13 row now say this. The screen is still unchanged.<br>REQ-MSG-11、REQ-FILE-04 和 F13 已改成这条。界面仍未改。
+
+### Changed Files / 变更文件
+
+- SPEC.md, SOW.md, CONTEXT.md, GLOSSARY.md, PLAN.md, PROGRESS.md, README.md, VIBE_CODING_INPUT.md, CURSOR_REVIEW.md, SESSIONS.md.<br>上述文件。
+
+### First Step Next Time / 下次第一步
+
+If the user asks, show the timestamp and its UTC offset on conversation and upload records from the computer's timezone setting.<br>若用户要求，再在对话记录和上传记录上按电脑时区显示时间并标出 UTC 偏移。
+
+---
+
+## Session 2026-10-03-08 (Ended) / 会话 2026-10-03-08（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: correct the client's default screen to Traditional Chinese, and record how Simplified input is shown. No application code.<br>本次目标：把客户的默认屏幕改成繁体中文，并记下简体输入如何显示。不改应用代码。
+
+### Actual Actions / 实际动作
+
+1. The user corrected the client default. A Chinese client sees Traditional Chinese. The lawyer still sees Vietnamese. The coordinator still sees Simplified Chinese.<br>用户更正客户默认。中国客户看到繁体中文。律师仍看到越南语。协调员仍看到简体中文。
+2. Simplified input is Unicode. Showing it as Traditional is a character conversion in `zh-convert.ts`. Unmapped characters stay as typed. One simplified character with several traditional forms is shown as one chosen form. The bytes are not re-encoded, so this does not produce mojibake.<br>简体输入是 Unicode。显示成繁体是 `zh-convert.ts` 里的逐字转换。对照表外的字保持原样。一个简体字有多个繁体字形时，显示选定的那一个。字节不重新编码，因此不会变成乱码。
+
+### Changed Files / 变更文件
+
+- SPEC.md, SOW.md, CONTEXT.md, GLOSSARY.md, PLAN.md, PROGRESS.md, README.md, VIBE_CODING_INPUT.md, CURSOR_REVIEW.md, SESSIONS.md.<br>上述文件。
+
+### First Step Next Time / 下次第一步
+
+The running app still opens a client on Simplified Chinese until F14 is built.<br>在做成 F14 之前，正在运行的应用仍让客户以简体中文进入。
+
+---
+
+## Session 2026-10-03-09 (Ended) / 会话 2026-10-03-09（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: add the Kimi automatic-translation pair to the plan. No application code.<br>本次目标：把 Kimi 自动翻译的这一对方向写入计划。不改应用代码。
+
+### Actual Actions / 实际动作
+
+1. Automatic mode calls Kimi. Vietnamese written by the lawyer is shown to the client as Traditional Chinese. Traditional Chinese written by the client is shown to the lawyer as Vietnamese. Recorded as F07, still blocked on O05. The test host keeps the fake translator.<br>自动模式调用 Kimi。律师写的越南语，客户看到繁体中文。客户写的繁体中文，律师看到越南语。记为 F07，仍阻塞于 O05。测试机继续用替身翻译。
+
+### Changed Files / 变更文件
+
+- PLAN.md, SPEC.md, SOW.md, CONTEXT.md, PROGRESS.md, README.md, SESSIONS.md.<br>上述文件。
+
+### First Step Next Time / 下次第一步
+
+Real Kimi calls wait for O05. Do not point the Shanghai test host at Kimi while it still holds fictitious stand-in providers.<br>真实 Kimi 调用等 O05。上海测试机仍使用虚构替身时，不要把它接到 Kimi。
+
+---

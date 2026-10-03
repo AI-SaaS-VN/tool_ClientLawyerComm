@@ -2,11 +2,9 @@ import { expect, test } from "@playwright/test";
 
 import { activatedUserContext, runId, seedTriangle } from "./helpers";
 
-// AC06 key path with the F01 case-page control: the client uploads an
-// attachment on the case page, sees it as pending while the lawyer does not
-// see it at all, the coordinator approves from the review queue, and the
-// lawyer then sees the published file and downloads it.
-test("case-page attachment: upload → pending visibility → approve → published download", async ({
+// A normal attachment publishes immediately. The lawyer sees it and downloads
+// it without a coordinator approval.
+test("case-page attachment: ordinary upload is published and downloaded by the lawyer", async ({
   browser,
   request,
 }) => {
@@ -49,26 +47,13 @@ test("case-page attachment: upload → pending visibility → approve → publis
     });
     await clientPage.getByTestId("file-upload").click();
 
-    // The uploader sees their own file with its pending-review status.
     const ownItem = clientPage.getByTestId("file-item").filter({ hasText: fileName });
     await expect(ownItem).toBeVisible();
-    await expect(ownItem).toContainText("待审核");
+    await expect(ownItem).toContainText("已发布");
 
-    // The lawyer neither lists nor downloads the pending file.
     await lawyerPage.goto(`/cases/${triangle.caseId}`);
     await expect(lawyerPage.getByTestId("mode-auto")).toBeVisible();
-    await expect(lawyerPage.getByTestId("file-item").filter({ hasText: fileName })).toHaveCount(0);
-
-    // The coordinator approves the file target from the review queue.
-    await coordinatorPage.goto("/review");
-    const task = coordinatorPage.getByTestId("review-task").filter({ hasText: fileName });
-    await expect(task).toBeVisible();
-    await task.getByTestId("review-approve").click();
-    await expect(coordinatorPage.getByTestId("review-empty")).toBeVisible();
-
-    // Now published: both parties see it with a download link, and the
-    // lawyer's download returns the stored bytes through the authorized proxy.
-    await lawyerPage.reload();
+    await coordinatorPage.goto(`/cases/${triangle.caseId}`);
     const publishedItem = lawyerPage.getByTestId("file-item").filter({ hasText: fileName });
     await expect(publishedItem).toBeVisible();
     await expect(publishedItem).toContainText("已发布");

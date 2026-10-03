@@ -55,16 +55,17 @@ describe("full corpus evaluation (REQ-MOD-08 error separation)", () => {
     const missedBlocks: string[] = [];
     for (const item of reviewCorpus) {
       const verdict = await checkMessageContent(item.text, item.lang);
-      if (verdict.outcome !== "needs_review") missedBlocks.push(item.id);
+      const shouldHold = item.category === "fee_inquiry";
+      if (shouldHold && verdict.outcome !== "needs_review") missedBlocks.push(item.id);
+      if (!shouldHold && verdict.outcome !== "approve") falseBlocks.push(item.id);
     }
     expect(falseBlocks).toEqual([]);
     expect(missedBlocks).toEqual([]);
   });
 
-  it("reports a rule reason for contact hits and a semantic reason for fee inquiries", async () => {
+  it("publishes contact details and holds an explicit retainer-fee question", async () => {
     const contact = await checkMessageContent("加我微信：wxid_abc123def", "zh-Hans");
-    expect(contact.outcome).toBe("needs_review");
-    expect(contact.reason).toMatch(/^rule:/);
+    expect(contact.outcome).toBe("approve");
 
     const fee = await checkMessageContent("这个案件你们律所收费多少？", "zh-Hans");
     expect(fee.outcome).toBe("needs_review");

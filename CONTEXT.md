@@ -9,12 +9,16 @@
 
 - A Chinese–Vietnamese bilingual Case communication system: Chinese Client — Vietnamese Lawyer — Case Coordinator, web-based (mobile/desktop browsers), no WeChat/Zalo required.
 - 中越双语案件沟通系统：中国客户—越南律师—案件协调员，网页端（手机/电脑浏览器），无需 WeChat/Zalo。
-- Users, chats, files, and permissions are isolated by Case. The administrator is created by local bootstrap. A Coordinator, Chinese Client, or Vietnamese Lawyer receives one activation email at the address that was entered. The activation code is bound to that email, the Case, and the role (v1.11, MVP). Only that email can accept it, in one step, on any browser, while the code is unused and unexpired. The same email accepts a later code for another Case on the same account. Phone registration is P1. The repository implements this one-step path.
-- 以案件隔离用户、聊天、文件和权限。管理员由本地引导创建。协调员、中国客户或越南律师在被输入的地址收到一封激活邮件。激活码绑定该邮箱、案件与角色（v1.11，MVP）。只有该邮箱可以接受，并且只做一步；激活码未使用且未过期时，任意浏览器都可以。同一邮箱以后接受另一个案件的激活码时，加入同一账号。手机注册为 P1。本仓库已实现这一步激活。
-- Content restrictions apply only to Litigation Retainer Fees (MVP: explicit inquiry/negotiation triggers Pending Review only, v1.4) and to either party's direct contact information; Case Amount (claims/compensation/settlement, etc.) is unrestricted.
-- 内容限制仅针对诉讼委托费用（MVP 仅显式问询/协商触发待审，v1.4）与双方直接联系方式；案件金额（诉讼请求/赔偿/和解等）不受限。
-- Suspected restricted content and files must be Reviewed by the Coordinator before Publish; entering Pending Review automatically sends an Urgent Alert to the Coordinator; nothing is ever auto-released on timeout.
-- 疑似受限内容与文件须经协调员审核后发布；进入待审自动向协调员发紧急提醒；超时绝不自动放行。
+- Users, chats, files, and permissions are isolated by Case. The administrator is created by local bootstrap. A Coordinator, Chinese Client, or Vietnamese Lawyer receives one activation email at the address that was entered. The activation code is bound to that email, the Case, and the role (v1.11, MVP). Only that email can accept it. The same email and the same code open that case again afterwards. The same email accepts a later code for another Case on the same account. Phone registration is P1. The repository implements this one-step path.
+- 以案件隔离用户、聊天、文件和权限。管理员由本地引导创建。协调员、中国客户或越南律师在被输入的地址收到一封激活邮件。激活码绑定该邮箱、案件与角色（v1.11，MVP）。只有该邮箱可以接受。之后仍用同一邮箱和同一个邀请码进入该案件。同一邮箱以后接受另一个案件的激活码时，加入同一账号。手机注册为 P1。本仓库已实现这一步激活。
+- The only publish hold is an explicit inquiry or negotiation about the firm's litigation retainer fee, in a message or a file name (decided 2026-10-03). Ordinary messages, contact details, case amounts, and clean files publish immediately. A display name that contains a contact channel is still rejected on save. Entering pending review alerts the coordinator; timeout never publishes.
+- 唯一的发布拦截是消息或文件名里显式询问或协商律所诉讼委托费用（2026-10-03 决定）。普通消息、联系方式、案件金额和扫描通过的文件立即发布。显示名含联系渠道时仍拒绝保存。进入待审会提醒协调员；超时绝不发布。
+- Confirmed 2026-10-03: automatic mode calls Kimi. A lawyer's Vietnamese message is shown to the client as Traditional Chinese. A client's Traditional Chinese message is shown to the lawyer as Vietnamese.
+- 2026-10-03 确认：自动模式调用 Kimi。律师的越南语，客户看到繁体中文。客户的繁体中文，律师看到越南语。
+- Confirmed again 2026-10-03: a Chinese Client's default screen is Traditional Chinese. A Vietnamese Lawyer's default screen is Vietnamese. A Coordinator's default screen is Simplified Chinese. Each person sees that one language on labels, buttons, and automatic-mode messages from other people.
+- 2026-10-03 再次确认：中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮、提示，以及自动模式下别人发来的消息，都用这一种语言。
+- Every conversation record and every upload record the viewer can see shows a timestamp formatted with that computer's timezone setting, and the offset is printed beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7. The role does not choose the offset (confirmed 2026-10-03).
+- 观看者能看到的每条对话记录和每条上传记录都按那台电脑的时区设置显示时间，并在时间旁边标出时区。设为 UTC+8 的电脑标 UTC+8。设为 UTC+7 的电脑标 UTC+7。时区不按角色写死（2026-10-03 确认）。
 - MVP includes two-way Urgent Alerts (email channel), file sharing (PDF/DOCX/JPG/PNG, 20MB), Permission Revocation, Archive, administrator MFA (separate admin account), Audit Trail, Backup and Restore, and one-step activation bound to the invited email (v1.11); languages are Chinese (Simplified/Traditional)/Vietnamese/English; the Coordinator may participate in chat (v1.4). Moved to P1: phone registration/SMS, DOCX Bilingual Parallel Document, Cross-case Mix-up Prevention UI, Daily Case Digest email (v1.5).
 - MVP 含双向紧急提醒（邮件渠道）、文件分享（PDF/DOCX/JPG/PNG，20MB）、权限撤销、归档、管理员 MFA（独立管理员账号）、审计、备份恢复，以及绑定受邀邮箱的一步激活（v1.11）；语言为中（简/繁）/越/英；协调员可参与聊天（v1.4）。移至或新增于 P1：手机注册/短信、DOCX 双语对照、防串案界面、案件日报邮件（v1.5）。
 

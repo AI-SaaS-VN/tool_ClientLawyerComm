@@ -15,6 +15,8 @@ export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const INVITABLE_ROLES = ["client", "lawyer", "coordinator"] as const;
 export type InvitableRole = (typeof INVITABLE_ROLES)[number];
 
+// F14 will switch the client default to zh-Hant. This fallback is still
+// zh-Hans so existing accounts keep their current receiving language.
 const ROLE_DEFAULT_LANG: Record<InvitableRole, string> = {
   client: "zh-Hans",
   lawyer: "vi",
@@ -36,9 +38,9 @@ async function sendInviteEmail(to: string, code: string): Promise<void> {
       text: [
         `您的案件邀请码 / Mã mời vụ án của bạn: ${code}`,
         "",
-        "【中文】您已被邀请加入一个案件。请打开邀请页，输入本邮箱和这个激活码。一步即可加入，不需要另外的验证码。激活码 7 天内有效，仅限本邮箱使用一次。未使用且未过期时，换一个浏览器也可以。",
+        "【中文】请打开登录页，输入本邮箱和这个邀请码，即可进入对应案件。第一次使用即加入。之后仍用同一邮箱和同一邀请码进入该案件，不需要另外的 6 位验证码。邀请码只属于本邮箱。尚未使用的邀请码 7 天内有效。",
         "",
-        `[Tiếng Việt] Bạn đã được mời tham gia một vụ án. Hãy mở trang lời mời, nhập email này và mã kích hoạt. Một bước là đủ, không cần mã xác minh khác. Mã có hiệu lực 7 ngày, chỉ email này dùng được một lần. Khi mã chưa dùng và chưa hết hạn, trình duyệt khác cũng vào được.`,
+        `[Tiếng Việt] Hãy mở trang đăng nhập, nhập email này và mã mời để vào đúng vụ án. Lần đầu là tham gia. Sau đó vẫn dùng cùng email và cùng mã mời để vào vụ án đó, không cần mã 6 số khác. Mã chỉ thuộc email này. Mã chưa dùng có hiệu lực 7 ngày.`,
       ].join("\n"),
     });
   } catch {
@@ -118,9 +120,45 @@ async function assertUserOwnsInvitedEmail(user: User, invite: Invite): Promise<v
   }
 }
 
-// One-step activation (v1.11). Email plus code is the check. A matching
-// account is reused; a new address becomes an active account of the invite's
-// role. A different email or a different role does not consume the code.
+async function findInviteByCode(code: string): Promise<Invite> {
+  const invite = await prisma.invite.findUnique({ where: { codeHash: hashInviteCode(code) } });
+  if (!invite) throw new ApiError(400, "invalid_invite");
+  return invite;
+}
+
+// A code that already joined this email to the case is the return login.
+// It does not create another membership. Revoked membership cannot sign in.
+async function signInWithAcceptedCode(
+  invite: Invite,
+  email: string,
+): Promise<{ user: User; caseId: string; role: InvitableRole; alreadyMember: boolean }> {
+  assertInvitableRole(invite.role);
+  const channel = await prisma.contactChannel.findUnique({
+    where: { valueHash: hashEmail(email) },
+    include: { user: true },
+  });
+  if (!channel || channel.user.globalRole !== invite.role) {
+    throw new ApiError(403, "email_mismatch");
+  }
+  const member = await prisma.caseMember.findUnique({
+    where: { caseId_userId: { caseId: invite.caseId, userId: channel.userId } },
+  });
+  if (!member || member.status !== "active") throw new ApiError(403, "email_mismatch");
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: channel.userId } });
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "auth.login",
+    result: "success",
+    targetType: "user",
+    targetId: user.id,
+    meta: { via: "invite_return" },
+  });
+  return { user, caseId: invite.caseId, role: invite.role, alreadyMember: true };
+}
+
+// Email plus the sent invitation code opens that case. The first use joins.
+// The same email and the same code sign in again afterwards. A different
+// email does not consume the code.
 export async function activateByEmailAndCode(
   email: string,
   code: string,
@@ -128,8 +166,11 @@ export async function activateByEmailAndCode(
 ): Promise<{ user: User; caseId: string; role: InvitableRole; alreadyMember: boolean }> {
   const normalized = normalizeEmail(email);
   if (!normalized || !normalized.includes("@")) throw new ApiError(400, "invalid_email");
-  const invite = await getValidInvite(code, now);
+  const invite = await findInviteByCode(code);
   if (invitedEmail(invite) !== normalized) throw new ApiError(403, "email_mismatch");
+  if (invite.revokedAt) throw new ApiError(410, "invite_revoked");
+  if (invite.usedAt) return signInWithAcceptedCode(invite, normalized);
+  if (invite.expiresAt.getTime() <= now.getTime()) throw new ApiError(410, "invite_expired");
   assertInvitableRole(invite.role);
   const user = await ensureActiveRecipient(normalized, invite.role, now);
   if (user.globalRole !== invite.role) throw new ApiError(403, "role_mismatch");

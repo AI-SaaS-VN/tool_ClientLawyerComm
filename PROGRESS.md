@@ -16,6 +16,20 @@ Follow-up session on 2026-10-03: **F01, F04, F03, and F10 are done.** (F02 one-s
 
 Deployment follow-up (2026-10-03): **the F01/F04/F03 build (35f9d46) is now live on the Shanghai test host.** The tree was rsynced from the dev VPS (host tree is not a git checkout; host `.env` and `docker-compose.lighthouse.yml` were excluded and left untouched), `npm run build` ran on the host, and `systemctl restart clc-web` brought the new build up. Verified: local and public `/api/health` 200, `/login` and `/invite` 200, public `/api/test/outbox` 404, and the built case page references `files-panel`. The pilot can now exchange files, send without duplicate clicks, and lands on `/cases`/`/login` from `/`. Procedure is recorded in `LOCAL_DEV_NOTES.md` (git-ignored).
 
+Publish rule (2026-10-03, F11): ordinary messages and clean files publish immediately. A message or file name is held only when it explicitly asks about or negotiates the firm's litigation retainer fee. Contact details in a message or file name publish. A display name that contains a contact channel is still rejected on save. Scan failure stays unpublished.
+
+案件入口（2026-10-03，F12）：客户、律师、协调员用收到邀请的邮箱加上邮件里的邀请码进入对应案件。第一次使用即加入；之后同一组邮箱和邀请码可以再次进入。案件入口不再要 6 位验证码。管理员登录仍用邮箱验证码。
+
+Screen language and timestamps (2026-10-03, F13/F14, specified, not built): a Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels and automatic-mode messages from other people use that one language. Every visible conversation record and upload record shows a timestamp formatted with that computer's timezone setting, and the offset is printed beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7. The lawyer's phone still shows bilingual labels and no message time. The file list already prints the upload time. Real Vietnamese wording of Chinese messages remains F07.
+
+Kimi pair (2026-10-03, F07, blocked on O05): automatic mode calls Kimi. Vietnamese from the lawyer is Traditional Chinese for the client. Traditional Chinese from the client is Vietnamese for the lawyer. The test host still uses the fake translator.
+
+Kimi 这一对方向（2026-10-03，F07，阻塞于 O05）：自动模式调用 Kimi。律师的越南语给客户显示成繁体中文。客户的繁体中文给律师显示成越南语。测试机仍用替身翻译。
+
+界面语言与时间戳（2026-10-03，F13/F14，已写入规格，尚未改界面）：中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮和自动模式下别人发来的消息都用这一种语言。能看到的每条对话记录和上传记录都按那台电脑的时区设置显示时间，并在旁边标出 UTC+8 或 UTC+7。律师手机上仍是中越双语按钮，对话没有时间。文件列表已经印出上传时间。中文消息的真实越南语译文仍是 F07。
+
+发布规则（2026-10-03，F11）：普通消息和扫描通过的文件立即发布。只有消息或文件名显式询问或协商律所诉讼委托费用时才待审。消息或文件名里的联系方式直接发布。显示名含联系渠道时仍拒绝保存。扫描失败不发布。
+
 部署跟进（2026-10-03）：**F01/F04/F03 构建（35f9d46）已上线上海测试机。** 代码树从研发 VPS 经 rsync 同步（机上树不是 git 检出；机上 `.env` 与 `docker-compose.lighthouse.yml` 已排除且未动），在机上执行 `npm run build`，并 `systemctl restart clc-web` 完成重启。已验证：本机与公网 `/api/health` 200、`/login` 与 `/invite` 200、公网 `/api/test/outbox` 404、构建产物中的案件页引用了 `files-panel`。试点现在可以交换文件、连点不重复发消息、从 `/` 正确落到 `/cases`/`/login`。部署过程已记入 `LOCAL_DEV_NOTES.md`（不入库）。
 
 ## Current Phase / 当前阶段

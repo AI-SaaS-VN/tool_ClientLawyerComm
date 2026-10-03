@@ -63,7 +63,7 @@ describe("routine logs carry no sensitive content (REQ-OPS-02)", () => {
     const form = new FormData();
     form.set(
       "file",
-      new File([new Uint8Array(Buffer.from("%PDF-1.4 fictitious"))], "log-scan.pdf"),
+      new File([new Uint8Array(Buffer.from("%PDF-1.4 fictitious"))], "你们律所收费多少.pdf"),
     );
     const uploaded = await uploadFile(kase.id, client, form);
     const task = await prisma.reviewTask.findFirstOrThrow({

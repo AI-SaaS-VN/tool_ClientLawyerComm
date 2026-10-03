@@ -166,7 +166,7 @@ describe("invitation + OTP flow", () => {
     expect(invite.usedAt).toBeNull();
   });
 
-  it("rejects expired invites and replayed (already used) codes", async () => {
+  it("rejects an expired unused code, and the same email plus code signs in again", async () => {
     const { kase, cookie } = await seedCaseWithCoordinator();
 
     const expiredRes = await inviteByCoordinator(cookie, kase.id, "exp@example.com", "client");
@@ -185,8 +185,15 @@ describe("invitation + OTP flow", () => {
     const verifyRes = await activate("ok@example.com", okCode);
     expect(verifyRes.status).toBe(200);
 
+    const membersBefore = await prisma.caseMember.count({
+      where: { caseId: kase.id, memberRole: "client" },
+    });
     const replayReq = await activate("ok@example.com", okCode);
-    expect(replayReq.status).toBe(410);
+    expect(replayReq.status).toBe(200);
+    expect((await replayReq.json()).caseId).toBe(kase.id);
+    expect(
+      await prisma.caseMember.count({ where: { caseId: kase.id, memberRole: "client" } }),
+    ).toBe(membersBefore);
     const other = await prisma.user.findFirstOrThrow({ where: { globalRole: "client" } });
     const replayAccept = await acceptInviteRoute(
       postJson("/api/invites/accept", { code: okCode }, cookieHeader(await sessionCookieFor(other.id))),

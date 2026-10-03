@@ -50,7 +50,7 @@ RPO ≤24h / RTO ≤8h are **targets to be validated by drills**, not achieved c
 
 ## 5. 测试期访问入口(上海测试环境)/ Test-period entry (Shanghai test environment)
 
-2026-10-03 已把本应用部署到 SOW O02 指定的上海测试主机。对外入口是该机的 **HTTP 80 端口**(备案完成前没有 TLS)。主机上的 `.env` 设置 `CLC_FICTITIOUS_TEST_HOST=1`、`SESSION_COOKIE_SECURE=false`、`APP_BASE_URL` 为该 HTTP 入口;邮件、翻译和文件扫描仍用替身实现,因为真实 SMTP 与 Kimi 仍被 O05 挡住。只允许虚构数据。验证码留在该进程的 outbox 里,只能在测试机本机读取;`/api/test/` 对外返回 404。激活是一步:受邀邮箱加上激活码,不另发 6 位验证码。具体 IP 不写入本仓库。
+2026-10-03 已把本应用部署到 SOW O02 指定的上海测试主机。对外入口是该机的 **HTTP 80 端口**(备案完成前没有 TLS)。主机上的 `.env` 设置 `CLC_FICTITIOUS_TEST_HOST=1`、`SESSION_COOKIE_SECURE=false`、`APP_BASE_URL` 为该 HTTP 入口;邮件、翻译和文件扫描仍用替身实现,因为真实 SMTP 与 Kimi 仍被 O05 挡住。只允许虚构数据。验证码留在该进程的 outbox 里,只能在测试机本机读取;`/api/test/` 对外返回 404。激活是一步:受邀邮箱加上激活码,再次进入仍用同一组邮箱和邀请码,不另发 6 位验证码。客户默认屏幕为繁体中文、律师为越南语、时间戳按电脑时区标注、越南语与繁体中文的自动翻译走 Kimi,这四条已写入 PLAN 的 F14、F13、F07,界面和真实 Kimi 调用尚未改。具体 IP 不写入本仓库。
 
 研发主机上的自动化测试仍访问 `http://localhost:3100`:Playwright 和开发服务器在同一台机器上。笔记本的 `127.0.0.1` 不是研发主机,也不是测试机。
 

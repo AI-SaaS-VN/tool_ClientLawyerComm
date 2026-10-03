@@ -42,7 +42,7 @@ describe("file upload quarantine (REQ-FILE-01/02/04/05/07, AC06)", () => {
   });
   afterEach(() => stubFileScanner.reset());
 
-  it("a member upload enters pending_review with an original variant, a review task, and a coordinator alert (REQ-FILE-05, T07 link)", async () => {
+  it("a clean member upload publishes at once, with the original and a shared copy", async () => {
     const { kase, coordinator, client, clientCookie } = await seedMembers();
     const res = await uploadFile(
       uploadFileRequest(kase.id, clientCookie, "contract.pdf", pdfSample()),
@@ -50,13 +50,13 @@ describe("file upload quarantine (REQ-FILE-01/02/04/05/07, AC06)", () => {
     );
     expect(res.status).toBe(201);
     const { file } = (await res.json()) as { file: Record<string, unknown> };
-    expect(file.status).toBe("pending_review");
+    expect(file.status).toBe("published");
     // REQ-FILE-02: no object address leaks through the API view.
     expect(JSON.stringify(file)).not.toContain("quarantine");
     expect(JSON.stringify(file)).not.toContain("storageKey");
 
     const row = await prisma.file.findUniqueOrThrow({ where: { id: file.id as string } });
-    expect(row.status).toBe("pending_review");
+    expect(row.status).toBe("published");
     expect(row.uploaderId).toBe(client.id);
     // REQ-FILE-04: original hash / uploader / time are recorded.
     expect(row.origHash).toBe(createHash("sha256").update(pdfSample()).digest("hex"));
@@ -65,17 +65,15 @@ describe("file upload quarantine (REQ-FILE-01/02/04/05/07, AC06)", () => {
     });
     expect(variant.version).toBe(1);
     expect(variant.storageKey).toContain("quarantine/");
-
-    const task = await prisma.reviewTask.findFirstOrThrow({
-      where: { targetType: "file", targetId: row.id, status: "open" },
+    const shared = await prisma.fileVariant.findFirstOrThrow({
+      where: { fileId: row.id, kind: "shared_copy" },
     });
-    const alert = await prisma.notificationTask.findFirst({
-      where: { kind: "review_alert", reviewTaskId: task.id, recipientUserId: coordinator.id },
-    });
-    expect(alert).not.toBeNull();
+    expect(shared.storageKey).toContain("shared/");
+    expect(await prisma.reviewTask.count({ where: { targetId: row.id } })).toBe(0);
+    void coordinator;
   });
 
-  it("a pending file is invisible to the receiver in list and download; uploader and reviewer still see it (AC06)", async () => {
+  it("a published file is listed and downloadable by the lawyer", async () => {
     const { kase, coordinatorCookie, clientCookie, lawyerCookie } = await seedMembers();
     const uploadRes = await uploadFile(
       uploadFileRequest(kase.id, clientCookie, "evidence.png", pngSample()),
@@ -87,13 +85,15 @@ describe("file upload quarantine (REQ-FILE-01/02/04/05/07, AC06)", () => {
       getRequest(`/api/cases/${kase.id}/files`, cookieHeader(lawyerCookie)),
       params(kase.id),
     );
-    expect((await lawyerList.json()).files).toHaveLength(0);
+    const lawyerFiles = (await lawyerList.json()).files as Array<{ id: string; status: string }>;
+    expect(lawyerFiles.map((item) => item.id)).toContain(file.id);
+    expect(lawyerFiles.find((item) => item.id === file.id)?.status).toBe("published");
 
     const lawyerDownload = await downloadFile(
       getRequest(`/api/files/${file.id}/download`, cookieHeader(lawyerCookie)),
       params(file.id),
     );
-    expect(lawyerDownload.status).toBe(404);
+    expect(lawyerDownload.status).toBe(200);
 
     const clientList = await listFiles(
       getRequest(`/api/cases/${kase.id}/files`, cookieHeader(clientCookie)),
@@ -143,10 +143,10 @@ describe("file upload quarantine (REQ-FILE-01/02/04/05/07, AC06)", () => {
     expect(await prisma.file.count()).toBe(0);
   });
 
-  it("runs the file name through the deterministic content rules (REQ-FILE-07)", async () => {
-    const { kase, clientCookie } = await seedMembers();
+  it("holds a file whose name explicitly asks about the firm's retainer fee", async () => {
+    const { kase, clientCookie, lawyerCookie } = await seedMembers();
     const res = await uploadFile(
-      uploadFileRequest(kase.id, clientCookie, "contact-me-at-a@b.com.pdf", pdfSample()),
+      uploadFileRequest(kase.id, clientCookie, "你们律所收费多少.pdf", pdfSample()),
       params(kase.id),
     );
     expect(res.status).toBe(201);
@@ -155,7 +155,12 @@ describe("file upload quarantine (REQ-FILE-01/02/04/05/07, AC06)", () => {
     const task = await prisma.reviewTask.findFirstOrThrow({
       where: { targetType: "file", targetId: file.id },
     });
-    expect(task.reason).toContain("rule:file_name:email");
+    expect(task.reason).toContain("fee_inquiry");
+    const lawyerList = await listFiles(
+      getRequest(`/api/cases/${kase.id}/files`, cookieHeader(lawyerCookie)),
+      params(kase.id),
+    );
+    expect((await lawyerList.json()).files).toHaveLength(0);
   });
 
   it("denies uploads by non-members (REQ-PM-01)", async () => {

@@ -4,7 +4,7 @@ import type { File as FileRow, User } from "@prisma/client";
 
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
-import { findRuleHits } from "@/modules/moderation/rules";
+import { isExplicitFeeInquiry } from "@/modules/moderation/semantic";
 import { recordAudit } from "@/server/audit/log";
 import {
   requireCaseMember,
@@ -40,9 +40,9 @@ export function toFileView(file: FileWithUploader) {
 
 // REQ-FILE-01/02: type and size are validated before anything is stored;
 // accepted bytes land directly in the private quarantine prefix, and the
-// original hash/uploader/time are recorded once (REQ-FILE-04). Every clean
-// file then waits for coordinator confirmation (REQ-FILE-05) — there is no
-// auto-publish path.
+// original hash/uploader/time are recorded once (REQ-FILE-04). A clean file
+// is published immediately unless its name explicitly asks about the firm's
+// litigation retainer fee.
 export async function uploadFile(
   caseId: string,
   user: User,
@@ -95,9 +95,9 @@ export async function uploadFile(
   return toFileView(await runScanPipeline(file));
 }
 
-// SPEC 8.1: uploaded → scanning → (clean → pending_review) | (any failure →
-// check_failed). The scan pass and the hold/alert registrations each commit
-// in one transaction, mirroring the message pipeline.
+// Clean files publish at once. A file name that explicitly asks about the
+// firm's litigation retainer fee is the only hold. Scan failure stays
+// check_failed and is never published.
 async function runScanPipeline(file: FileWithUploader): Promise<FileWithUploader> {
   await prisma.file.update({ where: { id: file.id }, data: { status: "scanning" } });
   let clean = false;
@@ -114,12 +114,20 @@ async function runScanPipeline(file: FileWithUploader): Promise<FileWithUploader
   }
   if (!clean) return markCheckFailed(file);
 
-  // REQ-FILE-07: the file name goes through the deterministic content rules.
-  const hits = findRuleHits(file.originalName);
-  const reason =
-    hits.length > 0
-      ? `rule:file_name:${[...new Set(hits.map((hit) => hit.category))].join(",")}`
-      : "file_publish_review";
+  try {
+    if (await isExplicitFeeInquiry(file.originalName, "zh-Hans")) {
+      return await holdFileForReview(file, "semantic:fee_inquiry");
+    }
+    return await publishCleanFile(file);
+  } catch {
+    return markCheckFailed(file);
+  }
+}
+
+async function holdFileForReview(
+  file: FileWithUploader,
+  reason: string,
+): Promise<FileWithUploader> {
   try {
     return await prisma.$transaction(async (tx) => {
       const held = await tx.file.update({
@@ -136,6 +144,36 @@ async function runScanPipeline(file: FileWithUploader): Promise<FileWithUploader
         authorId: file.uploaderId,
       });
       return held;
+    });
+  } catch {
+    return markCheckFailed(file);
+  }
+}
+
+async function publishCleanFile(file: FileWithUploader): Promise<FileWithUploader> {
+  const storageKey = `shared/${file.caseId}/${file.id}/v1`;
+  try {
+    await getStorageProvider().copyObject(file.storageKey, storageKey);
+  } catch {
+    return markCheckFailed(file);
+  }
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const published = await tx.file.update({
+        where: { id: file.id },
+        data: { status: "published", publishedAt: new Date() },
+        include: { uploader: true },
+      });
+      await tx.fileVariant.create({
+        data: {
+          fileId: file.id,
+          kind: "shared_copy",
+          version: 1,
+          storageKey,
+          sourceVersion: 1,
+        },
+      });
+      return published;
     });
   } catch {
     return markCheckFailed(file);
@@ -231,9 +269,8 @@ export async function downloadFile(
   };
 }
 
-// REQ-FILE-08: a can_review coordinator re-runs the scan on a check_failed
-// file. A clean result still goes through pending_review — no skip path to
-// published.
+// A can_review coordinator re-runs the scan on a check_failed file. A clean
+// result publishes, unless the file name is an explicit retainer-fee inquiry.
 export async function retryFileScan(
   fileId: string,
   user: User,
