@@ -998,3 +998,23 @@ Continue the pilot on this build. F07 stays blocked on O05. Do not start real Ki
 If the user asks: fix R1–R9 (suggested single batch, TDD, one commit per domain), or start T14. F06/F07 stay blocked on O05.<br>若用户要求：修 R1–R9（建议按域分批、TDD、每域一个提交），或开工 T14。F06/F07 仍阻塞于 O05。
 
 ---
+
+## Session 2026-10-03-07 (Ended) / 会话 2026-10-03-07（已结束）
+
+- Date/Timezone: 2026-10-03, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-03，UTC（研发 VPS 上的 Kimi Code）
+- Goal (user request): re-review CURSOR_REVIEW.md Section 10 items R1–R9 under the clarified scheme — the administrator emails each participant an invitation code, and the email address plus the code identify the Case and role (one-step entry); the MVP supports only one real Case besides the removable test Case.<br>本次目标（用户要求）：按澄清后的现行方案复核第 10 节 R1–R9——管理员向参与人邮箱发送含邀请码的邮件，邮箱＋邀请码即识别案件与角色（一步进入）；MVP 除可移除的测试案件外仅支持一个真实案件。
+
+### Actual Actions / 实际动作
+
+1. Re-read the current code paths for each item: `activateByEmailAndCode`/`acceptInvite`/`signInWithAcceptedCode` (invites/service.ts), the activate route (no rate limiting confirmed), `decideReviewTask` (no archived check confirmed), the moderation provider seam (deterministic fake on the test host, so message check_failed is practically unreachable there).<br>逐项重读现行代码路径取证：`activateByEmailAndCode`/`acceptInvite`/`signInWithAcceptedCode`、activate 路由（确认无限速）、`decideReviewTask`（确认不校验归档）、审核 provider 接缝（测试机为确定性替身，消息 check_failed 实际不可达）。
+2. Recorded the re-triage as CURSOR_REVIEW.md Section 11: R1/R2/R3/R6 unchanged must-fix before real data (R2 is more relevant under the admin-resend-only recovery path; R6's endpoint is now the single entry for all users); R4/R7 must be fixed before the real email/translation providers (F06/F07); R5/R8 medium; R9 downgraded to hardening (OTP is now admin-login-only). Added a note that removing the test Case at launch should mean archiving (audited), not row deletion. PROGRESS.md Next Steps updated to match.<br>复核分级记入 CURSOR_REVIEW.md 第 11 节：R1/R2/R3/R6 维持接入真实数据前必修（R2 在「管理员重发是唯一恢复途径」下更相关；R6 的端点现为全部用户唯一入口）；R4/R7 为接真实邮件/翻译渠道（F06/F07）前必修；R5/R8 中优先；R9 降为加固项（OTP 现仅管理员登录使用）。补充：正式上线时测试案件的「移除」应走归档（可审计），不要物理删行。PROGRESS.md 下一步已同步。
+
+### Changed Files / 变更文件
+
+- Modified: CURSOR_REVIEW.md (Section 11), PROGRESS.md, SESSIONS.md. No code.<br>修改：上述文件。未改代码。
+
+### First Step Next Time / 下次第一步
+
+Fix R1/R2/R3/R6 (before real data) or start T14, whichever the user asks. F06/F07 stay blocked on O05.<br>按用户要求修 R1/R2/R3/R6（先于真实数据）或开工 T14。F06/F07 仍阻塞于 O05。
+
+---
