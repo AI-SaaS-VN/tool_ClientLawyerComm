@@ -1,7 +1,7 @@
 # CONTEXT.md — Stable Background and File Navigation / 稳定背景与文件导航
 
-- Last updated: 2026-10-02 (UTC)
-- 更新日期：2026-10-02（UTC）
+- Last updated: 2026-10-03 (UTC)
+- 更新日期：2026-10-03（UTC）
 - Purpose: keeps only the product background, confirmed decisions, file navigation, and unresolved environment conditions. Records no credentials, real case details, or personal contact information.
 - 用途：仅保留产品背景、已确认决策、文件导航和未解决的环境条件。不记录凭据、真实案情、个人联系方式。
 
@@ -36,7 +36,10 @@
 | SOW.md | v1.10 execution baseline. The invitation code is not bound to an email, and that rule is MVP<br>v1.10 执行基线。邀请码不绑定邮箱，且该规则属于 MVP |
 | VIBE_CODING_INPUT.md | Historical launch-instruction entry point. Where it conflicts with SOW v1.10, SOW prevails. The historical body is kept and still contains superseded sentences<br>历史启动指令入口。与 SOW v1.10 冲突时以 SOW 为准。历史正文保留，其中仍有已被取代的句子 |
 | SPEC.md | v0.8 requirements, permissions, state machines, data, API, and exceptions<br>v0.8 需求、权限、状态机、数据、API 与异常 |
-| PLAN.md | v0.8 task breakdown. P0 is T01–T08 and T10–T12. T01 is done. T02 implements invitation codes that are not bound to an email. T09 and T13 are P1<br>v0.8 任务拆分。P0 为 T01–T08 与 T10–T12。T01 已完成。T02 实现不绑定邮箱的邀请码。T09 与 T13 属于 P1 |
+| PLAN.md | v0.8 task breakdown. P0 is T01–T08 and T10–T12; **all P0 coding is done (2026-10-02)** — T12's remaining items are external-resource acceptance only. T09 and T13 are P1<br>v0.8 任务拆分。P0 为 T01–T08 与 T10–T12；**全部 P0 编码已完成（2026-10-02）**——T12 剩余项仅为外部资源验收。T09 与 T13 属于 P1 |
+| README.md | Project overview, commands, and repo map (replaced the create-next-app boilerplate 2026-10-03)<br>项目概览、命令与仓库地图（2026-10-03 替换 create-next-app 模板） |
+| docs/runbook/mvp-test-case.md | REQ-OPS-07 runbook: administrator creates one fictitious test Case with three emails<br>REQ-OPS-07 运行指引：管理员创建一个含三个邮箱的虚构测试案件 |
+| docs/deployment.md | Service composition, env-var list, migrations, backup/restore, test-period entry caveats<br>服务组成、环境变量清单、迁移、备份/恢复、测试期入口注意事项 |
 | CURSOR_REVIEW.md | 2026-10-01 design-consistency review, plus the user's later decisions in Section 4<br>2026-10-01 设计一致性复核，以及第 4 节中用户随后作出的决定 |
 | PROGRESS.md | Current phase, task status, blockers, next steps<br>当前阶段、任务状态、阻塞、下一步 |
 | SESSIONS.md | Appended log of each session<br>每次会话追加记录 |

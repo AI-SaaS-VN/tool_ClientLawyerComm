@@ -1,7 +1,8 @@
 # PROGRESS.md — Current Progress / 当前进度
 
-- Updated: 2026-10-02 (UTC) | Maintenance: update upon completion of each task or phase
-- 更新日期：2026-10-02（UTC）｜维护方式：每完成一个任务或阶段即更新
+- Updated: 2026-10-03 (UTC) | Maintenance: update upon completion of each task or phase
+- 更新日期：2026-10-03（UTC）｜维护方式：每完成一个任务或阶段即更新
+- Re-verified 2026-10-03 after the T12 session: `npm run test` 280/280, `npm run test:e2e` 4/4, lint/tsc/build all clean; records below unchanged.<br>2026-10-03 复核：`npm run test` 280/280、`npm run test:e2e` 4/4、lint/tsc/build 全部无错误；以下记录无变动。
 
 ## Current Phase / 当前阶段
 
