@@ -810,3 +810,33 @@ F01, the case-page attachment control, if the user asks.<br>若用户要求，�
 Deploy this build to the Shanghai test host if the user asks, then continue the pilot. Do not redo T01–T12 or F01–F05.<br>若用户要求，把本次构建部署到上海测试机，然后继续试点。不要重做 T01–T12 或 F01–F05。
 
 ---
+
+## Session 2026-10-03-05 (Ended) / 会话 2026-10-03-05（已结束）
+
+- Date/Timezone: 2026-10-03, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-03，UTC（研发 VPS 上的 Kimi Code）
+- Goal: align with the other agent's sessions (deploy + one-step activation F02, commit 3182639), then continue the follow-up table in PLAN v0.9 — F01/F04/F03/F10 — and deploy the resulting build to the Shanghai test host.<br>本次目标：对齐另一代理的会话（部署＋一步激活 F02，commit 3182639），然后继续 PLAN v0.9 跟进表——F01/F04/F03/F10——并把成果部署到上海测试机。
+
+### Actual Actions / 实际动作
+
+1. Read SESSIONS/PROGRESS/PLAN and found commit 3182639 (one-step activation + test-host fixes + provider stand-in flag, co-authored by Cursor) on top of this agent's last docs commit; verified the working tree clean and the 281/281 baseline before new work.<br>读 SESSIONS/PROGRESS/PLAN，发现本代理上次文档提交之上有 commit 3182639（一步激活＋测试机修复＋替身提供者开关，与 Cursor 合著）；开工前核实工作区干净、基线 281/281 全绿。
+2. Ran F01+F04+F03+F10 through a coder subagent, then personally re-verified: `npm run test` 281/281 (41 files), `npm run test:e2e` 7/7, `npx tsc --noEmit` clean, `npm run lint` 0 errors (1 pre-existing warning), commit `35f9d46` pushed. Delivered: case-page attachment control (upload/list/download with API-driven visibility), single-click send (in-flight disable + re-entry guard + immediate refetch), `/` session-aware redirect and invite-accept opens the joined case, E2E stability (route warm-up in global setup + trace retain-on-failure; 3 consecutive green runs by the subagent, one more by this agent). F05 verified done in 3182639 and marked accordingly in PLAN/PROGRESS.<br>F01+F04+F03+F10 经 coder 子代理完成，随后本人复核：`npm run test` 281/281（41 个文件）、`npm run test:e2e` 7/7、`npx tsc --noEmit` 无错误、`npm run lint` 0 错误（1 处既有 warning），提交 `35f9d46` 已推送。交付：案件页附件控件（上传/列表/下载，可见性由 API 决定）、一次点击只发一条（在途禁用＋重入守卫＋即时重拉）、`/` 按会话跳转与接受邀请直达所加入案件、E2E 稳定性（global setup 路由预热＋trace retain-on-failure；子代理连续三轮全绿，本人再跑一轮全绿）。F05 核实已在 3182639 完成并在 PLAN/PROGRESS 标记。
+3. Deployed 35f9d46 to the Shanghai test host: rsync from the dev VPS with excludes (`.git`, `node_modules`, `.next`, `.env`, `docker-compose.lighthouse.yml`, `LOCAL_DEV_NOTES.md`, `backups`, `test-results`) — the host tree is a plain copy, not a git checkout; host `.env` (with `CLC_FICTITIOUS_TEST_HOST=1`) untouched. No dependency or migration changes in this commit, so no npm install / migrate needed. `npm run build` on the host, `sudo systemctl restart clc-web`, then verified: service active, local+public `/api/health` 200, `/login`/`/invite` 200, public `/api/test/outbox` 404, built case page references `files-panel`.<br>把 35f9d46 部署到上海测试机：从研发 VPS rsync 并排除（`.git`、`node_modules`、`.next`、`.env`、`docker-compose.lighthouse.yml`、`LOCAL_DEV_NOTES.md`、`backups`、`test-results`）——机上树是普通副本而非 git 检出；机上 `.env`（含 `CLC_FICTITIOUS_TEST_HOST=1`）未动。本次提交无依赖/迁移变化，故无需 npm install / migrate。机上 `npm run build`、`sudo systemctl restart clc-web`，随后验证：服务 active、本机＋公网 `/api/health` 200、`/login`/`/invite` 200、公网 `/api/test/outbox` 404、构建产物案件页引用 `files-panel`。
+
+### Changed Files / 变更文件
+
+- Code/tests (subagent, commit `35f9d46`): `files-panel.tsx` (new), messages-panel, case page, invite page, `/` page, `tests/e2e/{files.spec,dual-user.spec,smoke.spec,global-setup,helpers}.ts`, playwright.config.ts, PLAN/PROGRESS/SESSIONS updates.<br>代码/测试（子代理，提交 `35f9d46`）：上述文件。
+- Docs (this commit): PROGRESS.md (deployment record + Next Steps), SESSIONS.md (this entry), `LOCAL_DEV_NOTES.md` (deploy procedure; git-ignored, not committed).<br>文档（本次提交）：PROGRESS.md（部署记录＋下一步）、SESSIONS.md（本条）、`LOCAL_DEV_NOTES.md`（部署过程；git 忽略，未提交）。
+
+### Verification Results / 验证结果
+
+- `npm run test` 281/281; `npm run test:e2e` 7/7 (agent-verified after the subagent's three consecutive green runs); tsc clean; lint 0 errors; host build + restart + public smoke checks all pass.<br>`npm run test` 281/281；`npm run test:e2e` 7/7（子代理三轮全绿后本人再验证一轮）；tsc 无错误；lint 0 错误；机上构建＋重启＋公网冒烟全部通过。
+
+### Unfinished Items / 未完成项
+
+- F06 (real activation email) and F07 (real Vietnamese translation) blocked on O05; F08 (AC10 network test, production-scale drill) blocked on O07/O08; F09 (P0 review gaps: display-name check, account-recovery API, later-admin API, session-token hashing) queued after the pilot pages; the lawyer's phone session-cookie recheck (F03 note) needs the physical device.<br>F06（真实激活邮件）与 F07（真实越语翻译）阻塞于 O05；F08（AC10 网络测试、生产规模演练）阻塞于 O07/O08；F09（P0 复核缺口：显示名检查、账号找回 API、后续管理员 API、会话令牌哈希）排在试点页面之后；F03 备注的律师手机会话 Cookie 复查需要实体手机。
+
+### First Step Next Time / 下次第一步
+
+Pilot usage on the deployed build; F09 when the user asks; F06/F07 need the O05 decision (real EmailProvider / real Kimi). Do not redo F01–F05 or T01–T12.<br>在已部署的构建上继续试点使用；用户提出后做 F09；F06/F07 需要 O05 决定（真实 EmailProvider／真实 Kimi）。不要重做 F01–F05 或 T01–T12。
+
+---

@@ -14,6 +14,10 @@ Follow-up session on 2026-10-03: **F01, F04, F03, and F10 are done.** (F02 one-s
 
 2026-10-03 的跟进会话：**F01、F04、F03、F10 已完成。**（F02 一步激活已于当天早些时候的会话实现并提交——受邀邮箱＋激活码，无第二个验证码；见 PLAN.md。）F01：案件页新增附件控件（`files-panel.tsx`）——文件选择＋上传按钮（multipart 提交 `POST /api/cases/:id/files`，上传中禁用并显示在途文案，失败显示错误）、来自 `GET /api/cases/:id/files` 的文件列表（文件名、中越双语状态、上传者显示名、上传时间；上传后及每 10 秒兜底重拉，协调员批准后无需刷新即可见）、已发布文件的下载链接（`GET /api/files/:id/download`）。可见性遵循 API：本人上传显示原始状态，他人只见已发布，can_review 协调员另见待审/失败项（审核动作仍在 /review）。F04：POST 在途时发送按钮禁用并显示「发送中」（另有重入 ref 守卫；逐次 Idempotency-Key 不变），响应返回即重拉列表。F03：`/` 按会话状态跳转（已登录 → `/cases`，未登录 → `/login`）；接受邀请成功后直接打开所加入案件的页面（activate 与 accept 响应均带 `caseId`）。F10：`npm run test:e2e` 连续三轮完整通过（每轮 7/7：smoke×2、dual-user×2、review-alert、admin-test-case、files）。双用户可见性超时未复发；首要嫌疑——dev server 路由冷编译占满 expect 窗口——已通过在 global setup 预编译旅程路由解决，并加入 `trace: retain-on-failure` 供复发时留证。未加 sleep，未削弱断言。新增 E2E 覆盖：`files.spec.ts`（上传→律师不可见待审文件→协调员经 /review 批准→律师可见并下载且字节一致）、`dual-user.spec.ts` 的快速连点只发一条测试、`smoke.spec.ts` 的 `/` 跳转检查。`npm run test` 保持 281/281；lint/tsc/build 无错误。
 
+Deployment follow-up (2026-10-03): **the F01/F04/F03 build (35f9d46) is now live on the Shanghai test host.** The tree was rsynced from the dev VPS (host tree is not a git checkout; host `.env` and `docker-compose.lighthouse.yml` were excluded and left untouched), `npm run build` ran on the host, and `systemctl restart clc-web` brought the new build up. Verified: local and public `/api/health` 200, `/login` and `/invite` 200, public `/api/test/outbox` 404, and the built case page references `files-panel`. The pilot can now exchange files, send without duplicate clicks, and lands on `/cases`/`/login` from `/`. Procedure is recorded in `LOCAL_DEV_NOTES.md` (git-ignored).
+
+部署跟进（2026-10-03）：**F01/F04/F03 构建（35f9d46）已上线上海测试机。** 代码树从研发 VPS 经 rsync 同步（机上树不是 git 检出；机上 `.env` 与 `docker-compose.lighthouse.yml` 已排除且未动），在机上执行 `npm run build`，并 `systemctl restart clc-web` 完成重启。已验证：本机与公网 `/api/health` 200、`/login` 与 `/invite` 200、公网 `/api/test/outbox` 404、构建产物中的案件页引用了 `files-panel`。试点现在可以交换文件、连点不重复发消息、从 `/` 正确落到 `/cases`/`/login`。部署过程已记入 `LOCAL_DEV_NOTES.md`（不入库）。
+
 ## Current Phase / 当前阶段
 
 **T12 coding side done on 2026-10-02: 280/280 tests green (`npm run test`, 40 files), E2E 4/4 green (`npm run test:e2e` — 3 new journey specs + smoke), `npm run lint` and `npx tsc --noEmit` clean, `npm run build` succeeded, `npm run drill:restore` executed with RESULT: PASS. The real-channel acceptance items of T12 (real email delivery for AC01/AC08/AC12, AC10 China–Vietnam network test, production-scale recovery drill) are Blocked on external resources O05/O07/O08 — marked Blocked, not simulated. All P0 coding work (T01–T08, T10–T12) is now complete; T09/T13 are P1.** External channels already verified: GitHub deploy key, Cloudflare API, Kimi API, Lighthouse key login, outbound email (SMTP 587/STARTTLS smoke send succeeded 2026-10-01). T01 skeleton: cea7e37; T02: 8dcfd6a; T03: 12f0329; T04: 52143e0; T05: 0efca10; T06: 42633c1; T07: 92dd032; T08: 836cba8; T10: 964f09a; T11: ba00d1d.
@@ -173,8 +177,8 @@ At the start of every session, in this order / 每次会话开始按此顺序：
 
 ## Next Steps / 下一步
 
-1. Deploy the F01/F04/F03 build to the Shanghai test host so the pilot can exchange files; then continue the pilot. F06 (real activation email) is the next blocker after that.
-1. 把 F01/F04/F03 的构建部署到上海测试机，让试点可以交换文件，然后继续试点。之后的下一个阻塞项是 F06（真实激活邮件）。
+1. ~~Deploy the F01/F04/F03 build to the Shanghai test host~~ **Done 2026-10-03** (rsync + host build + `systemctl restart clc-web`; public health/login/invite verified). Next pilot blocker: F06 (real activation email, O05).
+1. ~~把 F01/F04/F03 的构建部署到上海测试机~~ **2026-10-03 已完成**（rsync＋机上构建＋`systemctl restart clc-web`；公网 health/login/invite 已验证）。试点下一个阻塞项是 F06（真实激活邮件，O05）。
 2. External-resource acceptance stays blocked: real EmailProvider and real-address delivery for AC01/AC08/AC12 (O05/O07); AC10 China–Vietnam network window (O07); production-scale restore drill (O08).
 2. 外部资源验收仍阻塞：真实 EmailProvider 与 AC01/AC08/AC12 的真实地址送达（O05/O07）；AC10 中越网络窗口（O07）；生产规模恢复演练（O08）。
 3. P1 on user decision: T09 (cross-case UI / bilingual file variant / document translation) and T13 (daily case digest email, depends on the real email channel).
