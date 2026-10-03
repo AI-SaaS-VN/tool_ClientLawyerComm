@@ -778,3 +778,35 @@ Implement F01 if the user asks. Do not treat the live `/invite` page as already 
 F01, the case-page attachment control, if the user asks.<br>若用户要求，做 F01：案件页的附件控件。
 
 ---
+
+## Session 2026-10-03-04 (Ended) / 会话 2026-10-03-04（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: implement PLAN.md v0.9 follow-ups F01 (case-page attachment control), F04 (one click sends one message), the F03 leftovers (where a login lands), and F10 (re-run and stabilize the E2E suite); record F05 as already done.<br>本次目标：实现 PLAN.md v0.9 跟进项 F01（案件页附件控件）、F04（一次点击只发一条消息）、F03 剩余项（登录去向收尾）与 F10（重跑并稳定 E2E）；并把 F05 记为已完成。
+
+### Actual Actions / 实际动作
+
+1. F04 first (same file as F01): the send button in `messages-panel.tsx` now disables and shows 发送中 / Đang gửi… while the POST is in flight, with a `sendingRef` re-entry guard; the per-send Idempotency-Key is unchanged, and the list still refetches from the POST response.<br>先做 F04（与 F01 同一文件）：`messages-panel.tsx` 的发送按钮在 POST 在途时禁用并显示「发送中」，加 `sendingRef` 重入守卫；逐次 Idempotency-Key 不变，响应返回即重拉列表。
+2. F01: new `files-panel.tsx` on the case page — file picker + upload button (multipart to `POST /api/cases/:id/files`, disabled with an in-flight label while uploading, upload failure shown), the `GET /api/cases/:id/files` list (name, bilingual status label, uploader display name, upload time; refetch after upload + 10s backstop since file publishes have no SSE event), and a download link on published files. Visibility follows the API exactly; review actions stay on /review.<br>F01：案件页新增 `files-panel.tsx`——文件选择＋上传按钮（multipart 提交上传接口，在途禁用并显示文案，失败可见）、文件列表（文件名、中越双语状态、上传者显示名、上传时间；上传后重拉＋10 秒兜底，因文件发布无 SSE 事件）、已发布文件的下载链接。可见性完全遵循 API；审核动作仍在 /review。
+3. F03: `/` is now a server component that redirects by session state (signed in → `/cases`, otherwise → `/login`); the starter page is gone. The /invite page reads `caseId` from the activate/accept responses and opens the joined case page directly. The session cookie `maxAge` needed no change.<br>F03：`/` 改为按会话状态跳转的服务端组件（已登录 → `/cases`，未登录 → `/login`），起始页移除。/invite 页从 activate/accept 响应读取 `caseId`，成功后直接打开所加入案件。会话 Cookie 的 `maxAge` 无需改动。
+4. F10: global setup now compiles the journey routes up front (the leading suspect behind the dual-user visibility timeout was cold dev-server compiles consuming the expect window), and Playwright keeps a trace on failure. No sleeps added; no assertion weakened.<br>F10：global setup 现在预先编译旅程路由（双用户可见性超时的首要嫌疑是 dev server 冷编译占满 expect 窗口），Playwright 失败时保留 trace。未加 sleep，未削弱断言。
+5. F05 bookkeeping: verified all four test-host fixes are inside commit 3182639 with a clean tree; PLAN/PROGRESS marked Done.<br>F05 记账：核实四项测试机修复均在 commit 3182639 且工作区干净；PLAN/PROGRESS 标记完成。
+
+### Changed Files / 变更文件
+
+- Added: `src/app/(app)/cases/[id]/files-panel.tsx`, `tests/e2e/files.spec.ts`.<br>新增：上述文件。
+- Modified: `src/app/(app)/cases/[id]/messages-panel.tsx` (F04), `src/app/(app)/cases/[id]/page.tsx` (mount FilesPanel), `src/app/page.tsx` (F03 redirect), `src/app/(auth)/invite/page.tsx` (open the joined case), `tests/e2e/{dual-user.spec,smoke.spec,helpers,global-setup}.ts`, `playwright.config.ts` (trace retain-on-failure), PLAN.md, PROGRESS.md, SESSIONS.md.<br>修改：上述文件。
+
+### Verification Results / 验证结果
+
+- `npm run test`: 41 files, 281/281 passed. `npm run test:e2e`: three consecutive full runs green, 7/7 each (smoke health + `/` redirect, dual-user journey + rapid-click send-once, review-alert, admin-test-case, files upload→approve→download with byte-identical content). One earlier run failed on a new-spec bug (waiting for an empty `message-list`), fixed in the spec, not in app code. `npm run lint`: clean (one pre-existing warning in login/page.tsx). `npx tsc --noEmit`: clean. `npm run build`: success.<br>`npm run test`：41 个文件 281/281 通过。`npm run test:e2e`：连续三轮完整运行全绿，每轮 7/7（smoke 健康检查＋`/` 跳转、双用户旅程＋快速连点只发一条、审核提醒、管理员建案、文件上传→批准→下载且字节一致）。此前一轮因新 spec 自身错误（等待空的 `message-list`）失败，只改 spec 未改应用代码。`npm run lint`：无错误（login/page.tsx 有一处既有警告）。`npx tsc --noEmit`：无错误。`npm run build`：成功。
+
+### Unfinished Items / 未完成项
+
+- The F01/F04/F03 build is not yet deployed to the Shanghai test host. F06 (real activation email) and F07 (real translation) stay Blocked on O05; F08 (AC10, production-scale drill) on O07/O08; F09 (P0 review gaps) is Later. The dual-user flake did not recur in three rounds; if it returns, the retained trace is the evidence to diagnose from.<br>F01/F04/F03 的构建尚未部署到上海测试机。F06（真实激活邮件）与 F07（真实翻译）仍阻塞于 O05；F08（AC10、生产规模演练）阻塞于 O07/O08；F09（P0 复核缺口）稍后。双用户不稳定在三轮中未复发；若复发，以保留的 trace 为诊断依据。
+
+### First Step Next Time / 下次第一步
+
+Deploy this build to the Shanghai test host if the user asks, then continue the pilot. Do not redo T01–T12 or F01–F05.<br>若用户要求，把本次构建部署到上海测试机，然后继续试点。不要重做 T01–T12 或 F01–F05。
+
+---

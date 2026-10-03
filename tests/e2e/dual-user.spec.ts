@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { acceptInviteViaUi, runId, seedTriangle } from "./helpers";
+import { acceptInviteViaUi, activatedUserContext, runId, seedTriangle } from "./helpers";
 
 // AC03 key path: Chinese client and Vietnamese lawyer in two separate
 // browser contexts — activation, live delivery, automatic translation,
@@ -55,5 +55,40 @@ test("dual-browser zh/vi journey: send, auto translation, manual translate, repl
   } finally {
     await zhContext.close();
     await viContext.close();
+  }
+});
+
+// F04: one click sends one message. Rapid repeated activations while the
+// first request is still in flight must not create duplicates — the button
+// is disabled in flight and the submit handler guards re-entry. dispatchEvent
+// is used because Playwright's click waits out the disabled state.
+test("rapid repeated send clicks produce exactly one message", async ({ browser, request }) => {
+  const id = runId();
+  const triangle = await seedTriangle(request, id);
+  const context = await activatedUserContext(
+    browser,
+    triangle.input.clientEmail,
+    triangle.codeFor(triangle.input.clientEmail),
+  );
+  const page = await context.newPage();
+
+  try {
+    // F03: a signed-in user opening the root lands on the case list.
+    await page.goto("/");
+    await page.waitForURL(/\/cases$/);
+    await expect(page.getByTestId("case-link")).toBeVisible();
+
+    await page.goto(`/cases/${triangle.caseId}`);
+    const text = `连点发送测试 ${id}`;
+    await page.getByTestId("message-input").fill(text);
+    const send = page.getByTestId("message-send");
+    await send.dispatchEvent("click");
+    await send.dispatchEvent("click");
+    await send.dispatchEvent("click");
+    // The message appears from the send flow itself (no extra click needed).
+    await expect(page.getByTestId("message-list")).toContainText(text);
+    await expect(page.getByTestId("message-item").filter({ hasText: text })).toHaveCount(1);
+  } finally {
+    await context.close();
   }
 });

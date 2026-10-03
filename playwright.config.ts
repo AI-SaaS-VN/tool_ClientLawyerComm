@@ -11,7 +11,13 @@ export default defineConfig({
   // cold compile can land mid-test inside an auto-wait window.
   timeout: 180_000,
   expect: { timeout: 30_000 },
-  use: { baseURL: E2E_BASE_URL, navigationTimeout: 60_000 },
+  use: {
+    baseURL: E2E_BASE_URL,
+    navigationTimeout: 60_000,
+    // Keep a full trace when a journey fails so flakes can be diagnosed from
+    // evidence instead of re-runs.
+    trace: "retain-on-failure",
+  },
   webServer: {
     // A dedicated dev server on its own port and database (clc_e2e), never
     // the developer's clc_dev server on :3000. The worker is off: browser

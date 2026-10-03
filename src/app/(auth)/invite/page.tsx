@@ -26,7 +26,8 @@ export default function InvitePage() {
         body: JSON.stringify({ email, code: inviteCode }),
       });
       if (res.ok) {
-        router.push("/cases");
+        const { caseId } = (await res.json()) as { caseId: string };
+        router.push(`/cases/${caseId}`);
         router.refresh();
         return;
       }
@@ -48,7 +49,8 @@ export default function InvitePage() {
         body: JSON.stringify({ code: inviteCode }),
       });
       if (res.ok) {
-        router.push("/cases");
+        const { caseId } = (await res.json()) as { caseId: string };
+        router.push(`/cases/${caseId}`);
         router.refresh();
         return;
       }

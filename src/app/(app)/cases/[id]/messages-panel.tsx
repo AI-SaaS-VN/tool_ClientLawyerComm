@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 interface TranslationView {
   targetLang: string;
@@ -39,6 +39,8 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState(false);
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   // Hydration gate: server-rendered controls have no handlers yet.
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -83,7 +85,9 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
   async function send(event: React.FormEvent) {
     event.preventDefault();
     const text = draft.trim();
-    if (!text) return;
+    if (!text || sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
     setSendError(false);
     try {
       const res = await fetch(`/api/cases/${caseId}/messages`, {
@@ -99,6 +103,9 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
       setRefreshKey((key) => key + 1);
     } catch {
       setSendError(true);
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
     }
   }
 
@@ -222,8 +229,13 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
           className="border px-3 py-2 text-sm"
           data-testid="message-input"
         />
-        <button type="submit" className="self-start border px-3 py-1 text-sm" data-testid="message-send" disabled={!mounted}>
-          发送 / Gửi
+        <button
+          type="submit"
+          className="self-start border px-3 py-1 text-sm disabled:opacity-50"
+          data-testid="message-send"
+          disabled={!mounted || sending}
+        >
+          {sending ? "发送中… / Đang gửi…" : "发送 / Gửi"}
         </button>
         {sendError ? (
           <p className="text-sm opacity-60">发送失败，请重试。 / Gửi thất bại, thử lại.</p>

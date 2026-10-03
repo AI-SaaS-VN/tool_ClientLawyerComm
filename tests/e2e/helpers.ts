@@ -157,7 +157,7 @@ export async function acceptInviteViaApi(
   expect(((await res.json()) as { role: string }).role).toBeTruthy();
 }
 
-// The /invite page: invited email + activation code, then the case list.
+// The /invite page: invited email + activation code, then the joined case.
 export async function acceptInviteViaUi(
   page: Page,
   _request: APIRequestContext,
@@ -168,7 +168,7 @@ export async function acceptInviteViaUi(
   await page.getByTestId("invite-code").fill(inviteCode);
   await page.getByTestId("invite-email").fill(email);
   await page.getByTestId("invite-activate").click();
-  await page.waitForURL("**/cases");
+  await page.waitForURL(/\/cases(\/|$)/);
 }
 
 // A browser context whose session belongs to a user activated at the API

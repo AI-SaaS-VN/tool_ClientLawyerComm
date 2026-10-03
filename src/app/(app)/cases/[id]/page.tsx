@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { SESSION_COOKIE, getSessionUser } from "@/modules/auth/session";
 
 import { MessagesPanel } from "./messages-panel";
+import { FilesPanel } from "./files-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
           ))}
       </ul>
       <MessagesPanel caseId={caseId} />
+      <FilesPanel caseId={caseId} />
     </main>
   );
 }
