@@ -28,7 +28,7 @@ export interface TranslateResult {
   glossaryVersion: string;
 }
 
-export type LlmFailureKind = "timeout" | "rate_limited" | "format";
+export type LlmFailureKind = "timeout" | "rate_limited" | "format" | "server";
 
 // REQ-MSG-10: provider faults are typed so callers mark the version failed;
 // they are never swallowed into a fake success.

@@ -24,7 +24,7 @@ See `.env.example` for the full list (placeholders only, never real values). Key
 - `DATABASE_URL` — 应用库连接串。
 - `MINIO_*` / `STORAGE_PROVIDER=minio` — 私有对象存储。
 - `APP_DATA_KEY` — 32 字节 hex 的 AES-256-GCM 密钥,加密联系方式与 MFA secret;`openssl rand -hex 32` 生成;**轮换即失效**,丢失则已加密数据不可读。
-- `EMAIL_PROVIDER` / `TRANSLATION_PROVIDER` / `LLM_PROVIDER` / `FILE_SCANNER` — 目前只有 `fake`/`stub` 实现,**生产环境会拒绝这些替身**;真实 SMTP 与 Kimi 接入属外部资源待落实项(O05)。指定的虚构数据测试机是唯一例外:设 `CLC_FICTITIOUS_TEST_HOST=1`(见下)。该开关不得用于存放真实案情的主机。
+- `EMAIL_PROVIDER` / `TRANSLATION_PROVIDER` / `LLM_PROVIDER` / `FILE_SCANNER` — 除翻译外目前只有 `fake`/`stub` 实现,**生产环境会拒绝这些替身**;真实 SMTP 接入属外部资源待落实项(O05)。翻译方向已经 F07 落地: `TRANSLATION_PROVIDER=kimi` 走真实 Kimi 调用(读 `KIMI_BASE_URL`/`KIMI_MODEL`,2026-10-03 经用户批准 O05)。指定的虚构数据测试机是其余替身的唯一例外:设 `CLC_FICTITIOUS_TEST_HOST=1`(见下)。该开关不得用于存放真实案情的主机。
 - `SESSION_COOKIE_SECURE` — 默认 `true`。**仅**在备案前的 HTTP-IP 测试入口(虚构数据)可设 `false`;接入任何真实数据前必须恢复 `true`(REQ-AUTH-06)。
 - `APP_BASE_URL` — 提醒邮件中的登录链接前缀(不含路径)。
 - `NOTIFICATION_WORKER` — 默认 `on`,见上表。
@@ -50,11 +50,11 @@ RPO ≤24h / RTO ≤8h are **targets to be validated by drills**, not achieved c
 
 ## 5. 测试期访问入口(上海测试环境)/ Test-period entry (Shanghai test environment)
 
-2026-10-03 已把本应用部署到 SOW O02 指定的上海测试主机。对外入口是该机的 **HTTP 80 端口**(备案完成前没有 TLS)。主机上的 `.env` 设置 `CLC_FICTITIOUS_TEST_HOST=1`、`SESSION_COOKIE_SECURE=false`、`APP_BASE_URL` 为该 HTTP 入口;邮件、翻译和文件扫描仍用替身实现,因为真实 SMTP 与 Kimi 仍被 O05 挡住。只允许虚构数据。验证码留在该进程的 outbox 里,只能在测试机本机读取;`/api/test/` 对外返回 404。激活是一步:受邀邮箱加上激活码,再次进入仍用同一组邮箱和邀请码,不另发 6 位验证码。客户默认屏幕为繁体中文、律师为越南语、时间戳按电脑时区标注，这三条已在界面实现。越南语与繁体中文的自动翻译仍走 Kimi 计划（F07），真实调用尚未改，测试机继续用替身翻译。具体 IP 不写入本仓库。
+2026-10-03 已把本应用部署到 SOW O02 指定的上海测试主机。对外入口是该机的 **HTTP 80 端口**(备案完成前没有 TLS)。主机上的 `.env` 设置 `CLC_FICTITIOUS_TEST_HOST=1`、`SESSION_COOKIE_SECURE=false`、`APP_BASE_URL` 为该 HTTP 入口;邮件和文件扫描仍用替身实现,因为真实 SMTP 仍被 O05 挡住;翻译自 2026-10-03(F07)起走真实 Kimi(`TRANSLATION_PROVIDER=kimi`,模型 kimi-k2.6,O05 翻译方向已经用户批准)。只允许虚构数据。验证码留在该进程的 outbox 里,只能在测试机本机读取;`/api/test/` 对外返回 404。激活是一步:受邀邮箱加上激活码,再次进入仍用同一组邮箱和邀请码,不另发 6 位验证码。客户默认屏幕为繁体中文、律师为越南语、时间戳按电脑时区标注，这三条已在界面实现。越南语与繁体中文的自动翻译自 F07(2026-10-03)起在测试机上走真实 Kimi 调用,实测单向约 16–34 秒。具体 IP 不写入本仓库。
 
 研发主机上的自动化测试仍访问 `http://localhost:3100`:Playwright 和开发服务器在同一台机器上。笔记本的 `127.0.0.1` 不是研发主机,也不是测试机。
 
-On 2026-10-03 this application was deployed to the Shanghai test host named in SOW O02. The public entry is **HTTP port 80** on that host (no TLS until ICP filing). That host's `.env` sets `CLC_FICTITIOUS_TEST_HOST=1`, `SESSION_COOKIE_SECURE=false`, and `APP_BASE_URL` to that HTTP entry; mail, translation, and file scanning stay on the stand-in implementations because real SMTP and Kimi remain blocked by O05. Fictitious data only. Verification codes stay in that process's outbox and can be read only on the test host itself; `/api/test/` returns 404 to the public. Activation is one step: the invited email plus the activation code, with no second 6-digit code. The concrete IP is not written in this repository.
+On 2026-10-03 this application was deployed to the Shanghai test host named in SOW O02. The public entry is **HTTP port 80** on that host (no TLS until ICP filing). That host's `.env` sets `CLC_FICTITIOUS_TEST_HOST=1`, `SESSION_COOKIE_SECURE=false`, and `APP_BASE_URL` to that HTTP entry; mail and file scanning stay on the stand-in implementations because real SMTP remains blocked by O05, while translation uses real Kimi calls since F07 (2026-10-03, `TRANSLATION_PROVIDER=kimi`, model kimi-k2.6, O05 approved by the user for the translation direction). Fictitious data only. Verification codes stay in that process's outbox and can be read only on the test host itself; `/api/test/` returns 404 to the public. Activation is one step: the invited email plus the activation code, with no second 6-digit code. The concrete IP is not written in this repository.
 
 Automated tests on the development host still use `http://localhost:3100`, because Playwright and the dev server run on that same machine. The laptop's `127.0.0.1` is neither the development host nor the test host.
 

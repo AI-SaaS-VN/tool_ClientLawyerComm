@@ -1018,3 +1018,31 @@ If the user asks: fix R1–R9 (suggested single batch, TDD, one commit per domai
 Fix R1/R2/R3/R6 (before real data) or start T14, whichever the user asks. F06/F07 stay blocked on O05.<br>按用户要求修 R1/R2/R3/R6（先于真实数据）或开工 T14。F06/F07 仍阻塞于 O05。
 
 ---
+
+## Session 2026-10-03-08 (Ended) / 会话 2026-10-03-08（已结束）
+
+- Date/Timezone: 2026-10-03, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-03，UTC（研发 VPS 上的 Kimi Code）
+- Goal (user request): implement F07 — enable real Kimi translation. The user explicitly approved the O05 data-processing check for the translation direction on 2026-10-03 (pilot data is fictitious); real email stays pending.<br>本次目标（用户要求）：实现 F07——启用真实 Kimi 翻译。用户于 2026-10-03 明确批准翻译方向的 O05 数据处理核查（试点数据均为虚构）；真实邮件仍待。
+
+### Actual Actions / 实际动作
+
+1. Reworked `src/server/providers/llm/kimi-adapter.ts` TDD-style (failing tests first): base URL and model now come from `KIMI_BASE_URL`/`KIMI_MODEL` (no hardcoded `kimi-k2-0905-preview`; missing key or model fails loudly as "not configured"); the base URL tolerates an existing `/v1` suffix; `temperature` is no longer pinned (kimi-k2.6 rejects anything but 1); requests abort via `AbortSignal.timeout`; faults map to typed `LlmFailure` categories — 429 → rate_limited, 5xx → server (new retryable kind added to `LlmFailureKind`), timeout/abort → timeout, empty/malformed payload → format; other 4xx stay plain `llm http_<status>` errors. Nothing is ever faked as success (REQ-MSG-10).<br>按 TDD 重写 `src/server/providers/llm/kimi-adapter.ts`（先写失败测试）：base URL 与模型改读 `KIMI_BASE_URL`/`KIMI_MODEL`（不再硬编码 `kimi-k2-0905-preview`；缺 key 或缺模型明确报未配置）；base URL 允许已带 `/v1` 后缀；不再固定 `temperature`（kimi-k2.6 只接受 1）；请求经 `AbortSignal.timeout` 中止；故障映射为类型化 `LlmFailure`——429 → rate_limited、5xx → server（`LlmFailureKind` 新增可重试类别）、超时/中止 → timeout、空/异常载荷 → format；其余 4xx 仍为普通 `llm http_<status>` 错误。绝不伪造成功（REQ-MSG-10）。
+2. Parallelized the automatic-mode backfill in `attachTranslations` (`src/modules/translation/service.ts`): missing translations are now kicked off with `Promise.all` instead of a serial in-loop await; provider faults stay contained per message (each ends as its own failed version). Added an integration test proving three messages translate concurrently (max in-flight = 3) and one timeout never blocks the others.<br>把 `attachTranslations`（`src/modules/translation/service.ts`）自动模式补建改为并行：缺失译文用 `Promise.all` 并发发起，不再串行 await；provider 故障按消息隔离（各自落 failed 版本）。新增集成测试证明三条消息并发翻译（最大在途＝3）且一条超时不影响其余。
+3. The timeout was set to 90s, not the initially suggested 30s: measured real calls on kimi-k2.6 (a reasoning model) take 26–28s from the dev VPS and exceeded 30s from Shanghai (the 30s budget correctly produced a `LlmFailure("timeout")` there).<br>超时定为 90 秒而非最初建议的 30 秒：实测 kimi-k2.6（推理模型）研发 VPS 单次 26–28 秒、上海超过 30 秒（30 秒预算在当地正确地产生了 `LlmFailure("timeout")`）。
+4. Real smoke (fictitious sentences only, keys never printed): dev VPS zh-Hans→vi 26.6s, vi→zh-Hant 27.9s; Shanghai host zh-Hans→vi 28.1s, vi→zh-Hant 33.6s — all returned real translations in the expected script/language (model kimi-k2.6).<br>真实冒烟（仅虚构句子，key 全程未打印）：研发 VPS zh-Hans→vi 26.6 秒、vi→zh-Hant 27.9 秒；上海测试机 zh-Hans→vi 28.1 秒、vi→zh-Hant 33.6 秒——均返回目标语种的 true 译文（模型 kimi-k2.6）。
+5. Deployed to the Shanghai test host: piped the three KIMI_* lines plus `TRANSLATION_PROVIDER="kimi"` into the host `.env` over SSH (old lines sed-removed first, key never echoed), rsynced the tree, rebuilt, restarted `clc-web`. Verified: local and public `/api/health` 200, public `/api/test/outbox` 404. On-host app-path verification: `requestTranslation` on a published test message wrote a `translation_versions` row with provider=`kimi`, model=`kimi-k2.6`, status=done, keyFieldCheck=pass (15.9s).<br>部署到上海测试机：三条 KIMI_* 与 `TRANSLATION_PROVIDER="kimi"` 经 SSH 管道追加进机上 `.env`（先 sed 删旧行，key 全程不回显），rsync 同步代码树，重新 build 并重启 `clc-web`。验证：本机与公网 `/api/health` 200，公网 `/api/test/outbox` 404。机上应用路径验证：对一条已发布测试消息调用 `requestTranslation`，`translation_versions` 落了一行 provider=`kimi`、model=`kimi-k2.6`、status=done、keyFieldCheck=pass（15.9 秒）。
+6. Final state: `npm run test` 295/295 (was 281; +9 unit `tests/unit/translation/kimi-adapter.test.ts`, +1 integration parallel-backfill test in `tests/integration/translation/modes.test.ts`), `npm run test:e2e` 7/7 (still on the fake provider), lint clean (one pre-existing warning in login-form.tsx), tsc/build clean.<br>最终状态：`npm run test` 295/295（原 281；新增 9 个单元测试 `tests/unit/translation/kimi-adapter.test.ts`，1 个并行补建集成测试），`npm run test:e2e` 7/7（仍走替身 provider），lint 无错误（login-form.tsx 有一处既有警告），tsc/build 无错误。
+
+### Changed Files / 变更文件
+
+- Modified: src/server/providers/llm/kimi-adapter.ts, src/server/providers/llm/interface.ts, src/modules/translation/service.ts, .env.example, PLAN.md, SPEC.md, PROGRESS.md, SESSIONS.md, README.md, docs/deployment.md. New: tests/unit/translation/kimi-adapter.test.ts. Modified tests: tests/integration/translation/modes.test.ts.<br>修改：上述文件。新增：kimi-adapter 单元测试。修改测试：translation modes 集成测试。
+
+### Unfinished Items / 未完成项
+
+- kimi-k2.6 latency is 16–34s per call, so automatic-mode list loads block on the slowest missing translation; asynchronous translation via the persistent queue remains the T06-era deviation to revisit. R1–R9/R10–R22 review fixes, F06 (real email), F08 (AC10/drill) unchanged.<br>kimi-k2.6 单次 16–34 秒，自动模式列表加载会被最慢的缺失译文拖住；经持久队列的异步翻译仍是 T06 时期的待办偏离。R1–R9/R10–R22 复核修复、F06（真实邮件）、F08（AC10/演练）不变。
+
+### First Step Next Time / 下次第一步
+
+Fix R1/R2/R3/R6 (before real data) or start T14, whichever the user asks. F06 (real email) stays blocked on O05/O07; F07 is done.<br>按用户要求修 R1/R2/R3/R6（先于真实数据）或开工 T14。F06（真实邮件）仍阻塞于 O05/O07；F07 已完成。
+
+---

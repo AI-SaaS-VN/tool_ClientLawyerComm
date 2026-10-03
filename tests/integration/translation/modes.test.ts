@@ -9,6 +9,7 @@ import { POST as translateMessage } from "@/app/api/messages/[id]/translate/rout
 import { prisma } from "@/lib/db";
 import { setMessageCheckerForTests } from "@/modules/messages/check";
 import { fakeLlmTranslationProvider } from "@/server/providers/llm/fake";
+import { LlmFailure } from "@/server/providers/llm/interface";
 
 import {
   addMember,
@@ -278,6 +279,71 @@ describe("translation modes (REQ-TR-01/02/03/04/07, REQ-MSG-09)", () => {
     const invalid = await translate(message.id as string, lawyerCookie, { sourceLang: "jp" });
     expect(invalid.status).toBe(400);
     expect((await invalid.json()).error).toBe("invalid_source_lang");
+  });
+
+  it("auto mode backfills missing translations in parallel, and one failure never blocks the others (F07, REQ-MSG-10)", async () => {
+    const { kase, cookie, lawyerCookie } = await seedChat({ coordinatorLang: "en" });
+    await send(kase.id, lawyerCookie, "第一份材料已提交。", "t-par-1");
+    await send(kase.id, lawyerCookie, "请确认开庭时间。", "t-par-2");
+    await send(kase.id, lawyerCookie, "第三份材料稍后补交。", "t-par-3");
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    let entered = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const originalTranslate = fakeLlmTranslationProvider.translate;
+    fakeLlmTranslationProvider.translate = async (input) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      entered += 1;
+      if (entered === 3) release();
+      // Every call waits until all three have started; a serial backfill
+      // would deadlock here, so the gate falls through after 3s and the
+      // maxInFlight assertion below fails instead.
+      await Promise.race([gate, new Promise((resolve) => setTimeout(resolve, 3000))]);
+      try {
+        return await originalTranslate.call(fakeLlmTranslationProvider, input);
+      } finally {
+        inFlight -= 1;
+      }
+    };
+    fakeLlmTranslationProvider.setFixedResponse((input) => {
+      if (input.text.includes("开庭")) throw new LlmFailure("timeout");
+      return `[${input.targetLang}] ${input.text}`;
+    });
+    try {
+      const list = await listFor(kase.id, cookie, "auto");
+      expect(list).toHaveLength(3);
+      // All three calls overlapped — a serial backfill would never exceed 1.
+      expect(maxInFlight).toBe(3);
+      const byText = new Map(list.map((m) => [m.sourceText, m.translation]));
+      expect(byText.get("第一份材料已提交。")).toMatchObject({ state: "ready", version: 1 });
+      expect(byText.get("请确认开庭时间。")).toEqual({
+        targetLang: "en",
+        state: "failed",
+        text: null,
+        version: 1,
+      });
+      expect(byText.get("第三份材料稍后补交。")).toMatchObject({ state: "ready", version: 1 });
+
+      const rows = await prisma.translationVersion.findMany();
+      expect(rows).toHaveLength(3);
+      expect(rows.filter((r) => r.status === "done")).toHaveLength(2);
+      expect(rows.filter((r) => r.status === "failed")).toHaveLength(1);
+
+      // A re-list reuses the settled rows and does not re-run the failed one.
+      fakeLlmTranslationProvider.reset();
+      const again = await listFor(kase.id, cookie, "auto");
+      expect(again.map((m) => (m.translation as Record<string, unknown>).state)).toEqual(
+        expect.arrayContaining(["ready", "ready", "failed"]),
+      );
+      expect(fakeLlmTranslationProvider.calls).toHaveLength(0);
+    } finally {
+      fakeLlmTranslationProvider.translate = originalTranslate;
+    }
   });
 
   it("PATCH /api/auth/me stores language preferences and rejects unsupported codes (REQ-TR-01)", async () => {

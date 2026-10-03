@@ -252,6 +252,26 @@ export async function attachTranslations<T extends MessageViewLike>(
     if (!latestByMessage.has(version.messageId)) latestByMessage.set(version.messageId, version);
   }
 
+  // F07: with a real provider in the loop, the automatic backfill must not
+  // serialize N+1 slow calls inside the list request — missing translations
+  // are kicked off in parallel. Provider faults are already contained inside
+  // createAndRun (the version ends failed; REQ-MSG-10), so one bad message
+  // never affects the others.
+  if (mode === "auto") {
+    const missing = views.filter(
+      (v) => v.status === "published" && v.sourceLang !== preferred && !latestByMessage.has(v.id),
+    );
+    if (missing.length) {
+      const created = await Promise.all(
+        missing.map(async (view) => {
+          const message = await prisma.message.findUniqueOrThrow({ where: { id: view.id } });
+          return createAndRun(message, preferred);
+        }),
+      );
+      for (const row of created) latestByMessage.set(row.messageId, row);
+    }
+  }
+
   const result: Array<T & { translation: TranslationView | null }> = [];
   for (const view of views) {
     if (view.status !== "published") {
@@ -262,11 +282,7 @@ export async function attachTranslations<T extends MessageViewLike>(
       result.push({ ...view, translation: sameLanguageView(preferred) });
       continue;
     }
-    let latest = latestByMessage.get(view.id) ?? null;
-    if (mode === "auto" && !latest) {
-      const message = await prisma.message.findUniqueOrThrow({ where: { id: view.id } });
-      latest = await createAndRun(message, preferred);
-    }
+    const latest = latestByMessage.get(view.id) ?? null;
     result.push({ ...view, translation: viewFromVersion(preferred, latest) });
   }
   return result;
