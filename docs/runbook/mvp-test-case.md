@@ -4,9 +4,9 @@
 
 For the bootstrapped administrator with TOTP MFA already enrolled: create one fictitious test case and send one activation email to each of three fictitious addresses — coordinator, Chinese client, Vietnamese lawyer.
 
-**规则 / Rules:** 只使用虚构邮箱（如 `@example.com` / `@test.invalid`）与虚构案情，绝不使用真实个人地址或真实案情。邀请码不绑定邮箱（REQ-AUTH-01/12），但激活邮件只发往被输入的地址。
+**规则 / Rules:** 只使用虚构邮箱（如 `@example.com` / `@test.invalid`）与虚构案情，绝不使用真实个人地址或真实案情。激活是一步：受邀人输入本人邮箱和激活码。激活码绑定该邮箱、案件与角色。只有该邮箱可以接受。激活码未使用且未过期时，换一个浏览器也可以进入。激活邮件只发往被输入的地址。
 
-Use fictitious mailboxes only (e.g. `@example.com` / `@test.invalid`) and fictitious case facts — never real personal addresses or real case facts. The invitation code is not bound to a mailbox (REQ-AUTH-01/12), but the activation email goes only to the entered address.
+Activation is one step. The invited person enters their own email and the activation code. The code is bound to that email, the case, and the role. Only that email can accept it. Any browser can join while the code is unused and unexpired. The activation email goes only to the entered address. Use fictitious mailboxes only (e.g. `@example.com` / `@test.invalid`) and fictitious case facts — never real personal addresses or real case facts.
 
 ## 1. 前提 / Prerequisites
 
@@ -43,24 +43,20 @@ curl -X POST "$APP_BASE_URL/api/admin/test-cases" \
 
 ## 3. 三角激活 / Triangle activation
 
-每位收件人打开 `$APP_BASE_URL/invite`:
+每位收件人打开 `$APP_BASE_URL/invite`，输入邮件中的激活码（XXXXX-XXXXX）和收到这封邮件的邮箱，点「Activate and join」。成功后进入 `/cases`。不需要另外的 6 位验证码。换一个浏览器时，只要这个码还没使用、还没过期，用同一个邮箱再做一次即可。
 
-1. 输入邮件中的邀请码(XXXXX-XXXXX 形式)与**自己的**邮箱(即被输入的那个地址);
-2. 点「Send verification code」,到该邮箱查收 6 位验证码;
-3. 输入验证码点「Verify and join」,显示 "Invitation accepted." 即加入案件。
-
-Each recipient opens `$APP_BASE_URL/invite`, enters the invitation code from the activation email plus their own address (the one entered in step 2), requests the 6-digit verification code, and completes "Verify and join" — "Invitation accepted." confirms membership.
+Each recipient opens `$APP_BASE_URL/invite`, enters the activation code from the email and the address that received it, then clicks "Activate and join". Success opens `/cases`. There is no second 6-digit code. Another browser can do the same while the code is unused and unexpired.
 
 ## 4. 验收观察点 / Acceptance checkpoints
 
-- 三封激活邮件**只**发往被输入的三个地址,没有第四封;验证码邮件同理。
-  Exactly three activation emails go to the three entered addresses and no one else; the same holds for OTP emails.
+- 三封激活邮件**只**发往被输入的三个地址,没有第四封。激活本身不另发 6 位验证码。
+  Exactly three activation emails go to the three entered addresses and no one else. Activation does not send a second 6-digit code.
 - 每位收件人登录后 `/cases` **只见这一个案件**,案件页成员列表恰好三人(协调员/客户/律师),角色与指定一致。
   Each recipient sees exactly this one case in `/cases`; the case page lists exactly the three members with the assigned roles.
 - **管理员不在案件聊天成员中**:管理员访问 `GET /api/cases` 或案件页返回 403/404;案件 `case_members` 表无管理员行。
   The administrator is not a chat member: `GET /api/cases` and the case page deny the admin (403/404); `case_members` has no admin row.
-- 邀请码不绑定邮箱:任一邀请码可被任一地址的 OTP 流程使用(但每码仅一次,角色以码上记录为准)。
-  Codes are not mailbox-bound: any code works with any address's OTP flow (single use; the role comes from the code).
+- 其他邮箱不能使用该激活码。码被用过或过期后再提交会被拒绝。
+  A different email cannot use the code. A used or expired code is rejected.
 - 全程可审计:`GET /api/admin/audit-logs?caseId=<caseId>`(带 `x-totp-code`)可见 `case.create`(meta.origin=admin_test_case)与三条 `invite.create`,actor 均为管理员;随后每个激活产生 `invite.accept` 与 `auth.login` 行。
   Everything is auditable: `GET /api/admin/audit-logs?caseId=<caseId>` (with `x-totp-code`) shows `case.create` (meta.origin=admin_test_case) and three `invite.create` rows by the admin; each activation adds `invite.accept` and `auth.login` rows.
 

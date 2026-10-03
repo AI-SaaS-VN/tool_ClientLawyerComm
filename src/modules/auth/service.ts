@@ -13,7 +13,7 @@ import {
   hashOtp,
   utcDayStart,
 } from "@/modules/auth/otp";
-import { acceptInvite, getValidInvite } from "@/modules/invites/service";
+import { acceptInvite } from "@/modules/invites/service";
 import { recordAudit } from "@/server/audit/log";
 import { getEmailProvider } from "@/server/providers/email";
 
@@ -91,44 +91,6 @@ export async function requestLoginOtp(email: string, now: Date = new Date()) {
     result: "success",
     targetType: "contact_channel",
     targetId: channel.id,
-  });
-  return { sent: true };
-}
-
-// A valid invite code authorizes an OTP to a not-yet-registered address.
-export async function requestInviteOtp(email: string, inviteCode: string, now: Date = new Date()) {
-  const invite = await getValidInvite(inviteCode, now);
-  const normalized = normalizeEmail(email);
-  if (!normalized || !normalized.includes("@")) throw new ApiError(400, "invalid_email");
-
-  let channel = await prisma.contactChannel.findUnique({
-    where: { valueHash: hashEmail(normalized) },
-  });
-  if (!channel) {
-    const user = await prisma.user.create({
-      data: {
-        displayName: normalized.split("@")[0] ?? "user",
-        globalRole: invite.role,
-        status: "pending",
-      },
-    });
-    channel = await prisma.contactChannel.create({
-      data: {
-        userId: user.id,
-        valueEnc: encryptText(normalized),
-        valueHash: hashEmail(normalized),
-        isPrimary: true,
-      },
-    });
-  }
-  const code = await issueChallenge(channel, "login", now);
-  await sendOtpEmail(normalized, code, channel.id);
-  await recordAudit(prisma, {
-    action: "auth.otp_request",
-    result: "success",
-    targetType: "contact_channel",
-    targetId: channel.id,
-    meta: { purpose: "invite" },
   });
   return { sent: true };
 }

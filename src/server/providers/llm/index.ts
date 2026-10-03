@@ -1,3 +1,4 @@
+import { standInProvidersAllowed } from "../stand-in";
 import { fakeLlmModerationProvider, fakeLlmTranslationProvider } from "./fake";
 import type { LlmModerationProvider, LlmTranslationProvider } from "./interface";
 import { KimiTranslationProvider } from "./kimi-adapter";
@@ -6,7 +7,7 @@ import { KimiTranslationProvider } from "./kimi-adapter";
 export function getLlmModerationProvider(): LlmModerationProvider {
   const kind = process.env.LLM_PROVIDER ?? "fake";
   if (kind === "fake") {
-    if (process.env.NODE_ENV === "production") {
+    if (!standInProvidersAllowed()) {
       throw new Error("fake llm provider is not allowed in production");
     }
     return fakeLlmModerationProvider;
@@ -20,7 +21,7 @@ export function getLlmModerationProvider(): LlmModerationProvider {
 export function getLlmTranslationProvider(): LlmTranslationProvider {
   const kind = process.env.TRANSLATION_PROVIDER ?? "fake";
   if (kind === "fake") {
-    if (process.env.NODE_ENV === "production") {
+    if (!standInProvidersAllowed()) {
       throw new Error("fake translation provider is not allowed in production");
     }
     return fakeLlmTranslationProvider;

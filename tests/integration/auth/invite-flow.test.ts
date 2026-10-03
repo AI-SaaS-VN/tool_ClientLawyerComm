@@ -4,10 +4,10 @@ import { POST as createInvite } from "@/app/api/cases/[id]/invites/route";
 import { POST as requestOtp } from "@/app/api/auth/otp/request/route";
 import { POST as verifyOtp } from "@/app/api/auth/otp/verify/route";
 import { POST as acceptInviteRoute } from "@/app/api/invites/accept/route";
+import { POST as activateRoute } from "@/app/api/invites/activate/route";
 import { DELETE as revokeInviteRoute } from "@/app/api/invites/[id]/route";
 import { POST as resendInviteRoute } from "@/app/api/invites/[id]/resend/route";
 import { prisma } from "@/lib/db";
-import { hashOtp } from "@/modules/auth/otp";
 import { SESSION_COOKIE } from "@/modules/auth/session";
 import { fakeEmailProvider } from "@/server/providers/email/fake";
 
@@ -40,19 +40,8 @@ async function inviteByCoordinator(
   return res;
 }
 
-/** Runs the full logged-out acceptance: OTP request with invite code, then verify. */
-async function acceptViaOtp(email: string, inviteCode: string) {
-  const reqRes = await requestOtp(
-    postJson("/api/auth/otp/request", { email, inviteCode }),
-  );
-  expect(reqRes.status).toBe(200);
-  const otpMail = fakeEmailProvider.outbox.at(-1)!;
-  expect(otpMail.to).toBe(email);
-  const otp = extractOtp(otpMail.text);
-  const verifyRes = await verifyOtp(
-    postJson("/api/auth/otp/verify", { email, code: otp, inviteCode }),
-  );
-  return { verifyRes, otp };
+async function activate(email: string, code: string) {
+  return activateRoute(postJson("/api/invites/activate", { email, code }));
 }
 
 describe("invitation + OTP flow", () => {
@@ -60,19 +49,16 @@ describe("invitation + OTP flow", () => {
     await resetDatabase();
   });
 
-  it("sends the activation email only to the entered address, and the code is not bound to it", async () => {
+  it("activates in one step, and only the invited email can use the code", async () => {
     const { kase, cookie } = await seedCaseWithCoordinator();
     const consoleSpy = vi.spyOn(console, "log");
     const consoleErrSpy = vi.spyOn(console, "error");
 
-    const res = await inviteByCoordinator(cookie, kase.id, "notify1@example.com", "client");
+    const res = await inviteByCoordinator(cookie, kase.id, "client1@example.com", "client");
     expect(res.status).toBe(200);
 
-    // Exactly one activation email, only to the notification address.
     expect(fakeEmailProvider.outbox).toHaveLength(1);
-    expect(fakeEmailProvider.outbox[0]!.to).toBe("notify1@example.com");
-    // Activation email is bilingual (Chinese + Vietnamese). Escape sequences
-    // keep the Vietnamese precomposed characters unambiguous.
+    expect(fakeEmailProvider.outbox[0]!.to).toBe("client1@example.com");
     const mail = fakeEmailProvider.outbox[0]!;
     expect(mail.subject).toContain("案件邀请");
     expect(mail.subject).toContain("Thư mời vụ án");
@@ -81,46 +67,43 @@ describe("invitation + OTP flow", () => {
     expect(mail.text).toContain("Mã mời vụ án");
     const code = extractInviteCode(mail.text);
 
-    // The API response leaks neither the code nor the address (REQ-PM-09).
     const bodyText = JSON.stringify(await res.json());
-    expect(bodyText).not.toContain("notify1@example.com");
+    expect(bodyText).not.toContain("client1@example.com");
     expect(bodyText).not.toContain(code.replace("-", ""));
 
-    // A different own-email may accept the code (REQ-AUTH-12).
-    const { verifyRes, otp } = await acceptViaOtp("client1@example.com", code);
+    const wrong = await activate("other@example.com", code);
+    expect(wrong.status).toBe(403);
+    expect(await prisma.caseMember.count({ where: { caseId: kase.id, memberRole: "client" } })).toBe(0);
+    expect(await prisma.user.count({ where: { globalRole: "client" } })).toBe(0);
+
+    const verifyRes = await activate("client1@example.com", code);
     expect(verifyRes.status).toBe(200);
     const body = await verifyRes.json();
-    expect(body.inviteAccepted).toBe(true);
-    expect(fakeEmailProvider.outbox).toHaveLength(2);
+    expect(body.role).toBe("client");
+    expect(verifyRes.headers.getSetCookie().some((c) => c.startsWith(`${SESSION_COOKIE}=`))).toBe(true);
+    expect(fakeEmailProvider.outbox).toHaveLength(1);
+    expect(await prisma.otpChallenge.count()).toBe(0);
 
     const member = await prisma.caseMember.findFirstOrThrow({
       where: { caseId: kase.id, user: { globalRole: "client" } },
       include: { user: true },
     });
     expect(member.memberRole).toBe("client");
-    expect(member.user.globalRole).toBe("client");
-    // Acceptance grants only this case and role (REQ-AUTH-07).
+    expect(member.user.status).toBe("active");
     expect(await prisma.caseMember.count({ where: { userId: member.userId } })).toBe(1);
 
-    // The plaintext OTP is nowhere: not in the DB, not in logs (REQ-AUTH-05).
-    const challenges = await prisma.otpChallenge.findMany();
-    expect(challenges).toHaveLength(1);
-    expect(challenges[0]!.codeHash).toBe(hashOtp(otp, challenges[0]!.id));
-    expect(challenges[0]!.codeHash).not.toContain(otp);
-    const logged = [...consoleSpy.mock.calls, ...consoleErrSpy.mock.calls]
-      .flat()
-      .join(" ");
-    expect(logged).not.toContain(otp);
+    const logged = [...consoleSpy.mock.calls, ...consoleErrSpy.mock.calls].flat().join(" ");
+    expect(logged).not.toContain(code);
     consoleSpy.mockRestore();
     consoleErrSpy.mockRestore();
   });
 
   it("lets a logged-in lawyer accept a second case on the same account", async () => {
     const first = await seedCaseWithCoordinator();
-    const res1 = await inviteByCoordinator(first.cookie, first.kase.id, "l1-notify@example.com", "lawyer");
+    const res1 = await inviteByCoordinator(first.cookie, first.kase.id, "lawyer1@example.com", "lawyer");
     const code1 = extractInviteCode(fakeEmailProvider.outbox.at(-1)!.text);
     expect(res1.status).toBe(200);
-    const { verifyRes } = await acceptViaOtp("lawyer1@example.com", code1);
+    const verifyRes = await activate("lawyer1@example.com", code1);
     expect(verifyRes.status).toBe(200);
     const lawyerCookie = sessionCookieFrom(verifyRes.headers.getSetCookie());
 
@@ -139,7 +122,7 @@ describe("invitation + OTP flow", () => {
         canReview: true,
       },
     });
-    const res2 = await inviteByCoordinator(first.cookie, case2.id, "l2-notify@example.com", "lawyer");
+    const res2 = await inviteByCoordinator(first.cookie, case2.id, "lawyer1@example.com", "lawyer");
     expect(res2.status).toBe(200);
     const code2 = extractInviteCode(fakeEmailProvider.outbox.at(-1)!.text);
 
@@ -165,7 +148,7 @@ describe("invitation + OTP flow", () => {
 
   it("refuses acceptance when the account role does not match the invite role", async () => {
     const { kase, cookie } = await seedCaseWithCoordinator();
-    await inviteByCoordinator(cookie, kase.id, "n@example.com", "lawyer");
+    await inviteByCoordinator(cookie, kase.id, "client2@example.com", "lawyer");
     const code = extractInviteCode(fakeEmailProvider.outbox.at(-1)!.text);
 
     const { user: client } = await createVerifiedUser("client", "client2@example.com");
@@ -174,15 +157,13 @@ describe("invitation + OTP flow", () => {
       postJson("/api/invites/accept", { code }, cookieHeader(clientCookie)),
     );
     expect(res.status).toBe(403);
-    expect(await prisma.caseMember.count({ where: { caseId: kase.id, memberRole: "client" } })).toBe(0);
+    expect(await prisma.caseMember.count({ where: { caseId: kase.id, memberRole: "lawyer" } })).toBe(0);
 
-    // Logged-out with a mismatched account: login succeeds, join is refused.
-    const { verifyRes } = await acceptViaOtp("client2@example.com", code);
-    expect(verifyRes.status).toBe(200);
-    const body = await verifyRes.json();
-    expect(body.inviteAccepted).toBe(false);
-    expect(body.inviteError).toBe("role_mismatch");
+    const verifyRes = await activate("client2@example.com", code);
+    expect(verifyRes.status).toBe(403);
     expect(await prisma.caseMember.count({ where: { caseId: kase.id, userId: client.id } })).toBe(0);
+    const invite = await prisma.invite.findFirstOrThrow({ where: { caseId: kase.id, role: "lawyer" } });
+    expect(invite.usedAt).toBeNull();
   });
 
   it("rejects expired invites and replayed (already used) codes", async () => {
@@ -195,23 +176,18 @@ describe("invitation + OTP flow", () => {
       data: { expiresAt: new Date(Date.now() - 1000) },
     });
     const expiredCode = extractInviteCode(fakeEmailProvider.outbox.at(-1)!.text);
-    const reqExpired = await requestOtp(
-      postJson("/api/auth/otp/request", { email: "x1@example.com", inviteCode: expiredCode }),
-    );
+    const reqExpired = await activate("exp@example.com", expiredCode);
     expect(reqExpired.status).toBe(410);
 
     const okRes = await inviteByCoordinator(cookie, kase.id, "ok@example.com", "client");
     expect(okRes.status).toBe(200);
     const okCode = extractInviteCode(fakeEmailProvider.outbox.at(-1)!.text);
-    const { verifyRes } = await acceptViaOtp("client3@example.com", okCode);
+    const verifyRes = await activate("ok@example.com", okCode);
     expect(verifyRes.status).toBe(200);
 
-    // Replay of the used code is rejected on both entry paths.
-    const replayReq = await requestOtp(
-      postJson("/api/auth/otp/request", { email: "x2@example.com", inviteCode: okCode }),
-    );
+    const replayReq = await activate("ok@example.com", okCode);
     expect(replayReq.status).toBe(410);
-    const { user: other } = await createVerifiedUser("client", "client4@example.com");
+    const other = await prisma.user.findFirstOrThrow({ where: { globalRole: "client" } });
     const replayAccept = await acceptInviteRoute(
       postJson("/api/invites/accept", { code: okCode }, cookieHeader(await sessionCookieFor(other.id))),
     );
@@ -275,9 +251,7 @@ describe("invitation + OTP flow", () => {
       params(inviteId),
     );
     expect(del.status).toBe(200);
-    const afterRevoke = await requestOtp(
-      postJson("/api/auth/otp/request", { email: "x3@example.com", inviteCode: oldCode }),
-    );
+    const afterRevoke = await activate("orig@example.com", oldCode);
     expect(afterRevoke.status).toBe(410);
 
     // Resend of a revoked invite is refused; make a fresh invite to resend.
@@ -296,14 +270,12 @@ describe("invitation + OTP flow", () => {
     const newCode = extractInviteCode(resendMail.text);
     expect(newCode).not.toBe(oldCode2);
 
-    const oldCodeReq = await requestOtp(
-      postJson("/api/auth/otp/request", { email: "x4@example.com", inviteCode: oldCode2 }),
-    );
+    const oldCodeReq = await activate("orig2@example.com", oldCode2);
     expect(oldCodeReq.status).toBe(400);
 
-    const { verifyRes } = await acceptViaOtp("client7@example.com", newCode);
+    const verifyRes = await activate("orig2@example.com", newCode);
     expect(verifyRes.status).toBe(200);
-    expect((await verifyRes.json()).inviteAccepted).toBe(true);
+    expect((await verifyRes.json()).role).toBe("client");
   });
 
   it("refuses invite management to non-managers and never creates admin accounts", async () => {
@@ -374,10 +346,9 @@ describe("invitation + OTP flow", () => {
     const inviteId = (await res.json()).invite.id as string;
     const code = extractInviteCode(fakeEmailProvider.outbox.at(-1)!.text);
 
-    const { user: userA } = await createVerifiedUser("client", "race-a@example.com");
-    const { user: userB } = await createVerifiedUser("client", "race-b@example.com");
-    const cookieA = await sessionCookieFor(userA.id);
-    const cookieB = await sessionCookieFor(userB.id);
+    const { user: racer } = await createVerifiedUser("client", "race@example.com");
+    const cookieA = await sessionCookieFor(racer.id);
+    const cookieB = await sessionCookieFor(racer.id);
 
     const [resA, resB] = await Promise.all([
       acceptInviteRoute(postJson("/api/invites/accept", { code }, cookieHeader(cookieA))),

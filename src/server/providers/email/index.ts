@@ -1,3 +1,4 @@
+import { standInProvidersAllowed } from "../stand-in";
 import { fakeEmailProvider } from "./fake";
 import type { EmailProvider } from "./interface";
 
@@ -5,7 +6,7 @@ import type { EmailProvider } from "./interface";
 export function getEmailProvider(): EmailProvider {
   const kind = process.env.EMAIL_PROVIDER ?? "fake";
   if (kind === "fake") {
-    if (process.env.NODE_ENV === "production") {
+    if (!standInProvidersAllowed()) {
       throw new Error("fake email provider is not allowed in production");
     }
     return fakeEmailProvider;

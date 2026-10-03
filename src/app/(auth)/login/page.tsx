@@ -38,7 +38,11 @@ export default function LoginPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, code }),
     });
-    setMessage(res.ok ? "Signed in." : "Invalid or expired code.");
+    if (!res.ok) {
+      setMessage("Invalid or expired code.");
+      return;
+    }
+    window.location.assign("/cases");
   }
 
   return (

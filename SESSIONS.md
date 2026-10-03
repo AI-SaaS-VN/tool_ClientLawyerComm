@@ -695,3 +695,86 @@ Implement PLAN.md T12 (E2E dual-user + backup/restore drill + real-channel accep
 All P0 coding is done. Next actions need the user/operations lead: real SMTP EmailProvider + real-address acceptance (AC01/AC08/AC12 real parts), the AC10 network window, the production-scale drill; P1 tasks T09/T13 wait for a user decision. Do not redo T01–T08/T10/T11/T12.<br>全部 P0 编码已完成。下一步需用户/运维负责人：真实 SMTP EmailProvider＋真实地址验收（AC01/AC08/AC12 真实部分）、AC10 网络测试窗口、生产规模演练；P1 任务 T09/T13 待用户决定。不要重做 T01–T08/T10/T11/T12。
 
 ---
+
+## Session 2026-10-03-01 (Ended) / 会话 2026-10-03-01（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: deploy the current tree to the designated Shanghai test host after the user confirmed, and record that the HTTP entry is live.<br>本次目标：用户确认后把当前代码部署到指定的上海测试机，并记下 HTTP 入口已经可用。
+
+### Actual Actions / 实际动作
+
+1. Confirmed key login and passwordless sudo on the test host. Synced the tree, started Postgres and MinIO bound to localhost, applied migrations, built Next.js, and published HTTP port 80 through nginx. Database, object storage, and the app process are not exposed beyond the host.<br>确认测试机密钥登录与免密 sudo。同步代码，在本机回环上启动 Postgres 与 MinIO，执行迁移，构建 Next.js，经 nginx 开放 HTTP 80。数据库、对象存储和应用进程不对外。
+2. Production builds refuse the fake email, translation, moderation, and stub scanner. Real SMTP and Kimi remain blocked (O05), so the test host sets `CLC_FICTITIOUS_TEST_HOST=1`. Public `/api/test/*` returns 404.<br>生产构建会拒绝假邮件、假翻译、假审核和桩扫描器。真实 SMTP 与 Kimi 仍被 O05 挡住，因此测试机设置 `CLC_FICTITIOUS_TEST_HOST=1`。对外 `/api/test/*` 返回 404。
+
+### Changed Files / 变更文件
+
+- Modified: provider selection, `docs/deployment.md`, `CONTEXT.md`, `SPEC.md`, `PROGRESS.md`, `.env.example`, `tests/e2e/config.ts`, `LOCAL_DEV_NOTES.md` (gitignored).<br>修改：提供者选择、部署文档、CONTEXT、SPEC、PROGRESS、`.env.example`、端到端配置、本地笔记（不入库）。
+- Not committed.<br>未提交。
+
+### Verification Results / 验证结果
+
+- Unit test for the stand-in flag passed. Public `GET /api/health` and `/login` and `/invite` returned 200. `/api/test/outbox` returned 404. Browser: login form accepted a fictitious address and advanced to the code step; invite page rendered.<br>替身开关的单元测试通过。公网 `GET /api/health`、`/login`、`/invite` 返回 200。`/api/test/outbox` 返回 404。浏览器：登录表单接受虚构地址并进入验证码步骤；邀请页正常显示。
+
+### Unfinished Items / 未完成项
+
+- This deploy is uncommitted. Mail and OTP stay in the on-host fake outbox until O05 allows a real provider. AC10 and a production-scale restore drill are still open.<br>本次部署尚未提交。在 O05 允许真实提供者之前，邮件和验证码只留在测试机上的假发件箱。AC10 与生产规模恢复演练仍未做。
+
+### First Step Next Time / 下次第一步
+
+Commit the deploy record if the user asks. Do not point Playwright at the test host.<br>若用户要求，再提交这次部署记录。不要把 Playwright 指到测试机。
+
+---
+
+## Session 2026-10-03-02 (Ended) / 会话 2026-10-03-02（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: record the one-step activation decision and refresh the repository's development-status markdown. No application code.<br>本次目标：记下一步激活的决定，并更新仓库里反映开发状态的 Markdown。不改应用代码。
+
+### Actual Actions / 实际动作
+
+1. The user replaced follow-up item 2. Activation is one step: the invited email plus the activation code. The code selects the case and is bound to that email, the case, and the role. Only that email can accept it. Any browser can join while the pair is still valid. The same email can later join another case with a new code. The 36-hour OTP option is withdrawn. After the code is used, a new browser still signs in with the existing email OTP.<br>用户改了跟进项第 2 条。激活是一步：受邀邮箱加上激活码。激活码用来区分案件，并绑定该邮箱、案件与角色。只有该邮箱可以接受。邮箱和激活码仍有效时，换一个浏览器也可以进入。同一邮箱以后可以用新的激活码加入另一个案件。36 小时验证码方案取消。激活码用过之后，新浏览器仍用现有邮箱验证码登录。
+2. Wrote that rule into SOW v1.11, SPEC v0.9, and PLAN v0.9 (F02). Updated CONTEXT, GLOSSARY, PROGRESS, README, VIBE banner, the test-case runbook, and CURSOR_REVIEW section 8. Historical changelogs stay. Each status file says the running code and the Shanghai host still use the v1.10 two-step flow until F02.<br>写入 SOW v1.11、SPEC v0.9 与 PLAN v0.9（F02）。更新了 CONTEXT、GLOSSARY、PROGRESS、README、VIBE 效力说明、测试案件指引，以及 CURSOR_REVIEW 第 8 节。历史变更记录保留。每份状态文件都写明：正在运行的代码和上海测试机在 F02 之前仍是 v1.10 的两步流程。
+
+### Changed Files / 变更文件
+
+- Modified: SOW.md, SPEC.md, PLAN.md, CONTEXT.md, GLOSSARY.md, PROGRESS.md, README.md, VIBE_CODING_INPUT.md, CURSOR_REVIEW.md, SESSIONS.md, docs/runbook/mvp-test-case.md, docs/deployment.md.<br>修改：上述文件。
+- Not committed. Application code unchanged.<br>未提交。应用代码未改。
+
+### Verification Results / 验证结果
+
+- Documentation consistency only. No tests were run. The test host was not rebuilt.<br>仅文档一致性。未跑测试。测试机未重新构建。
+
+### Unfinished Items / 未完成项
+
+- F01 (case-page attachment control) is next, then F02 (implement the one-step flow). F05 (commit the deployed fixes) waits for the user to ask.<br>下一步是 F01（案件页附件控件），然后是 F02（实现一步激活）。F05（提交已部署的修复）等用户要求。
+
+### First Step Next Time / 下次第一步
+
+Implement F01 if the user asks. Do not treat the live `/invite` page as already one-step.<br>若用户要求，再实现 F01。不要把正在运行的 `/invite` 页当成已经是一步。
+
+---
+
+## Session 2026-10-03-03 (Ended) / 会话 2026-10-03-03（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: implement one-step activation in the repository and on the Shanghai test host.<br>本次目标：在仓库和上海测试机上实现一步激活。
+
+### Actual Actions / 实际动作
+
+1. Activation is now the invited email plus the activation code. Only that email can accept it. A different email does not consume the code. The same email joins a later case on the same account. Success opens a session and `/cases`. Return visits after the code is used still use the email OTP.<br>激活改为受邀邮箱加上激活码。只有该邮箱可以接受。其他邮箱不消耗激活码。同一邮箱以后加入另一个案件时仍用同一账号。成功后建立会话并打开 `/cases`。激活码用过之后，再次登录仍用邮箱验证码。
+2. Rebuilt and restarted the test host. Health returned ok. The invite page shows "Activate and join".<br>重新构建并重启了测试机。健康检查返回 ok。邀请页显示 "Activate and join"。
+
+### Changed Files / 变更文件
+
+- Application: invite page, `POST /api/invites/activate`, invite acceptance checks the invited email, activation email text, tests.<br>应用：邀请页、`POST /api/invites/activate`、接受时核对受邀邮箱、激活邮件正文、测试。
+- Status docs updated to match. Not committed.<br>状态文档已对齐。未提交。
+
+### Verification Results / 验证结果
+
+- `npm run test` 281/281. Playwright admin triangle, review journey, and health passed. Dual-user message visibility timed out once.<br>`npm run test` 281/281。Playwright 管理员三角、审核旅程和健康检查通过。双用户消息可见性超时一次。
+
+### First Step Next Time / 下次第一步
+
+F01, the case-page attachment control, if the user asks.<br>若用户要求，做 F01：案件页的附件控件。
+
+---

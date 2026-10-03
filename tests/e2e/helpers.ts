@@ -150,32 +150,25 @@ export async function acceptInviteViaApi(
   email: string,
   inviteCode: string,
 ): Promise<void> {
-  const req = await request.post("/api/auth/otp/request", { data: { email, inviteCode } });
-  expect(req.status()).toBe(200);
-  const mail = await waitForEmail(request, email, isOtpMail, "invite OTP");
-  const verify = await request.post("/api/auth/otp/verify", {
-    data: { email, code: extractOtp(mail.text), inviteCode },
+  const res = await request.post("/api/invites/activate", {
+    data: { email, code: inviteCode },
   });
-  expect(verify.status()).toBe(200);
-  expect(((await verify.json()) as { inviteAccepted: boolean }).inviteAccepted).toBe(true);
+  expect(res.status()).toBe(200);
+  expect(((await res.json()) as { role: string }).role).toBeTruthy();
 }
 
-// The full /invite page journey: code + own email → OTP from the fake outbox
-// → verify → membership.
+// The /invite page: invited email + activation code, then the case list.
 export async function acceptInviteViaUi(
   page: Page,
-  request: APIRequestContext,
+  _request: APIRequestContext,
   email: string,
   inviteCode: string,
 ): Promise<void> {
   await page.goto("/invite");
   await page.getByTestId("invite-code").fill(inviteCode);
   await page.getByTestId("invite-email").fill(email);
-  await page.getByTestId("invite-send-otp").click();
-  const mail = await waitForEmail(request, email, isOtpMail, "invite OTP");
-  await page.getByTestId("invite-otp").fill(extractOtp(mail.text));
-  await page.getByTestId("invite-verify").click();
-  await expect(page.getByTestId("invite-message")).toHaveText("Invitation accepted.");
+  await page.getByTestId("invite-activate").click();
+  await page.waitForURL("**/cases");
 }
 
 // A browser context whose session belongs to a user activated at the API

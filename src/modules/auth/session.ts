@@ -54,12 +54,13 @@ export function sessionCookieSecure(): boolean {
   return (process.env.SESSION_COOKIE_SECURE ?? "true") !== "false";
 }
 
-export function sessionCookieOptions(expiresAt: Date) {
+export function sessionCookieOptions(expiresAt: Date, now: Date = new Date()) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     secure: sessionCookieSecure(),
     path: "/",
     expires: expiresAt,
+    maxAge: Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000)),
   };
 }

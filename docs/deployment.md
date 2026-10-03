@@ -24,7 +24,7 @@ See `.env.example` for the full list (placeholders only, never real values). Key
 - `DATABASE_URL` — 应用库连接串。
 - `MINIO_*` / `STORAGE_PROVIDER=minio` — 私有对象存储。
 - `APP_DATA_KEY` — 32 字节 hex 的 AES-256-GCM 密钥,加密联系方式与 MFA secret;`openssl rand -hex 32` 生成;**轮换即失效**,丢失则已加密数据不可读。
-- `EMAIL_PROVIDER` / `TRANSLATION_PROVIDER` / `LLM_PROVIDER` / `FILE_SCANNER` — 目前只有 `fake`/`stub` 实现,**生产环境会被拒绝启动**;真实 SMTP 与 Kimi 接入属外部资源待落实项(O05),接入前生产部署无法合法运行。
+- `EMAIL_PROVIDER` / `TRANSLATION_PROVIDER` / `LLM_PROVIDER` / `FILE_SCANNER` — 目前只有 `fake`/`stub` 实现,**生产环境会拒绝这些替身**;真实 SMTP 与 Kimi 接入属外部资源待落实项(O05)。指定的虚构数据测试机是唯一例外:设 `CLC_FICTITIOUS_TEST_HOST=1`(见下)。该开关不得用于存放真实案情的主机。
 - `SESSION_COOKIE_SECURE` — 默认 `true`。**仅**在备案前的 HTTP-IP 测试入口(虚构数据)可设 `false`;接入任何真实数据前必须恢复 `true`(REQ-AUTH-06)。
 - `APP_BASE_URL` — 提醒邮件中的登录链接前缀(不含路径)。
 - `NOTIFICATION_WORKER` — 默认 `on`,见上表。
@@ -50,9 +50,17 @@ RPO ≤24h / RTO ≤8h are **targets to be validated by drills**, not achieved c
 
 ## 5. 测试期访问入口(上海测试环境)/ Test-period entry (Shanghai test environment)
 
-按 SOW O02(2026-10-01 决定):备案完成前,测试环境**只能以 `http://<IP>:<端口>` 形式访问**——把主站/子域名指向境内实例的 80/443 会被云厂商拦截。因此:
+2026-10-03 已把本应用部署到 SOW O02 指定的上海测试主机。对外入口是该机的 **HTTP 80 端口**(备案完成前没有 TLS)。主机上的 `.env` 设置 `CLC_FICTITIOUS_TEST_HOST=1`、`SESSION_COOKIE_SECURE=false`、`APP_BASE_URL` 为该 HTTP 入口;邮件、翻译和文件扫描仍用替身实现,因为真实 SMTP 与 Kimi 仍被 O05 挡住。只允许虚构数据。验证码留在该进程的 outbox 里,只能在测试机本机读取;`/api/test/` 对外返回 404。激活是一步:受邀邮箱加上激活码,不另发 6 位验证码。具体 IP 不写入本仓库。
 
-Per SOW O02 (decided 2026-10-01): until ICP filing completes, the test environment is reachable **only as `http://<IP>:<port>`** — pointing the main site or a subdomain at a mainland instance's 80/443 is blocked by the cloud provider. Therefore:
+研发主机上的自动化测试仍访问 `http://localhost:3100`:Playwright 和开发服务器在同一台机器上。笔记本的 `127.0.0.1` 不是研发主机,也不是测试机。
+
+On 2026-10-03 this application was deployed to the Shanghai test host named in SOW O02. The public entry is **HTTP port 80** on that host (no TLS until ICP filing). That host's `.env` sets `CLC_FICTITIOUS_TEST_HOST=1`, `SESSION_COOKIE_SECURE=false`, and `APP_BASE_URL` to that HTTP entry; mail, translation, and file scanning stay on the stand-in implementations because real SMTP and Kimi remain blocked by O05. Fictitious data only. Verification codes stay in that process's outbox and can be read only on the test host itself; `/api/test/` returns 404 to the public. Activation is one step: the invited email plus the activation code, with no second 6-digit code. The concrete IP is not written in this repository.
+
+Automated tests on the development host still use `http://localhost:3100`, because Playwright and the dev server run on that same machine. The laptop's `127.0.0.1` is neither the development host nor the test host.
+
+按 SOW O02(2026-10-01 决定):备案完成前,测试环境在**完成部署之后**只能以 `http://<IP>:<端口>` 形式访问——把主站/子域名指向境内实例的 80/443 会被云厂商拦截。因此:
+
+Per SOW O02 (decided 2026-10-01): after a deploy, and until ICP filing completes, the test environment is reachable **only as `http://<IP>:<port>`** — pointing the main site or a subdomain at a mainland instance's 80/443 is blocked by the cloud provider. Therefore:
 
 1. 该入口**无 TLS**,`SESSION_COOKIE_SECURE=false` 仅限此场景,且只允许虚构数据;接入真实案情前必须关闭该例外。
    This entry has **no TLS**; `SESSION_COOKIE_SECURE=false` applies only here and only with fictitious data, and the exception must be removed before any real case data connects.

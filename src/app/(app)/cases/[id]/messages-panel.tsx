@@ -20,6 +20,18 @@ interface MessageItem {
 
 type ReadingMode = "auto" | "manual";
 
+// crypto.randomUUID() exists only in secure contexts. This test host is HTTP
+// on an IP address, where that call throws and the send click appears to do
+// nothing. getRandomValues is available there.
+function newIdempotencyKey(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export function MessagesPanel({ caseId }: { caseId: string }) {
   const [mode, setMode] = useState<ReadingMode>("auto");
   const [messages, setMessages] = useState<MessageItem[]>([]);
@@ -73,15 +85,19 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
     const text = draft.trim();
     if (!text) return;
     setSendError(false);
-    const res = await fetch(`/api/cases/${caseId}/messages`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
-      body: JSON.stringify({ sourceText: text }),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/cases/${caseId}/messages`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "idempotency-key": newIdempotencyKey() },
+        body: JSON.stringify({ sourceText: text }),
+      });
+      if (!res.ok) {
+        setSendError(true);
+        return;
+      }
       setDraft("");
       setRefreshKey((key) => key + 1);
-    } else {
+    } catch {
       setSendError(true);
     }
   }

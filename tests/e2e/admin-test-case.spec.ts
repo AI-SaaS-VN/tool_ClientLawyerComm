@@ -35,7 +35,7 @@ test("admin test-case journey: bootstrap → MFA → triangle activation → iso
   const otpMail = await waitForEmail(request, adminEmail, (e) => e.text.includes("verification code"), "login OTP");
   await loginPage.getByTestId("login-code").fill(extractOtp(otpMail.text));
   await loginPage.getByTestId("login-verify").click();
-  await expect(loginPage.getByTestId("login-message")).toHaveText("Signed in.");
+  await loginPage.waitForURL("**/cases");
 
   // MFA enrollment and the test-case call ride on the browser session.
   const adminApi = await apiRequest.newContext({

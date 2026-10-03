@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { prisma } from "@/lib/db";
-import { requestLoginOtp, requestInviteOtp, verifyLoginOtp } from "@/modules/auth/service";
+import { requestLoginOtp, verifyLoginOtp } from "@/modules/auth/service";
 import { archiveCase, createCase } from "@/modules/cases/service";
 import { downloadFile, uploadFile } from "@/modules/files/service";
 import {
   acceptInvite,
+  activateByEmailAndCode,
   createInvite,
   resendInvite,
   revokeInvite,
@@ -66,14 +67,12 @@ describe("audit trail coverage (REQ-OPS-01)", () => {
       email: LAWYER_EMAIL,
       role: "lawyer",
     });
-    await requestInviteOtp(LAWYER_EMAIL, code);
-    const otpEmail = fakeEmailProvider.outbox.at(-1)!;
-    const otp = extractOtp(otpEmail.text);
-    const login = await verifyLoginOtp({ email: LAWYER_EMAIL, code: otp, inviteCode: code });
+    const login = await activateByEmailAndCode(LAWYER_EMAIL, code);
     const lawyer = login.user;
 
-    // A failed verification attempt.
+    // A failed verification attempt on the now-active account.
     await requestLoginOtp(LAWYER_EMAIL, new Date(Date.now() + 61_000));
+    const otp = extractOtp(fakeEmailProvider.outbox.at(-1)!.text);
     await expect(
       verifyLoginOtp({
         email: LAWYER_EMAIL,

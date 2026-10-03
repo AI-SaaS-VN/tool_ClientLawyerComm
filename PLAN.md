@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.8 | Date: 2026-10-02
-- 版本：0.8｜日期：2026-10-02
-- Basis: SPEC.md v0.8, SOW.md v1.10. T02 implements the MVP path: the invitation code is not bound to an email (REQ-AUTH-01, REQ-AUTH-12). The activation email is still sent only to the entered address. P0 tasks are T01–T08 and T10–T12 (11 tasks). T09 and T13 are P1 and do not block P0.
-- 依据：SPEC.md v0.8、SOW.md v1.10。T02 实现 MVP 路径：邀请码不绑定邮箱（REQ-AUTH-01、REQ-AUTH-12）。激活邮件仍只发给被输入的地址。P0 任务为 T01–T08 与 T10–T12（11 个）。T09 与 T13 属于 P1，不阻塞 P0。
+- Version: 0.9 | Date: 2026-10-03
+- 版本：0.9｜日期：2026-10-03
+- Basis: SPEC.md v0.9, SOW.md v1.11. The decided activation path is one step: the invited email plus the activation code, and only that email can accept that code (REQ-AUTH-01, REQ-AUTH-12). The repository implements that one-step path (F02). P0 tasks are T01–T08 and T10–T12 (11 tasks). T09 and T13 are P1 and do not block P0.
+- 依据：SPEC.md v0.9、SOW.md v1.11。已决定的激活路径是一步：受邀邮箱加上激活码，且只有该邮箱能接受该码（REQ-AUTH-01、REQ-AUTH-12）。本仓库已实现这一步激活（F02）。P0 任务为 T01–T08 与 T10–T12（11 个）。T09 与 T13 属于 P1，不阻塞 P0。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -59,8 +59,8 @@
 
 ## T02 Invitation-based Registration and Login (MVP: Email OTP Only) / T02 邀请注册与登录（MVP 仅邮箱 OTP）
 
-- Goal: enter a notification email and send an activation email only to that address; the invitation code is not bound to that email; acceptance, revocation, and resend; email OTP login (EmailProvider interface + mock; **phone OTP and SmsProvider stay P1**); accepting grants only the named Case; an already logged-in Lawyer accepts a second Case on the same account; administrator accounts stay on the local bootstrap path (MFA in T11). Priority P0.
-- 目标：输入通知邮箱，且只向该地址发送激活邮件；邀请码不绑定该邮箱；接受、撤销与重发；邮箱验证码登录（EmailProvider 接口＋模拟；**手机验证码与 SmsProvider 仍为 P1**）；接受只授予所写明的案件；已登录的律师用同一账号接受第二个案件；管理员账号仍走本地引导（MFA 在 T11）。优先级 P0。
+- Goal, as built in T02 (v1.10): enter a notification email and send an activation email only to that address; the invitation code is not bound to that email; acceptance still uses a 6-digit OTP; revocation and resend; email OTP login (EmailProvider interface + mock; **phone OTP and SmsProvider stay P1**); accepting grants only the named Case; an already logged-in Lawyer accepts a second Case on the same account; administrator accounts stay on the local bootstrap path (MFA in T11). Priority P0. **v1.11 supersedes the unbound rule.** F02 changed this path to one step: the invited email plus the activation code, and only that email can accept it.
+- 目标，按 T02 已实现的版本（v1.10）：输入通知邮箱，且只向该地址发送激活邮件；邀请码不绑定该邮箱；接受仍使用 6 位验证码；撤销与重发；邮箱验证码登录（EmailProvider 接口＋模拟；**手机验证码与 SmsProvider 仍为 P1**）；接受只授予所写明的案件；已登录的律师用同一账号接受第二个案件；管理员账号仍走本地引导（MFA 在 T11）。优先级 P0。**v1.11 取代不绑定规则。** F02 已把这条路径改成一步：受邀邮箱加上激活码，且只有该邮箱能接受。
 - SPEC references: REQ-AUTH-01~08, REQ-AUTH-10, REQ-AUTH-11, REQ-AUTH-12; REQ-PM-02/09/10. Acceptance: the mock-chain part of AC01 (real channels belong to T12).
 - SPEC 引用：REQ-AUTH-01~08、REQ-AUTH-10、REQ-AUTH-11、REQ-AUTH-12；REQ-PM-02/09/10。验收：AC01 模拟链路部分（真实渠道属 T12）。
 - Dependencies: T01.
@@ -257,8 +257,8 @@
 - SPEC 引用：第17节全部映射；REQ-OPS-04；REQ-OPS-07。
 - Dependencies: T01–T08, T10, T11 (T09 has moved to P1).
 - 依赖：T01–T08、T10、T11（T09 已移 P1）。
-- Acceptance criteria: E2E covers the key paths of AC02/AC03/AC05/AC06/AC08/AC09/AC12. AC07 stays in T09 (P1) and is not an MVP pass condition. AC03's required browser pair is Chinese and Vietnamese; English and Traditional Chinese are already covered by T06 mock tests. The runbook is followed once: the administrator creates one fictitious test Case, three activation emails go to the Coordinator, Chinese Client, and Vietnamese Lawyer addresses, each code is not bound to that mailbox, each acceptance joins only that Case, and the administrator is not a chat member. The same-account second Case is covered by T02, not by this one-Case runbook. Restore-drill report (message/member/file association checks pass); real-email delivery report; network test report (time/network/sample size/P50/P95/failure rate). **Simulated success does not count as real delivery; when external resources are not in place, the related items are marked "Blocked" rather than passed.**
-- 验收标准：E2E 覆盖 AC02/AC03/AC05/AC06/AC08/AC09/AC12 关键路径。AC07 留在 T09（P1），不是 MVP 的通过条件。AC03 的必测浏览器组合是中文与越南语；英语与繁体中文已由 T06 的模拟测试覆盖。运行指引实际走一遍：管理员创建一个虚构测试案件，三封激活邮件分别发给协调员、中国客户、越南律师的邮箱，每个邀请码都不绑定该邮箱，每次接受只加入该案件，管理员不是聊天成员。同一账号的第二个案件由 T02 覆盖，不由这份单案件运行指引覆盖。恢复演练报告（消息/成员/文件关联核查通过）；真实邮件送达报告；网络测试报告（时间/网络/样本数/P50/P95/失败率）。**模拟成功不视为真实送达；外部资源未到位时相关项标记「阻塞」而非通过。**
+- Acceptance criteria: E2E covers the key paths of AC02/AC03/AC05/AC06/AC08/AC09/AC12. AC07 stays in T09 (P1) and is not an MVP pass condition. AC03's required browser pair is Chinese and Vietnamese; English and Traditional Chinese are already covered by T06 mock tests. The runbook is followed once: the administrator creates one fictitious test Case, three activation emails go to the Coordinator, Chinese Client, and Vietnamese Lawyer addresses, each code is not bound to that mailbox, each acceptance joins only that Case, and the administrator is not a chat member. The same-account second Case is covered by T02, not by this one-Case runbook. This paragraph records the v1.10 build. F02 changed the live path: each code is bound to the invited email, and activation does not use a second OTP. The runbook matches F02. Restore-drill report (message/member/file association checks pass); real-email delivery report; network test report (time/network/sample size/P50/P95/failure rate). **Simulated success does not count as real delivery; when external resources are not in place, the related items are marked "Blocked" rather than passed.**
+- 验收标准：E2E 覆盖 AC02/AC03/AC05/AC06/AC08/AC09/AC12 关键路径。AC07 留在 T09（P1），不是 MVP 的通过条件。AC03 的必测浏览器组合是中文与越南语；英语与繁体中文已由 T06 的模拟测试覆盖。运行指引实际走一遍：管理员创建一个虚构测试案件，三封激活邮件分别发给协调员、中国客户、越南律师的邮箱，每个邀请码都不绑定该邮箱，每次接受只加入该案件，管理员不是聊天成员。同一账号的第二个案件由 T02 覆盖，不由这份单案件运行指引覆盖。本段记录的是 v1.10 的构建。F02 已改现场路径：每个激活码绑定受邀邮箱，激活不再使用第二个验证码。运行指引与 F02 一致。恢复演练报告（消息/成员/文件关联核查通过）；真实邮件送达报告；网络测试报告（时间/网络/样本数/P50/P95/失败率）。**模拟成功不视为真实送达；外部资源未到位时相关项标记「阻塞」而非通过。**
 - Expected new/modified: `tests/e2e/**`, `src/app/(app)/admin/test-case/**`, `scripts/backup.sh`, `scripts/restore-drill.sh`, `docs/runbook/mvp-test-case.md`, `docs/deployment.md`.
 - 预计新增/修改：`tests/e2e/**`、`src/app/(app)/admin/test-case/**`、`scripts/backup.sh`、`scripts/restore-drill.sh`、`docs/runbook/mvp-test-case.md`、`docs/deployment.md`。
 - Tests to add/update: `tests/e2e/dual-user.spec.ts`, `tests/e2e/review-alert.spec.ts`, `tests/e2e/admin-test-case.spec.ts`.
@@ -308,3 +308,37 @@ T01 → T02 → T03 → T04 → T05 → T07 → T08 ─────────�
 Test output, migration records, and the list of changed files are written into PROGRESS.md; failures/not-run/blocked items are recorded truthfully, and a pass is never achieved by weakening tests.
 
 测试输出、迁移记录、变更文件清单写入 PROGRESS.md；失败/未运行/阻塞如实记录，不以削弱测试换取通过。
+
+## Pilot Follow-ups after the 2026-10-03 Shanghai Test / 2026-10-03 上海试点之后的跟进
+
+The three roles are in the fictitious case and can see the client's three identical messages. The lawyer's phone had dropped its session and was sent to Sign in; a new login now opens `/cases`. The items below are the remaining work, ordered by what blocks this pilot. T01–T13 keep their existing status. T09 and T13 stay P1.
+
+三方已在虚构案件中，并能看到客户发出的三句相同消息。律师手机丢失了登录状态并被送到登录页；现在重新登录会打开 `/cases`。下面按是否挡住这次试点排序。T01–T13 的原状态不变。T09 与 T13 仍是 P1。
+
+| Order | ID | Task | Compared with the three requested changes | Status |
+| --- | --- | --- | --- | --- |
+| 1 | F01 | Case-page attachment control. T08 already uploads, scans, holds for review, and downloads through the API. The case page has no button, so the pilot cannot exchange files. | This is requested change 3. It blocks the live case. Do it before the registration and landing leftovers. | Next |
+| 2 | F02 | One-step activation (v1.11, decided 2026-10-03). The invited person enters their own email and the activation code. The code is bound to that email, one case, and one role. Only that email can accept it. Email plus code is the check; there is no second 6-digit code during activation. Any browser can join while the code is unused and unexpired. The same email accepts a later code for another case on the same account. A different role is rejected. After the code is used, a new browser signs in with the existing email OTP (REQ-AUTH-02/03); that OTP is not part of activation. Implemented in the repository and covered by the invite integration tests. A new browser after the code is used still signs in with the email OTP. | This is requested change 2. | Done |
+| 3 | F03 | Finish where a successful login lands. Login already goes to `/cases` (deployed 2026-10-03). Still open: `/` is the Next.js starter page; accepting an invitation stays on `/invite` and does not open the case; the lawyer's phone once lost the session cookie and fell back to Sign in (`maxAge` was added and needs another check on that phone). | This is requested change 1. The worst part (staying on Sign in after a successful code) is already deployed. The leftovers are behind F01 and F02. | Partial |
+| 4 | F04 | One click sends one message. The client clicked three times and created three identical messages, because the button did not show that a send was in progress. Disable the button while the request runs, and show the new message without requiring another click. | Not one of the three requests. Seen on 2026-10-03. Do it with F01, because both edit the case page. | Next |
+| 5 | F05 | Commit the test-host fixes that are deployed and not yet in git: HTTP send no longer calls `crypto.randomUUID()`, login opens `/cases`, fictitious-test-host provider flag, and the deployment notes. | Bookkeeping. Do it before more coding so the repository matches the machine the pilot is using. | Next |
+| 6 | F06 | Deliver the activation email to real mailboxes (O05). Until then the operator reads the on-host outbox and hands over the activation code. | The one-step flow still needs the code to arrive. Blocked. | Blocked |
+| 7 | F07 | Real Vietnamese translation (O05). The lawyer's auto mode currently shows `[vi]` plus the Chinese source. | Not one of the three requests. Blocked. | Blocked |
+| 8 | F08 | T12 leftovers: AC10 China–Vietnam network test, production-scale restore drill (O07/O08). | After the pilot UI. Blocked on external resources. | Blocked |
+| 9 | F09 | P0 review gaps already found: display names are not checked for contact channels (REQ-MOD-02); no account-recovery API (REQ-AUTH-10); no API for a later administrator; session tokens are stored in plaintext. | After F01–F05. Not requested on 2026-10-03. | Later |
+| 10 | F10 | Re-run the three failing end-to-end journeys from the 2026-10-03 review, after F01 and F04. | Quality. Behind the pilot pages. | Later |
+| 11 | T09, T13 | DOCX bilingual conversion and the daily digest. | Already P1. They stay behind this pilot list. | P1 |
+
+| 顺序 | ID | 任务 | 与提出的三处修改比较 | 状态 |
+| --- | --- | --- | --- | --- |
+| 1 | F01 | 案件页增加附件控件。T08 已能通过接口上传、扫描、送审和下载。案件页没有按钮，试点无法交换文件。 | 这是第 3 项修改。它挡住正在进行的案件，排在注册和登录去向的剩余项之前。 | 下一步 |
+| 2 | F02 | 一步激活（v1.11，2026-10-03 决定）。受邀人输入本人邮箱和激活码。激活码绑定该邮箱、一个案件和一个角色。只有该邮箱能接受。邮箱加激活码就是校验，激活过程不再另要 6 位验证码。激活码未使用且未过期时，换一个浏览器也可以进入该案件。同一邮箱以后接受另一个案件的激活码时，加入同一账号。角色不符则拒绝。激活码用过之后，新浏览器用现有的邮箱验证码登录（REQ-AUTH-02/03）；该验证码不属于激活。已在仓库实现，并由邀请集成测试覆盖。激活码用过之后，新浏览器仍用邮箱验证码登录。 | 这是已确认的第 2 项修改。 | 已完成 |
+| 3 | F03 | 补完登录成功后的去向。登录已经会打开 `/cases`（2026-10-03 已部署）。仍待处理：`/` 仍是 Next.js 起始页；接受邀请后停在 `/invite`，不打开案件；律师手机曾丢失会话 Cookie 并退回登录页（已加 `maxAge`，需在该手机上再确认一次）。 | 这是第 1 项修改。最严重的一段（验证成功后仍停在登录页）已经部署。剩余项排在 F01、F02 之后。 | 部分完成 |
+| 4 | F04 | 一次点击只发出一条消息。客户连点三次，产生三句相同消息，因为按钮没有表示正在发送。请求进行时禁用按钮，并在不必再点一次的情况下显示新消息。 | 不是那三项修改。2026-10-03 观察到。与 F01 一起做，因为都改案件页。 | 下一步 |
+| 5 | F05 | 提交已经部署、尚未进 Git 的测试机修复：HTTP 页面发送不再调用 `crypto.randomUUID()`、登录打开 `/cases`、虚构测试机的提供者开关，以及部署说明。 | 记账项。继续改代码之前做，让仓库和试点机器一致。 | 下一步 |
+| 6 | F06 | 把激活邮件送到真实邮箱（O05）。在此之前由操作者读取测试机上的发件箱，并把激活码交给受邀人。 | 一步激活仍然需要激活码送达。阻塞。 | 阻塞 |
+| 7 | F07 | 真实越南语翻译（O05）。律师的自动模式目前显示 `[vi]` 加中文原文。 | 不是那三项修改。阻塞。 | 阻塞 |
+| 8 | F08 | T12 剩余项：AC10 中越网络测试、生产规模恢复演练（O07/O08）。 | 排在试点界面之后。外部资源阻塞。 | 阻塞 |
+| 9 | F09 | 已发现的 P0 复核缺口：显示名未按联系渠道检查（REQ-MOD-02）；没有账号找回接口（REQ-AUTH-10）；没有后续管理员接口；会话令牌明文存放。 | 排在 F01–F05 之后。2026-10-03 未提出。 | 稍后 |
+| 10 | F10 | F01 与 F04 之后，重跑 2026-10-03 复核里失败的三段端到端旅程。 | 质量项。排在试点页面之后。 | 稍后 |
+| 11 | T09、T13 | DOCX 双语转换与案件日报。 | 原本就是 P1。仍排在这份试点清单之后。 | P1 |

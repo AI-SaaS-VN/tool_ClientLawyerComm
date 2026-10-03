@@ -2,7 +2,7 @@ import type { Invite, User } from "@prisma/client";
 
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
-import { decryptText, encryptText, normalizeEmail } from "@/modules/auth/crypto";
+import { decryptText, encryptText, hashEmail, normalizeEmail } from "@/modules/auth/crypto";
 import { generateInviteCode, hashInviteCode } from "@/modules/invites/code";
 import { recordAudit } from "@/server/audit/log";
 import {
@@ -36,9 +36,9 @@ async function sendInviteEmail(to: string, code: string): Promise<void> {
       text: [
         `您的案件邀请码 / Mã mời vụ án của bạn: ${code}`,
         "",
-        "【中文】您已被邀请加入一个案件。邀请码 7 天内有效，仅限使用一次。请登录平台，输入邀请码并验证您的邮箱后即可加入案件。",
+        "【中文】您已被邀请加入一个案件。请打开邀请页，输入本邮箱和这个激活码。一步即可加入，不需要另外的验证码。激活码 7 天内有效，仅限本邮箱使用一次。未使用且未过期时，换一个浏览器也可以。",
         "",
-        `[Tiếng Việt] Bạn đã được mời tham gia một vụ án. Mã mời có hiệu lực trong 7 ngày và chỉ sử dụng được một lần. Vui lòng đăng nhập nền tảng, nhập mã mời và xác minh email của bạn để tham gia vụ án.`,
+        `[Tiếng Việt] Bạn đã được mời tham gia một vụ án. Hãy mở trang lời mời, nhập email này và mã kích hoạt. Một bước là đủ, không cần mã xác minh khác. Mã có hiệu lực 7 ngày, chỉ email này dùng được một lần. Khi mã chưa dùng và chưa hết hạn, trình duyệt khác cũng vào được.`,
       ].join("\n"),
     });
   } catch {
@@ -103,6 +103,98 @@ export async function getValidInvite(code: string, now: Date = new Date()): Prom
   return invite;
 }
 
+function invitedEmail(invite: Invite): string {
+  return normalizeEmail(decryptText(invite.sentToEnc));
+}
+
+// REQ-AUTH-01 (v1.11): only the invited email can accept. Checked before the
+// single-use claim so a wrong email does not consume the code.
+async function assertUserOwnsInvitedEmail(user: User, invite: Invite): Promise<void> {
+  const channel = await prisma.contactChannel.findUnique({
+    where: { valueHash: hashEmail(invitedEmail(invite)) },
+  });
+  if (!channel || channel.userId !== user.id) {
+    throw new ApiError(403, "email_mismatch");
+  }
+}
+
+// One-step activation (v1.11). Email plus code is the check. A matching
+// account is reused; a new address becomes an active account of the invite's
+// role. A different email or a different role does not consume the code.
+export async function activateByEmailAndCode(
+  email: string,
+  code: string,
+  now: Date = new Date(),
+): Promise<{ user: User; caseId: string; role: InvitableRole; alreadyMember: boolean }> {
+  const normalized = normalizeEmail(email);
+  if (!normalized || !normalized.includes("@")) throw new ApiError(400, "invalid_email");
+  const invite = await getValidInvite(code, now);
+  if (invitedEmail(invite) !== normalized) throw new ApiError(403, "email_mismatch");
+  assertInvitableRole(invite.role);
+  const user = await ensureActiveRecipient(normalized, invite.role, now);
+  if (user.globalRole !== invite.role) throw new ApiError(403, "role_mismatch");
+  const joined = await acceptInvite(user, code, now);
+  const active = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+  await recordAudit(prisma, {
+    actorId: active.id,
+    action: "auth.login",
+    result: "success",
+    targetType: "user",
+    targetId: active.id,
+    meta: { via: "invite" },
+  });
+  return { user: active, ...joined };
+}
+
+async function ensureActiveRecipient(
+  email: string,
+  role: InvitableRole,
+  now: Date,
+): Promise<User> {
+  const valueHash = hashEmail(email);
+  const existing = await prisma.contactChannel.findUnique({
+    where: { valueHash },
+    include: { user: true },
+  });
+  if (existing) {
+    if (existing.user.globalRole !== role) throw new ApiError(403, "role_mismatch");
+    await prisma.contactChannel.update({
+      where: { id: existing.id },
+      data: { verifiedAt: existing.verifiedAt ?? now },
+    });
+    await prisma.user.updateMany({
+      where: { id: existing.userId, status: "pending" },
+      data: { status: "active" },
+    });
+    return prisma.user.findUniqueOrThrow({ where: { id: existing.userId } });
+  }
+  try {
+    return await prisma.user.create({
+      data: {
+        displayName: email.split("@")[0] ?? "user",
+        globalRole: role,
+        status: "active",
+        channels: {
+          create: {
+            valueEnc: encryptText(email),
+            valueHash,
+            isPrimary: true,
+            verifiedAt: now,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    const raced = await prisma.contactChannel.findUnique({
+      where: { valueHash },
+      include: { user: true },
+    });
+    if (!raced) throw error;
+    if (raced.user.globalRole !== role) throw new ApiError(403, "role_mismatch");
+    return raced.user;
+  }
+}
+
 // Grants membership only in the case and role named on the code (REQ-AUTH-07).
 export async function acceptInvite(
   user: User,
@@ -110,6 +202,7 @@ export async function acceptInvite(
   now: Date = new Date(),
 ): Promise<{ caseId: string; role: InvitableRole; alreadyMember: boolean }> {
   const invite = await getValidInvite(code, now);
+  await assertUserOwnsInvitedEmail(user, invite);
   if (user.globalRole !== invite.role) {
     throw new ApiError(403, "role_mismatch");
   }

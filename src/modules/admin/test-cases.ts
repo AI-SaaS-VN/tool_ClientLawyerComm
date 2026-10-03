@@ -38,8 +38,8 @@ function readClientOrgName(value: unknown): string {
 }
 
 // A recipient row exists so an optional display name survives until the
-// person registers; the invite OTP flow reuses this channel and activates
-// the pending user on first verification.
+// person activates. One-step activation reuses this channel and marks the
+// pending user active.
 async function ensurePendingRecipient(entry: TriangleEntry): Promise<void> {
   const existing = await prisma.contactChannel.findUnique({
     where: { valueHash: hashEmail(entry.email) },
