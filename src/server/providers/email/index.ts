@@ -1,10 +1,15 @@
 import { standInProvidersAllowed } from "../stand-in";
 import { fakeEmailProvider } from "./fake";
+import { SmtpEmailProvider } from "./smtp";
 import type { EmailProvider } from "./interface";
 
-// T02 ships only the fake provider; the real SMTP adapter is T12.
+// F06: EMAIL_PROVIDER=smtp selects the real SMTP adapter (O05); "fake" stays
+// restricted to non-production hosts and the fictitious-data test host.
 export function getEmailProvider(): EmailProvider {
   const kind = process.env.EMAIL_PROVIDER ?? "fake";
+  if (kind === "smtp") {
+    return new SmtpEmailProvider();
+  }
   if (kind === "fake") {
     if (!standInProvidersAllowed()) {
       throw new Error("fake email provider is not allowed in production");

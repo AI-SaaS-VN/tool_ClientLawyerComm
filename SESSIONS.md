@@ -1046,3 +1046,30 @@ Fix R1/R2/R3/R6 (before real data) or start T14, whichever the user asks. F06/F0
 Fix R1/R2/R3/R6 (before real data) or start T14, whichever the user asks. F06 (real email) stays blocked on O05/O07; F07 is done.<br>按用户要求修 R1/R2/R3/R6（先于真实数据）或开工 T14。F06（真实邮件）仍阻塞于 O05/O07；F07 已完成。
 
 ---
+
+## Session 2026-10-03-09 (Ended) / 会话 2026-10-03-09（已结束）
+
+- Date/Timezone: 2026-10-03, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-03，UTC（研发 VPS 上的 Kimi Code）
+- Goal (user request): clarify what "F06 blocked" meant, then implement F06 — real SMTP delivery of invitation emails. Finding: the block was never credentials (`.env` already carried the full `SMTP_*`/`EMAIL_FROM` set and a 587/STARTTLS smoke had succeeded on 2026-10-01); the missing piece was code — `getEmailProvider()` only knew `fake`.<br>本次目标（用户要求）：先澄清“F06 阻塞”指什么，随后实现 F06——邀请邮件真实 SMTP 送达。结论：阻塞的从来不是凭据（`.env` 早已带齐 `SMTP_*`/`EMAIL_FROM`，且 2026-10-01 的 587/STARTTLS 冒烟已成功），缺的是代码——`getEmailProvider()` 当时只认识 `fake`。
+
+### Actual Actions / 实际动作
+
+1. TDD (failing test first): added `tests/unit/email/smtp-adapter.test.ts` (10 cases — STARTTLS/SSL port and TLS semantics, explicit port, loud failure on each missing config key, from/to/subject/text mapping, accepted=true/false from the server response, transport failure propagates).<br>TDD（先写失败测试）：新增 `tests/unit/email/smtp-adapter.test.ts`（10 例——STARTTLS/SSL 的端口与 TLS 语义、显式端口、每个缺失配置键的明确报错、from/to/subject/text 映射、按服务器响应给出 accepted=true/false、传输失败原样抛出）。
+2. Implemented `src/server/providers/email/smtp.ts`: `SmtpEmailProvider` over nodemailer (new dependency; zero-dependency, MIT — plus @types/nodemailer), `SMTP_SECURE=ssl` → implicit TLS 465, otherwise STARTTLS 587 with `requireTLS`; missing `SMTP_HOST`/`SMTP_USER`/`SMTP_AUTH_CODE`/`EMAIL_FROM` throws "not configured" at construction. `getEmailProvider()` (`index.ts`) now selects it on `EMAIL_PROVIDER=smtp`; the fake provider stays refused in production. Refreshed the stale O05 comment in `stand-in.ts`.<br>实现 `src/server/providers/email/smtp.ts`：`SmtpEmailProvider` 基于 nodemailer（新增依赖；本身零依赖、MIT——另有 @types/nodemailer），`SMTP_SECURE=ssl` → 隐式 TLS 465，否则 STARTTLS 587 且 `requireTLS`；缺 `SMTP_HOST`/`SMTP_USER`/`SMTP_AUTH_CODE`/`EMAIL_FROM` 时构造即报未配置。`getEmailProvider()`（`index.ts`）在 `EMAIL_PROVIDER=smtp` 时选用之；fake provider 仍拒绝生产。更新了 `stand-in.ts` 里过时的 O05 注释。
+3. Real smoke from the dev VPS through the app code path (recipient = the operator mailbox itself; secrets never printed): `accepted: true` from smtp.qq.com.<br>研发 VPS 经应用代码路径真实冒烟（收件人＝运营方邮箱本身；机密全程未打印）：smtp.qq.com 返回 `accepted: true`。
+4. Deployed to the Shanghai test host: wrote `EMAIL_PROVIDER="smtp"` + the `SMTP_*`/`EMAIL_FROM` set into the host `.env` over SSH (old lines sed-removed first, values never echoed), rsynced the tree, on-host `npm install` (package.json changed) + `npm run build` + `systemctl restart clc-web`. Verified: service active; local and public `/api/health` 200; public `/api/test/outbox` 404; an equivalent-parameter real send from that host accepted. (The host runs Node 20, so the on-host smoke used a plain .mjs with the same transport parameters instead of the TS app path.)<br>部署到上海测试机：`EMAIL_PROVIDER="smtp"` 与 `SMTP_*`/`EMAIL_FROM` 经 SSH 写入机上 `.env`（先 sed 删旧行，值不回显），rsync 同步，机上 `npm install`（package.json 有变）＋ `npm run build` ＋重启 `clc-web`。验证：服务 active；本机与公网 `/api/health` 200；公网 `/api/test/outbox` 404；机上同等参数真实发送已被接受。（机上 Node 20 不支持 TS 直跑，故机上冒烟用同等 transport 参数的 .mjs 代替 TS 应用路径。）
+5. Final state: `npm run test` 306/306 (was 296; +10 email unit tests), tsc clean, lint 0 errors (one pre-existing warning in login-form.tsx). Docs updated: PLAN F06 → Done (both languages), SPEC O05 update, PROGRESS entry/pointer/blocked-list, this entry.<br>最终状态：`npm run test` 306/306（原 296；新增 10 个邮件单测），tsc 无错误，lint 0 错误（login-form.tsx 一处既有警告）。文档已更新：PLAN F06 → 已完成（双语）、SPEC O05 更新、PROGRESS 条目/指针/阻塞清单、本条记录。
+
+### Changed Files / 变更文件
+
+- New: src/server/providers/email/smtp.ts, tests/unit/email/smtp-adapter.test.ts. Modified: src/server/providers/email/index.ts, src/server/providers/stand-in.ts, package.json, package-lock.json, PLAN.md, SPEC.md, PROGRESS.md, SESSIONS.md.<br>新增：smtp.ts 与其单测。修改：email/index.ts、stand-in.ts、package.json、package-lock.json、PLAN/SPEC/PROGRESS/SESSIONS。
+
+### Unfinished Items / 未完成项
+
+- R7 (invite email send failure surfaces only generically) stays open by the user's standing decision to record R-series items without fixing them yet; it becomes operationally visible now that real email is live. Deliverability to Vietnamese mailboxes (Gmail etc.) still needs real recipient addresses (O07). F08 (AC10/drill) unchanged.<br>R7（邀请邮件发送失败仅泛化呈现）按用户“记录在案暂缓修复”的决定保持未修；真实邮件上线后其影响转为运营可见。对越南邮箱（Gmail 等）的送达仍需真实收件地址（O07）。F08（AC10/演练）不变。
+
+### First Step Next Time / 下次第一步
+
+Fix R1/R2/R3/R6 (before real data) or start T14 (admin console), whichever the user asks. F06 and F07 are both done and deployed; F08 stays blocked on O07/O08.<br>按用户要求修 R1/R2/R3/R6（先于真实数据）或开工 T14（管理控制台）。F06 与 F07 均已完成并部署；F08 仍阻塞于 O07/O08。
+
+---
