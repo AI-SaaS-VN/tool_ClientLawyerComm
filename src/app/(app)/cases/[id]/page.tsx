@@ -3,7 +3,10 @@ import { notFound, redirect } from "next/navigation";
 
 import { prisma } from "@/lib/db";
 import { SESSION_COOKIE, getSessionUser } from "@/modules/auth/session";
+import { caseStatusText, roleText, uiText } from "@/modules/i18n/copy";
+import { screenLangForUser } from "@/modules/i18n/screen-lang";
 
+import { LanguageSwitch } from "../../language-switch";
 import { MessagesPanel } from "./messages-panel";
 import { FilesPanel } from "./files-panel";
 
@@ -30,29 +33,32 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
   });
   if (!kase) notFound();
 
+  const lang = screenLangForUser(auth.user);
+
   return (
     <main className="mx-auto max-w-2xl p-8">
+      <LanguageSwitch lang={lang} role={auth.user.globalRole} />
       <h1 className="mb-1 text-xl font-semibold">{kase.title}</h1>
       <p className="mb-6 text-sm">
-        {kase.clientOrgName} · {kase.status}
+        {kase.clientOrgName} · {caseStatusText(lang, kase.status)}
         {kase.refNo ? ` · ${kase.refNo}` : ""}
         {kase.alias ? ` · ${kase.alias}` : ""}
       </p>
-      <h2 className="mb-2 font-medium">成员 / Thành viên</h2>
+      <h2 className="mb-2 font-medium">{uiText(lang, "members")}</h2>
       <ul className="flex flex-col gap-1" data-testid="member-list">
         {kase.members
           .filter((m) => m.status === "active")
           .map((m) => (
             <li key={m.id} className="text-sm">
-              {m.user.displayName} — {m.memberRole}
+              {m.user.displayName} — {roleText(lang, m.memberRole)}
               {m.memberRole === "coordinator"
-                ? ` (manage: ${m.canManage ? "on" : "off"}, review: ${m.canReview ? "on" : "off"})`
+                ? ` (${m.canManage ? uiText(lang, "manageOn") : uiText(lang, "manageOff")}, ${m.canReview ? uiText(lang, "reviewOn") : uiText(lang, "reviewOff")})`
                 : ""}
             </li>
           ))}
       </ul>
-      <MessagesPanel caseId={caseId} />
-      <FilesPanel caseId={caseId} />
+      <MessagesPanel caseId={caseId} lang={lang} />
+      <FilesPanel caseId={caseId} lang={lang} />
     </main>
   );
 }

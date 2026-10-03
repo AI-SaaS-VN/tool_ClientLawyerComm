@@ -28,8 +28,6 @@ test("case-page attachment: ordinary upload is published and downloaded by the l
     triangle.codeFor(input.lawyerEmail),
   );
   const clientPage = await clientContext.newPage();
-  const coordinatorPage = await coordinatorContext.newPage();
-  const lawyerPage = await lawyerContext.newPage();
 
   // Real PNG magic bytes: type detection never trusts the extension.
   const png = Buffer.concat([
@@ -49,14 +47,17 @@ test("case-page attachment: ordinary upload is published and downloaded by the l
 
     const ownItem = clientPage.getByTestId("file-item").filter({ hasText: fileName });
     await expect(ownItem).toBeVisible();
-    await expect(ownItem).toContainText("已发布");
+    await expect(ownItem).toContainText("已發布");
+    await expect(ownItem.getByTestId("file-time")).toHaveText(/UTC[+-]\d+/);
 
+    const lawyerPage = await lawyerContext.newPage();
     await lawyerPage.goto(`/cases/${triangle.caseId}`);
     await expect(lawyerPage.getByTestId("mode-auto")).toBeVisible();
+    const coordinatorPage = await coordinatorContext.newPage();
     await coordinatorPage.goto(`/cases/${triangle.caseId}`);
     const publishedItem = lawyerPage.getByTestId("file-item").filter({ hasText: fileName });
     await expect(publishedItem).toBeVisible();
-    await expect(publishedItem).toContainText("已发布");
+    await expect(publishedItem).toContainText("Đã phát hành");
     const href = await publishedItem.getByTestId("file-download").getAttribute("href");
     expect(href).toMatch(/^\/api\/files\/.+\/download$/);
     const download = await lawyerContext.request.get(href!);
@@ -65,7 +66,7 @@ test("case-page attachment: ordinary upload is published and downloaded by the l
 
     await clientPage.reload();
     await expect(clientPage.getByTestId("file-item").filter({ hasText: fileName })).toContainText(
-      "已发布",
+      "已發布",
     );
   } finally {
     await clientContext.close();

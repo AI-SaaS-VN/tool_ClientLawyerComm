@@ -34,6 +34,8 @@ async function warmRoutes(): Promise<void> {
     ["GET", "/review"],
     ["GET", `/api/cases/${probe}/messages`],
     ["GET", `/api/cases/${probe}/files`],
+    ["POST", `/api/cases/${probe}/files`],
+    ["POST", `/api/cases/${probe}/messages`],
     ["GET", `/api/cases/${probe}/stream`],
     ["GET", `/api/files/${probe}/download`],
     ["POST", `/api/messages/${probe}/translate`],

@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { machineTag, statusText, uiText } from "@/modules/i18n/copy";
+import { formatRecordTime } from "@/modules/i18n/record-time";
+
 interface TranslationView {
   targetLang: string;
   state: "same_language" | "none" | "waiting" | "ready" | "failed" | "needs_review";
@@ -15,6 +18,8 @@ interface MessageItem {
   sourceLang: string;
   sourceText: string;
   status: string;
+  publishedAt: string | null;
+  createdAt: string;
   translation: TranslationView | null;
 }
 
@@ -32,7 +37,7 @@ function newIdempotencyKey(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-export function MessagesPanel({ caseId }: { caseId: string }) {
+export function MessagesPanel({ caseId, lang }: { caseId: string; lang: string }) {
   const [mode, setMode] = useState<ReadingMode>("auto");
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [error, setError] = useState(false);
@@ -130,7 +135,7 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
       return (
         <>
           <p className="text-sm">{message.sourceText}</p>
-          <p className="text-xs opacity-60">{message.status}</p>
+          <p className="text-xs opacity-60">{statusText(lang, message.status)}</p>
         </>
       );
     }
@@ -140,7 +145,7 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
           <p className="text-sm">{message.sourceText}</p>
           {translation.state === "ready" ? (
             <p className="mt-1 text-sm opacity-80" data-testid="translation-text">
-              {translation.text} <span className="text-xs">(机翻 v{translation.version})</span>
+              {translation.text} <span className="text-xs">{machineTag(lang, translation.version)}</span>
             </p>
           ) : (
             <button
@@ -149,7 +154,7 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
               disabled={!mounted}
               onClick={() => void translate(message.id)}
             >
-              翻译 / Dịch
+              {uiText(lang, "translate")}
             </button>
           )}
         </>
@@ -161,34 +166,34 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
       case "ready":
         return (
           <p className="text-sm" data-testid="translation-text">
-            {translation.text} <span className="text-xs opacity-60">(机翻 v{translation.version})</span>
+            {translation.text} <span className="text-xs opacity-60">{machineTag(lang, translation.version)}</span>
           </p>
         );
       case "failed":
         return (
           <p className="text-sm">
-            <span className="opacity-60">翻译失败 / Dịch thất bại</span>{" "}
+            <span className="opacity-60">{uiText(lang, "translateFailed")}</span>{" "}
             <button
               className="rounded border px-2 py-0.5 text-xs"
               data-testid="translate-button"
               disabled={!mounted}
               onClick={() => void translate(message.id)}
             >
-              重试 / Thử lại
+              {uiText(lang, "retry")}
             </button>
           </p>
         );
       case "needs_review":
-        return <p className="text-sm opacity-60">译文待人工校核 / Bản dịch chờ kiểm tra thủ công</p>;
+        return <p className="text-sm opacity-60">{uiText(lang, "translationPending")}</p>;
       default:
-        return <p className="text-sm opacity-60">翻译中… / Đang dịch…</p>;
+        return <p className="text-sm opacity-60">{uiText(lang, "translating")}</p>;
     }
   }
 
   return (
     <section className="mt-8">
       <div className="mb-2 flex items-center gap-3">
-        <h2 className="font-medium">消息 / Tin nhắn</h2>
+        <h2 className="font-medium">{uiText(lang, "messages")}</h2>
         <div className="flex gap-1 text-xs">
           <button
             className={`rounded border px-2 py-0.5 ${mode === "auto" ? "font-semibold" : "opacity-60"}`}
@@ -196,7 +201,7 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
             disabled={!mounted}
             onClick={() => switchMode("auto")}
           >
-            自动翻译 / Tự động
+            {uiText(lang, "modeAuto")}
           </button>
           <button
             className={`rounded border px-2 py-0.5 ${mode === "manual" ? "font-semibold" : "opacity-60"}`}
@@ -204,16 +209,23 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
             disabled={!mounted}
             onClick={() => switchMode("manual")}
           >
-            原文·手动 / Thủ công
+            {uiText(lang, "modeManual")}
           </button>
         </div>
       </div>
-      {error ? <p className="text-sm opacity-60">加载失败 / Tải thất bại</p> : null}
+      {error ? <p className="text-sm opacity-60">{uiText(lang, "loadFailed")}</p> : null}
       <ul className="flex flex-col gap-3" data-testid="message-list">
         {messages.map((message) => (
           <li key={message.id} className="rounded border p-3" data-testid="message-item">
             <p className="mb-1 text-xs opacity-60">
-              {message.authorDisplayName} · {message.sourceLang}
+              {message.authorDisplayName} · {message.sourceLang} ·{" "}
+              <time dateTime={message.publishedAt ?? message.createdAt} data-testid="message-time">
+                {formatRecordTime(
+                  message.status === "published" && message.publishedAt
+                    ? message.publishedAt
+                    : message.createdAt,
+                )}
+              </time>
             </p>
             {body(message)}
           </li>
@@ -225,7 +237,7 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
           rows={3}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="输入消息… / Nhập tin nhắn…"
+          placeholder={uiText(lang, "messagePlaceholder")}
           className="border px-3 py-2 text-sm"
           data-testid="message-input"
         />
@@ -235,10 +247,10 @@ export function MessagesPanel({ caseId }: { caseId: string }) {
           data-testid="message-send"
           disabled={!mounted || sending}
         >
-          {sending ? "发送中… / Đang gửi…" : "发送 / Gửi"}
+          {sending ? uiText(lang, "sending") : uiText(lang, "send")}
         </button>
         {sendError ? (
-          <p className="text-sm opacity-60">发送失败，请重试。 / Gửi thất bại, thử lại.</p>
+          <p className="text-sm opacity-60">{uiText(lang, "sendFailed")}</p>
         ) : null}
       </form>
     </section>

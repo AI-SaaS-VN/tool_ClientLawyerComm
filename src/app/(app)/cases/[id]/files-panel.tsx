@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { statusText, uiText } from "@/modules/i18n/copy";
+import { formatRecordTime } from "@/modules/i18n/record-time";
+
 interface FileItem {
   id: string;
   uploaderDisplayName: string;
@@ -11,20 +14,7 @@ interface FileItem {
   createdAt: string;
 }
 
-// The API returns the raw SPEC 8.1 status; the panel renders the bilingual
-// label, mirroring how the messages panel shows send status.
-const STATUS_LABELS: Record<string, string> = {
-  uploaded: "处理中 / Đang xử lý",
-  scanning: "处理中 / Đang xử lý",
-  pending_review: "待审核 / Chờ duyệt",
-  approved: "处理中 / Đang xử lý",
-  published: "已发布 / Đã phát hành",
-  returned: "已退回 / Đã trả lại",
-  rejected: "被拒绝 / Bị từ chối",
-  check_failed: "检查失败 / Kiểm tra thất bại",
-};
-
-export function FilesPanel({ caseId }: { caseId: string }) {
+export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [error, setError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -93,15 +83,17 @@ export function FilesPanel({ caseId }: { caseId: string }) {
 
   return (
     <section className="mt-8">
-      <h2 className="mb-2 font-medium">附件 / Tệp đính kèm</h2>
-      {error ? <p className="text-sm opacity-60">加载失败 / Tải thất bại</p> : null}
+      <h2 className="mb-2 font-medium">{uiText(lang, "files")}</h2>
+      {error ? <p className="text-sm opacity-60">{uiText(lang, "loadFailed")}</p> : null}
       <ul className="flex flex-col gap-2" data-testid="file-list">
         {files.map((file) => (
           <li key={file.id} className="rounded border p-3 text-sm" data-testid="file-item">
             <span className="font-medium">{file.originalName}</span>
             <span className="ml-2 opacity-60">
-              {STATUS_LABELS[file.status] ?? file.status} · {file.uploaderDisplayName} ·{" "}
-              {new Date(file.createdAt).toLocaleString()}
+              {statusText(lang, file.status)} · {file.uploaderDisplayName} ·{" "}
+              <time dateTime={file.createdAt} data-testid="file-time">
+                {formatRecordTime(file.createdAt)}
+              </time>
             </span>
             {file.status === "published" ? (
               <a
@@ -109,7 +101,7 @@ export function FilesPanel({ caseId }: { caseId: string }) {
                 data-testid="file-download"
                 href={`/api/files/${file.id}/download`}
               >
-                下载 / Tải xuống
+                {uiText(lang, "download")}
               </a>
             ) : null}
           </li>
@@ -128,7 +120,7 @@ export function FilesPanel({ caseId }: { caseId: string }) {
           htmlFor={`file-input-${caseId}`}
           className="cursor-pointer border px-3 py-1 text-sm"
         >
-          选择文件 / Chọn tệp
+          {uiText(lang, "chooseFile")}
         </label>
         {selected ? <span className="text-sm">{selected.name}</span> : null}
         <button
@@ -138,11 +130,11 @@ export function FilesPanel({ caseId }: { caseId: string }) {
           disabled={!mounted || uploading || !selected}
           onClick={() => void upload()}
         >
-          {uploading ? "上传中… / Đang tải lên…" : "上传 / Tải lên"}
+          {uploading ? uiText(lang, "uploading") : uiText(lang, "upload")}
         </button>
       </div>
       {uploadError ? (
-        <p className="mt-2 text-sm opacity-60">上传失败，请重试。 / Tải lên thất bại, thử lại.</p>
+        <p className="mt-2 text-sm opacity-60">{uiText(lang, "uploadFailed")}</p>
       ) : null}
     </section>
   );

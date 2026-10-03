@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { convertZh } from "../../src/modules/translation/zh-convert";
 import { acceptInviteViaUi, activatedUserContext, runId, seedTriangle } from "./helpers";
 
 // AC03 key path: Chinese client and Vietnamese lawyer in two separate
@@ -32,7 +33,8 @@ test("dual-browser zh/vi journey: send, auto translation, manual translate, repl
     const first = `你好，请确认收到委托材料。${id}`;
     await zhPage.getByTestId("message-input").fill(first);
     await zhPage.getByTestId("message-send").click();
-    await expect(zhPage.getByTestId("message-list")).toContainText(first);
+    await expect(zhPage.getByTestId("message-list")).toContainText(convertZh(first, "zh-Hant"));
+    await expect(zhPage.getByTestId("message-time").first()).toHaveText(/UTC[+-]\d+/);
     await expect(viPage.getByTestId("message-list")).toContainText(`[vi] ${first}`);
 
     // Manual mode: a message that arrives after the switch shows the source
@@ -47,11 +49,11 @@ test("dual-browser zh/vi journey: send, auto translation, manual translate, repl
     await expect(secondItem.getByTestId("translation-text")).toContainText(`[vi] ${second}`);
 
     // The lawyer replies in Vietnamese; the Chinese client sees the
-    // automatic zh-Hans translation.
+    // automatic Traditional Chinese translation.
     const reply = `Tôi đã nhận được, cảm ơn. ${id}`;
     await viPage.getByTestId("message-input").fill(reply);
     await viPage.getByTestId("message-send").click();
-    await expect(zhPage.getByTestId("message-list")).toContainText(`[zh-Hans] ${reply}`);
+    await expect(zhPage.getByTestId("message-list")).toContainText(`[zh-Hant] ${reply}`);
   } finally {
     await zhContext.close();
     await viContext.close();
@@ -85,9 +87,11 @@ test("rapid repeated send clicks produce exactly one message", async ({ browser,
     await send.dispatchEvent("click");
     await send.dispatchEvent("click");
     await send.dispatchEvent("click");
-    // The message appears from the send flow itself (no extra click needed).
-    await expect(page.getByTestId("message-list")).toContainText(text);
-    await expect(page.getByTestId("message-item").filter({ hasText: text })).toHaveCount(1);
+    // The client's screen shows the Traditional form of what was typed.
+    const shown = convertZh(text, "zh-Hant");
+    await expect(page.getByTestId("message-list")).toContainText(shown);
+    await expect(page.getByTestId("message-time").first()).toHaveText(/UTC[+-]\d+/);
+    await expect(page.getByTestId("message-item").filter({ hasText: id })).toHaveCount(1);
   } finally {
     await context.close();
   }

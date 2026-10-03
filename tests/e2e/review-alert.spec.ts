@@ -50,7 +50,7 @@ test("rule-blocked message → review alert → coordinator approves → visible
     await clientPage.goto(`/cases/${triangle.caseId}`);
     await clientPage.getByTestId("message-input").fill(held);
     await clientPage.getByTestId("message-send").click();
-    await expect(clientPage.getByTestId("message-list")).toContainText("pending_review");
+    await expect(clientPage.getByTestId("message-list")).toContainText("待審核");
     await expect(lawyerPage.getByTestId("message-list")).not.toContainText(held);
 
     // The explicitly driven worker pass mails the review alert to the
@@ -78,7 +78,7 @@ test("rule-blocked message → review alert → coordinator approves → visible
     // refresh) and the author no longer sees it as pending.
     await expect(lawyerPage.getByTestId("message-list")).toContainText(held);
     await expect(lawyerPage.getByTestId("message-list")).toContainText(`[vi] ${held}`);
-    await expect(clientPage.getByTestId("message-list")).not.toContainText("pending_review");
+    await expect(clientPage.getByTestId("message-list")).not.toContainText("待審核");
 
     // The completed review cancels its queued alerts: another pass sends
     // nothing more to anyone in this case.

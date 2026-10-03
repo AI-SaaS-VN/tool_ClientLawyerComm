@@ -2,7 +2,7 @@
 
 - Updated: 2026-10-03 (UTC) | Maintenance: update upon completion of each task or phase
 - 更新日期：2026-10-03（UTC）｜维护方式：每完成一个任务或阶段即更新
-- Re-verified 2026-10-03 after the T12 session: `npm run test` 280/280, `npm run test:e2e` 4/4, lint/tsc/build all clean; the T01–T12 records below describe that build.<br>2026-10-03 复核：`npm run test` 280/280、`npm run test:e2e` 4/4、lint/tsc/build 全部无错误；下面 T01–T12 的记录描述的是那次构建。
+- Re-verified 2026-10-03 after F13/F14: `npm run test` 286/286 (42 files), `npm run test:e2e` 7/7, `npx tsc --noEmit` clean. The T01–T12 records below describe the earlier build.<br>2026-10-03 在 F13/F14 之后复核：`npm run test` 286/286（42 个文件）、`npm run test:e2e` 7/7、`npx tsc --noEmit` 无错误。下面 T01–T12 的记录描述的是更早的那次构建。
 
 ## Pilot status / 试运行状态（2026-10-03）
 
@@ -20,13 +20,13 @@ Publish rule (2026-10-03, F11): ordinary messages and clean files publish immedi
 
 案件入口（2026-10-03，F12）：客户、律师、协调员用收到邀请的邮箱加上邮件里的邀请码进入对应案件。第一次使用即加入；之后同一组邮箱和邀请码可以再次进入。案件入口不再要 6 位验证码。管理员登录仍用邮箱验证码。
 
-Screen language and timestamps (2026-10-03, F13/F14, specified, not built): a Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels and automatic-mode messages from other people use that one language. Every visible conversation record and upload record shows a timestamp formatted with that computer's timezone setting, and the offset is printed beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7. The lawyer's phone still shows bilingual labels and no message time. The file list already prints the upload time. Real Vietnamese wording of Chinese messages remains F07.
+Screen language and timestamps (2026-10-03, F13/F14, built and tested): a Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels use that one language. Every visible conversation record and upload record shows a timestamp formatted with that computer's timezone setting, and the offset is printed beside the time. A person can switch from the language control; the choice is stored on the account. Login and invite pages, which have no account yet, follow the browser language. `npm run test` 286/286 and `npm run test:e2e` 7/7 passed after this change. On the development host the clock printed `UTC+0`, which is that computer's zone. Real Vietnamese wording of Chinese messages remains F07, so the test host still shows the fake `[vi]` or `[zh-Hant]` prefix.
 
 Kimi pair (2026-10-03, F07, blocked on O05): automatic mode calls Kimi. Vietnamese from the lawyer is Traditional Chinese for the client. Traditional Chinese from the client is Vietnamese for the lawyer. The test host still uses the fake translator.
 
 Kimi 这一对方向（2026-10-03，F07，阻塞于 O05）：自动模式调用 Kimi。律师的越南语给客户显示成繁体中文。客户的繁体中文给律师显示成越南语。测试机仍用替身翻译。
 
-界面语言与时间戳（2026-10-03，F13/F14，已写入规格，尚未改界面）：中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮和自动模式下别人发来的消息都用这一种语言。能看到的每条对话记录和上传记录都按那台电脑的时区设置显示时间，并在旁边标出 UTC+8 或 UTC+7。律师手机上仍是中越双语按钮，对话没有时间。文件列表已经印出上传时间。中文消息的真实越南语译文仍是 F07。
+界面语言与时间戳（2026-10-03，F13/F14，已改界面并测过）：中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮用这一种语言。能看到的每条对话记录和上传记录都按那台电脑的时区设置显示时间，并在旁边标出时区。语言开关写进账号。登录页和邀请页还没有账号，跟随浏览器语言。这次改完后 `npm run test` 286/286、`npm run test:e2e` 7/7 通过。研发主机的钟点标成了 `UTC+0`，因为那台电脑的时区就是 UTC。中文消息的真实越南语译文仍是 F07，测试机上仍是替身前缀 `[vi]` 或 `[zh-Hant]`。
 
 发布规则（2026-10-03，F11）：普通消息和扫描通过的文件立即发布。只有消息或文件名显式询问或协商律所诉讼委托费用时才待审。消息或文件名里的联系方式直接发布。显示名含联系渠道时仍拒绝保存。扫描失败不发布。
 
@@ -186,13 +186,13 @@ At the start of every session, in this order / 每次会话开始按此顺序：
 1. Read `SESSIONS.md` latest entry → this file (`PROGRESS.md`) → the current task section of `PLAN.md` → the cited sections of `SPEC.md`. Check `git status`/`git log` against what the records claim; trust the working tree over stale records.<br>读 `SESSIONS.md` 最新一条 → 本文件 → `PLAN.md` 当前任务节 → `SPEC.md` 被引用章节。用 `git status`/`git log` 核对记录是否与实际一致；以工作区实际状态为准。
 2. Environment check: `docker compose ps` (clc-postgres + clc-minio healthy; if not, `docker compose up -d`), then `npm run test` must be green before new work. Integration tests use database `clc_test` (vitest globalSetup creates it and replays migrations automatically); the dev database is `clc_dev`.<br>环境检查：`docker compose ps`（clc-postgres 与 clc-minio 应 healthy；否则 `docker compose up -d`），开工前 `npm run test` 必须全绿。集成测试用 `clc_test` 库（vitest globalSetup 自动建库并重放迁移）；开发库为 `clc_dev`。
 3. Standing rules: never read/print the project-root `.env` (read config via `process.env`, append placeholders to `.env.example` only); the local laptop→dev-VPS→Lighthouse topology stays in `LOCAL_DEV_NOTES.md` and must never enter committable files; fictitious test data only; before writing app code consult `node_modules/next/dist/docs/` (Next 16 differs from training data); per-task rhythm = failing test → minimal implementation → green → refactor → update PROGRESS/SESSIONS → commit → push (`git push origin main`). Automated tests on the development host keep using localhost. The Shanghai test host serves this app on HTTP port 80 as of 2026-10-03 (fictitious data); do not point the Playwright base URL at that host.<br>长期规则：严禁读取/打印项目根目录 `.env`（配置只经 `process.env` 读取，占位只写 `.env.example`）；笔记本→研发VPS→Lighthouse 的拓扑只存 `LOCAL_DEV_NOTES.md`，不得进入任何可提交文件；测试只用虚构数据；写应用代码前查 `node_modules/next/dist/docs/`（Next 16 与训练数据有差异）；每任务节奏＝失败测试→最小实现→通过→重构→更新 PROGRESS/SESSIONS→提交→推送（`git push origin main`）。研发主机上的自动化测试继续使用 localhost。上海测试机自 2026-10-03 起在 HTTP 80 端口提供本应用（虚构数据）；不要把 Playwright 的 base URL 指到那台主机。
-4. Current pointer: **P0 coding tasks T01–T08 and T10–T12 are done.** F01–F05, F10, F11, and F12 are done (F11/F12 in 4a39a1f). Next coding is F14 (one language on screen; client Traditional Chinese, lawyer Vietnamese) and F13 (timestamps labeled with that computer's timezone). F07 (Kimi for Vietnamese ↔ Traditional Chinese) stays Blocked on O05. F06 and F08 stay Blocked. F09 is Later. T09/T13 are P1. Do not redo T01–T12 or F01–F05, F10–F12.<br>当前指针：**P0 编码任务 T01–T08 与 T10–T12 已完成。** F01–F05、F10、F11、F12 已完成（F11/F12 在 4a39a1f）。下一步编码是 F14（屏幕上一种语言；客户繁体中文，律师越南语）和 F13（时间戳并标出该电脑的时区）。F07（越南语与繁体中文走 Kimi）仍阻塞于 O05。F06 与 F08 仍阻塞。F09 稍后。T09/T13 为 P1。不要重做 T01–T12 或 F01–F05、F10–F12。
+4. Current pointer: **P0 coding tasks T01–T08 and T10–T12 are done.** F01–F05 and F10–F14 are done. F07 (Kimi for Vietnamese ↔ Traditional Chinese) stays Blocked on O05. F06 and F08 stay Blocked. F09 is Later. T09/T13 are P1. Do not redo T01–T12 or F01–F05, F10–F14.<br>当前指针：**P0 编码任务 T01–T08 与 T10–T12 已完成。** F01–F05 与 F10–F14 已完成。F07（越南语与繁体中文走 Kimi）仍阻塞于 O05。F06 与 F08 仍阻塞。F09 稍后。T09/T13 为 P1。不要重做 T01–T12 或 F01–F05、F10–F14。
 5. E2E note: `npm run test:e2e` uses the disposable `clc_e2e` database (rebuilt every run) and a dedicated dev server on port 3100; this host's browser libraries/fontconfig were provisioned into `~/.cache/clc-e2e-libs` (the npm script exports LD_LIBRARY_PATH/FONTCONFIG_FILE pointing there).<br>E2E 备注：`npm run test:e2e` 使用一次性 `clc_e2e` 库（每次运行重建）与 3100 端口的专用 dev server；本机浏览器库/fontconfig 已装入 `~/.cache/clc-e2e-libs`（npm 脚本导出指向该处的 LD_LIBRARY_PATH/FONTCONFIG_FILE）。
 
 ## Next Steps / 下一步
 
-1. ~~Deploy the F01/F04/F03 build to the Shanghai test host~~ **Done 2026-10-03.** F11 and F12 are in `4a39a1f` and already running on that host. Next coding: F14, then F13. F07 stays blocked on O05.
-1. ~~把 F01/F04/F03 的构建部署到上海测试机~~ **2026-10-03 已完成。** F11 与 F12 在 `4a39a1f`，并已在该测试机上运行。下一步编码：先 F14，再 F13。F07 仍阻塞于 O05。
+1. F13 and F14 are tested (`npm run test` 286/286, `npm run test:e2e` 7/7). The Shanghai host still serves the previous build until the next deploy. F07 stays blocked on O05.
+1. F13 与 F14 已测过（`npm run test` 286/286，`npm run test:e2e` 7/7）。上海测试机仍在跑上一次构建，要等下一次部署。F07 仍阻塞于 O05。
 2. External-resource acceptance stays blocked: real EmailProvider and real-address delivery for AC01/AC08/AC12 (O05/O07); AC10 China–Vietnam network window (O07); production-scale restore drill (O08).
 2. 外部资源验收仍阻塞：真实 EmailProvider 与 AC01/AC08/AC12 的真实地址送达（O05/O07）；AC10 中越网络窗口（O07）；生产规模恢复演练（O08）。
 3. P1 on user decision: T09 (cross-case UI / bilingual file variant / document translation) and T13 (daily case digest email, depends on the real email channel).

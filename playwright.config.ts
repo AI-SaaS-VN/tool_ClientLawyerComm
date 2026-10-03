@@ -14,6 +14,14 @@ export default defineConfig({
   use: {
     baseURL: E2E_BASE_URL,
     navigationTimeout: 60_000,
+    // Headless Chromium aborts the page when the session bus drops
+    // (FATAL dbus/bus.cc). "disabled:" tells it not to connect.
+    launchOptions: {
+      env: {
+        ...process.env,
+        DBUS_SESSION_BUS_ADDRESS: "disabled:",
+      },
+    },
     // Keep a full trace when a journey fails so flakes can be diagnosed from
     // evidence instead of re-runs.
     trace: "retain-on-failure",

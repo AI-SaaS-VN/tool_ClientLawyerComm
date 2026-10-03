@@ -15,10 +15,8 @@ export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const INVITABLE_ROLES = ["client", "lawyer", "coordinator"] as const;
 export type InvitableRole = (typeof INVITABLE_ROLES)[number];
 
-// F14 will switch the client default to zh-Hant. This fallback is still
-// zh-Hans so existing accounts keep their current receiving language.
 const ROLE_DEFAULT_LANG: Record<InvitableRole, string> = {
-  client: "zh-Hans",
+  client: "zh-Hant",
   lawyer: "vi",
   coordinator: "zh-Hans",
 };

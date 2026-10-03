@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/db";
 import { SESSION_COOKIE, getSessionUser } from "@/modules/auth/session";
+import { caseStatusText, roleText, uiText } from "@/modules/i18n/copy";
+import { screenLangForUser } from "@/modules/i18n/screen-lang";
+
+import { LanguageSwitch } from "../language-switch";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +22,14 @@ export default async function CasesPage() {
     orderBy: { case: { updatedAt: "desc" } },
   });
 
+  const lang = screenLangForUser(auth.user);
+
   return (
     <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-4 text-xl font-semibold">我的案件 / Vụ án của tôi</h1>
+      <LanguageSwitch lang={lang} role={auth.user.globalRole} />
+      <h1 className="mb-4 text-xl font-semibold">{uiText(lang, "casesTitle")}</h1>
       {memberships.length === 0 ? (
-        <p className="text-sm">暂无参与的案件。 / Chưa có vụ án nào.</p>
+        <p className="text-sm">{uiText(lang, "casesEmpty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {memberships.map((m) => (
@@ -31,7 +38,7 @@ export default async function CasesPage() {
                 {m.case.title}
               </Link>
               <span className="ml-3 text-sm">
-                {m.case.clientOrgName} · {m.case.status} · {m.memberRole}
+                {m.case.clientOrgName} · {caseStatusText(lang, m.case.status)} · {roleText(lang, m.memberRole)}
               </span>
             </li>
           ))}

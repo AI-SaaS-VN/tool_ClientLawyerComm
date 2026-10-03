@@ -2,6 +2,9 @@
 
 import { useState, useSyncExternalStore } from "react";
 
+import { uiText } from "@/modules/i18n/copy";
+import { formatRecordTime } from "@/modules/i18n/record-time";
+
 interface ReviewTaskItem {
   id: string;
   caseTitle: string;
@@ -14,7 +17,13 @@ interface ReviewTaskItem {
   createdAt: string;
 }
 
-export function ReviewQueue({ initialTasks }: { initialTasks: ReviewTaskItem[] }) {
+export function ReviewQueue({
+  initialTasks,
+  lang,
+}: {
+  initialTasks: ReviewTaskItem[];
+  lang: string;
+}) {
   const [tasks, setTasks] = useState(initialTasks);
   // Hydration gate: server-rendered controls have no handlers yet.
   const mounted = useSyncExternalStore(
@@ -26,7 +35,7 @@ export function ReviewQueue({ initialTasks }: { initialTasks: ReviewTaskItem[] }
   async function decide(taskId: string, action: "approve" | "return" | "reject", selfRelease = false) {
     const body: Record<string, unknown> = {};
     if (action !== "approve") {
-      const reason = window.prompt("原因 / Lý do") ?? "";
+      const reason = window.prompt(uiText(lang, "reviewPromptReason")) ?? "";
       if (!reason.trim()) return;
       body.reason = reason;
     }
@@ -42,7 +51,7 @@ export function ReviewQueue({ initialTasks }: { initialTasks: ReviewTaskItem[] }
   if (tasks.length === 0) {
     return (
       <p className="text-sm" data-testid="review-empty">
-        没有待审核内容。 / Không có nội dung chờ duyệt.
+        {uiText(lang, "reviewEmpty")}
       </p>
     );
   }
@@ -52,19 +61,20 @@ export function ReviewQueue({ initialTasks }: { initialTasks: ReviewTaskItem[] }
         <li key={task.id} className="border px-4 py-3" data-testid="review-task">
           <div className="text-sm">
             {task.caseTitle} · {task.targetType} · {task.submitterDisplayName} ·{" "}
-            {new Date(task.createdAt).toLocaleString()}
+            <time dateTime={task.createdAt}>{formatRecordTime(task.createdAt)}</time>
           </div>
-          <div className="mt-1 text-sm">拦截原因 / Lý do chặn: {task.reason}</div>
+          <div className="mt-1 text-sm">
+            {uiText(lang, "reviewReason")}: {task.reason}
+          </div>
           {task.sourceText && <p className="mt-2 border-l-2 pl-3 text-sm">{task.sourceText}</p>}
           {task.selfReleaseRequired && (
             <p className="mt-2 text-sm font-medium">
-              您是本案唯一审核人：确认放行需要明确自我放行。 / Bạn là ngưởi duyệt duy nhất: cần xác
-              nhận tự phát hành.
+              {uiText(lang, "reviewSole")}
             </p>
           )}
           {task.alertIssue && (
             <p className="mt-2 text-sm font-medium">
-              提醒发送异常，请后台核查。 / Gửi nhắc nhở gặp sự cố, cần kiểm tra.
+              {uiText(lang, "reviewAlertIssue")}
             </p>
           )}
           <div className="mt-3 flex gap-2 text-sm">
@@ -74,13 +84,13 @@ export function ReviewQueue({ initialTasks }: { initialTasks: ReviewTaskItem[] }
               disabled={!mounted}
               onClick={() => decide(task.id, "approve", task.selfReleaseRequired)}
             >
-              批准 / Duyệt
+              {uiText(lang, "approve")}
             </button>
             <button className="border px-3 py-1" disabled={!mounted} onClick={() => decide(task.id, "return")}>
-              退回 / Trả lại
+              {uiText(lang, "returnAction")}
             </button>
             <button className="border px-3 py-1" disabled={!mounted} onClick={() => decide(task.id, "reject")}>
-              拒绝 / Từ chối
+              {uiText(lang, "reject")}
             </button>
           </div>
         </li>

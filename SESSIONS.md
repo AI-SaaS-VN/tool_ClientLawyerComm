@@ -925,3 +925,26 @@ The running app still opens a client on Simplified Chinese until F14 is built.<b
 Real Kimi calls wait for O05. Do not point the Shanghai test host at Kimi while it still holds fictitious stand-in providers.<br>真实 Kimi 调用等 O05。上海测试机仍使用虚构替身时，不要把它接到 Kimi。
 
 ---
+
+## Session 2026-10-03-10 (Ended) / 会话 2026-10-03-10（已结束）
+
+- Date/Timezone: 2026-10-03, UTC+8<br>日期/时区：2026-10-03，UTC+8
+- Goal: build F14 and F13. One language on each screen, and a timestamp with the computer's timezone offset.<br>本次目标：做成 F14 和 F13。每个屏幕只用一种语言，时间戳标出这台电脑的时区。
+
+### Actual Actions / 实际动作
+
+1. Client accounts now default to Traditional Chinese. Lawyer accounts stay Vietnamese. Coordinator accounts stay Simplified Chinese. A stored preference still wins. The language control writes both preferred language and UI language. Login and invite pages follow Accept-Language because they have no account yet.<br>客户账号默认繁体中文。律师账号仍是越南语。协调员账号仍是简体中文。已保存的选择优先。语言开关同时写入接收语言和界面语言。登录页和邀请页没有账号，跟随浏览器语言。
+2. Conversation records and upload records print `YYYY-MM-DD HH:mm UTC+8` style times from the computer's timezone. A migration moves client rows that still had the old Simplified default.<br>对话记录和上传记录按电脑时区印出 `YYYY-MM-DD HH:mm UTC+8` 这种时间。一次迁移把仍停在旧简体默认值的客户行改成繁体。
+3. Real Kimi wording stays F07. The test host still shows the fake prefix.<br>真实 Kimi 译文仍是 F07。测试机仍显示替身前缀。
+4. Verification: `npm run test` 286/286 (42 files) and `npm run test:e2e` 7/7. Headless Chromium was aborting when the session bus dropped; the test launch now sets the bus address to `disabled:`. The development host printed `UTC+0` beside the clock, matching that computer's zone.<br>复核：`npm run test` 286/286（42 个文件），`npm run test:e2e` 7/7。无界面 Chromium 曾在会话总线断开时中止；测试启动时把总线地址设为 `disabled:`。研发主机在钟点旁印出 `UTC+0`，与那台电脑的时区一致。
+4. Verification: `npm run test` 286/286 (42 files) and `npm run test:e2e` 7/7. Headless Chromium was aborting when the session bus dropped; the test launch now sets the bus address to `disabled:`. The development host printed `UTC+0` beside the clock, matching that computer's zone.<br>复核：`npm run test` 286/286（42 个文件），`npm run test:e2e` 7/7。无界面 Chromium 曾在会话总线断开时中止；测试启动时把总线地址设为 `disabled:`。研发主机在钟点旁印出 `UTC+0`，与那台电脑的时区一致。
+
+### Changed Files / 变更文件
+
+- Screen copy, case/login/invite/review pages, translation default, one migration, e2e expectations, PLAN/PROGRESS/README/deployment notes.<br>界面文案、案件/登录/邀请/审核页、翻译默认、一次迁移、端到端断言、PLAN/PROGRESS/README/部署说明。
+
+### First Step Next Time / 下次第一步
+
+Deploy this build to the Shanghai test host if the user asks. Do not start real Kimi calls.<br>用户要求时再把这次构建部署到上海测试机。不要开始真实 Kimi 调用。
+
+---

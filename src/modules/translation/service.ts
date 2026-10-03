@@ -3,6 +3,7 @@ import { Prisma, type Message, type TranslationVersion, type User } from "@prism
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { checkKeyFields } from "@/modules/translation/key-field-check";
+import { defaultScreenLang } from "@/modules/i18n/screen-lang";
 import { isSupportedLang, isZhConversionPair } from "@/modules/translation/langs";
 import { convertZh } from "@/modules/translation/zh-convert";
 import { recordAudit } from "@/server/audit/log";
@@ -26,12 +27,11 @@ export interface TranslationView {
   version: number | null;
 }
 
-// Account preference wins. Until F14, a missing preference still falls back
-// to zh-Hans for clients and coordinators, and vi for lawyers. The spec
-// default for a client's screen is zh-Hant.
+// Account preference wins. A missing preference uses the role default:
+// client zh-Hant, lawyer vi, coordinator zh-Hans (REQ-TR-01).
 export function resolvePreferredLang(user: User): string {
   if (isSupportedLang(user.preferredLang)) return user.preferredLang;
-  return user.globalRole === "lawyer" ? "vi" : "zh-Hans";
+  return defaultScreenLang(user.globalRole);
 }
 
 function sameLanguageView(targetLang: string): TranslationView {
