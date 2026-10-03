@@ -98,7 +98,7 @@ Corresponds to R04/R06; acceptance AC02/AC03/AC05. Core principle: **content tha
 ```
 draft(客户端) → pending_check → checking
   ├─ 自动放行 → approved → published（接收方可见消息壳；译文按 5.2 异步，仅在源文已批准后入队）
-  ├─ 疑似受限 → pending_review ─→ approved → published
+  ├─ 显式委托费用问询 → pending_review ─→ approved → published
   │                           ─→ returned（退回作者；修改后作为新消息重新进入流水线）
   │                           ─→ rejected（终态；作者见中性原因＋申诉入口）
   └─ 检查/模型故障 → check_failed（不发布；不含正文的告警给协调员；绝不默认发布）
@@ -181,8 +181,9 @@ Corresponds to R07, SOW Section 8; acceptance AC06.
 
 ```
 uploaded(私有隔离区) → scanning
-  ├─ 扫描通过 → pending_review ─→ approved → published（共享副本可见/可下载）
-  │                          ─→ rejected（终态，作者见中性原因）
+  ├─ 扫描通过 → published（共享副本可见/可下载）
+  ├─ 文件名是显式委托费用问询 → pending_review ─→ approved → published
+  │                                          ─→ rejected（终态，作者见中性原因）
   ├─ 扫描失败/超时/不可解析/加密 → check_failed（不发布；不含正文的告警；协调员可重试或拒绝）
   └─ 类型/大小不合规 → 上传即拒绝
 ```
