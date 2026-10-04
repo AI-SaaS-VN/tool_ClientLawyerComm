@@ -11,15 +11,27 @@ import {
 } from "@/server/guards/case-guards";
 import { getEmailProvider } from "@/server/providers/email";
 
+import { buildInviteEmail, INVITE_EMAIL_LANGS, type InviteEmailLang } from "./email";
+
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const INVITABLE_ROLES = ["client", "lawyer", "coordinator"] as const;
 export type InvitableRole = (typeof INVITABLE_ROLES)[number];
 
-const ROLE_DEFAULT_LANG: Record<InvitableRole, string> = {
+const ROLE_DEFAULT_LANG: Record<InvitableRole, InviteEmailLang> = {
   client: "zh-Hant",
   lawyer: "vi",
   coordinator: "zh-Hans",
 };
+
+const INVITE_BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
+
+function assertInviteEmailLang(lang: unknown): asserts lang is InviteEmailLang {
+  if (typeof lang !== "string" || !(INVITE_EMAIL_LANGS as readonly string[]).includes(lang)) {
+    throw new ApiError(400, "invalid_lang");
+  }
+}
+
+export type InviteIntro = Partial<Record<InviteEmailLang, string>>;
 
 function assertInvitableRole(role: unknown): asserts role is InvitableRole {
   // REQ-AUTH-11: an invitation can never produce global_role=admin.
@@ -28,18 +40,24 @@ function assertInvitableRole(role: unknown): asserts role is InvitableRole {
   }
 }
 
-async function sendInviteEmail(to: string, code: string): Promise<void> {
+async function sendInviteEmail(input: {
+  to: string;
+  code: string;
+  lang: InviteEmailLang;
+  caseTitle: string;
+  intro?: InviteIntro;
+}): Promise<void> {
   try {
     await getEmailProvider().send({
-      to,
-      subject: "案件邀请 / Thư mời vụ án",
-      text: [
-        `您的案件邀请码 / Mã mời vụ án của bạn: ${code}`,
-        "",
-        "【中文】请打开登录页，输入本邮箱和这个邀请码，即可进入对应案件。第一次使用即加入。之后仍用同一邮箱和同一邀请码进入该案件，不需要另外的 6 位验证码。邀请码只属于本邮箱。尚未使用的邀请码 7 天内有效。",
-        "",
-        `[Tiếng Việt] Hãy mở trang đăng nhập, nhập email này và mã mời để vào đúng vụ án. Lần đầu là tham gia. Sau đó vẫn dùng cùng email và cùng mã mời để vào vụ án đó, không cần mã 6 số khác. Mã chỉ thuộc email này. Mã chưa dùng có hiệu lực 7 ngày.`,
-      ].join("\n"),
+      to: input.to,
+      ...buildInviteEmail({
+        lang: input.lang,
+        code: input.code,
+        email: input.to,
+        caseTitle: input.caseTitle,
+        baseUrl: INVITE_BASE_URL,
+        intro: input.intro,
+      }),
     });
   } catch {
     console.error("email_send_failed", { category: "invite_activation" });
@@ -51,15 +69,25 @@ export async function createInvite(input: {
   actor: User;
   email: string;
   role: unknown;
+  lang?: unknown;
+  intro?: InviteIntro;
 }): Promise<{ invite: Invite; code: string }> {
   // REQ-PM-05: only this case's can_manage coordinators may invite.
   await requireCaseManager(input.caseId, input.actor);
   await requireWritableCase(input.caseId);
   assertInvitableRole(input.role);
+  if (input.lang !== undefined) assertInviteEmailLang(input.lang);
   const email = normalizeEmail(input.email ?? "");
   if (!email || !email.includes("@")) throw new ApiError(400, "email_required");
 
-  return issueInvite({ caseId: input.caseId, actorId: input.actor.id, email, role: input.role });
+  return issueInvite({
+    caseId: input.caseId,
+    actorId: input.actor.id,
+    email,
+    role: input.role,
+    lang: input.lang as InviteEmailLang | undefined,
+    intro: input.intro,
+  });
 }
 
 // Guard-free core shared with the REQ-OPS-07 admin test-case endpoint: one
@@ -69,6 +97,8 @@ export async function issueInvite(input: {
   actorId: string;
   email: string;
   role: InvitableRole;
+  lang?: InviteEmailLang;
+  intro?: InviteIntro;
 }): Promise<{ invite: Invite; code: string }> {
   const code = generateInviteCode();
   const invite = await prisma.invite.create({
@@ -90,7 +120,17 @@ export async function issueInvite(input: {
     caseId: input.caseId,
     meta: { role: input.role },
   });
-  await sendInviteEmail(input.email, code);
+  const kase = await prisma.case.findUniqueOrThrow({
+    where: { id: input.caseId },
+    select: { title: true },
+  });
+  await sendInviteEmail({
+    to: input.email,
+    code,
+    lang: input.lang ?? ROLE_DEFAULT_LANG[input.role],
+    caseTitle: kase.title,
+    intro: input.intro,
+  });
   return { invite, code };
 }
 
@@ -338,5 +378,15 @@ export async function resendInvite(inviteId: string, actor: User): Promise<void>
     targetId: invite.id,
     caseId: invite.caseId,
   });
-  await sendInviteEmail(decryptText(invite.sentToEnc), code);
+  const kase = await prisma.case.findUniqueOrThrow({
+    where: { id: invite.caseId },
+    select: { title: true },
+  });
+  assertInvitableRole(invite.role);
+  await sendInviteEmail({
+    to: decryptText(invite.sentToEnc),
+    code,
+    lang: ROLE_DEFAULT_LANG[invite.role],
+    caseTitle: kase.title,
+  });
 }

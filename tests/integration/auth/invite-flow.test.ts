@@ -60,11 +60,10 @@ describe("invitation + OTP flow", () => {
     expect(fakeEmailProvider.outbox).toHaveLength(1);
     expect(fakeEmailProvider.outbox[0]!.to).toBe("client1@example.com");
     const mail = fakeEmailProvider.outbox[0]!;
-    expect(mail.subject).toContain("案件邀请");
-    expect(mail.subject).toContain("Thư mời vụ án");
-    expect(mail.text).toContain("【中文】");
-    expect(mail.text).toContain("[Tiếng Việt]");
-    expect(mail.text).toContain("Mã mời vụ án");
+    expect(mail.subject).toContain("案件邀請");
+    expect(mail.text).toContain("邀請碼");
+    expect(mail.text).toContain("/invite");
+    expect(mail.text).toContain("7 天內有效");
     const code = extractInviteCode(mail.text);
 
     const bodyText = JSON.stringify(await res.json());
