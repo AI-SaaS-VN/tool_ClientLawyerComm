@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.10 | Date: 2026-10-03
-- 版本：0.10｜日期：2026-10-03
-- Basis: SPEC.md v0.10, SOW.md v1.11. The decided activation path is one step: the invited email plus the activation code, and only that email can accept that code (REQ-AUTH-01, REQ-AUTH-12). The repository implements that one-step path (F02). P0 tasks are T01–T08 and T10–T12 (11 tasks). T09, T13, and T14 are P1 and do not block P0. v0.10 adds T14 (Administration Console for Case creation and participant setup, user request 2026-10-03, P1 — not in the MVP).
-- 依据：SPEC.md v0.10、SOW.md v1.11。已决定的激活路径是一步：受邀邮箱加上激活码，且只有该邮箱能接受该码（REQ-AUTH-01、REQ-AUTH-12）。本仓库已实现这一步激活（F02）。P0 任务为 T01–T08 与 T10–T12（11 个）。T09、T13、T14 属于 P1，不阻塞 P0。v0.10 新增 T14（案件创建与参与人设置的管理控制台，用户 2026-10-03 提出，P1——不进入 MVP）。
+- Version: 0.11 | Date: 2026-10-04
+- 版本：0.11｜日期：2026-10-04
+- Basis: SPEC.md v0.11, SOW.md v1.11 plus the 2026-10-04 scope note. The decided activation path is one step: the invited email plus the activation code, and only that email can accept that code (REQ-AUTH-01, REQ-AUTH-12). The repository implements that one-step path (F02). P0 tasks are T01–T08, T10–T12, and T13. T09 and T14 stay P1. v0.11 moves T13 into the MVP and narrows it: the daily email goes only to the Case Coordinator. The case-creation page (T14) stays the next version. Until that page exists, an operator creates cases and writes the provisioning rows in `LOCAL_DEV_NOTES.md` (git-ignored).
+- 依据：SPEC.md v0.11、SOW.md v1.11 加上 2026-10-04 的范围说明。已决定的激活路径是一步：受邀邮箱加上激活码，且只有该邮箱能接受该码（REQ-AUTH-01、REQ-AUTH-12）。本仓库已实现这一步激活（F02）。P0 任务为 T01–T08、T10–T12 与 T13。T09 与 T14 仍是 P1。v0.11 把 T13 纳入 MVP，并收窄为只发给案件协调员。建案页面（T14）留在下一版本。该页面出现之前，由操作者建案，并把建案记录写在 `LOCAL_DEV_NOTES.md`（不入库）。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -36,8 +36,8 @@
 | T10 | Two-way Urgent Alerts (between users, email channel)<br>双向紧急提醒（用户间，邮件渠道） | T07、T03 | REQ-NTF-01~06; R09; AC08 |
 | T11 | Permission Revocation / Archive / admin MFA / Audit Trail<br>撤权/归档/管理员 MFA/审计 | T03、T04、T07、T08 | REQ-OPS/PM-08/AUTH-09; R11; AC02/09/11 |
 | T12 | End-to-end dual-user + Backup and Restore drill + real-channel acceptance<br>端到端双用户＋备份恢复演练＋真实链路验收 | T01–T08、T10、T11 | AC01–AC06、AC08–AC12（AC07 属 P1）；O07/O08 |
-| T13 | Daily Case Digest email (P1, added in v1.5)<br>案件日报邮件（P1，v1.5 新增） | T07、T08、T12 | REQ-DIG; REQ-CASE-01 |
-| T14 | Administration Console: Case creation and participant setup (P1, added in v0.10)<br>管理控制台：案件创建与参与人设置（P1，v0.10 新增） | T03、T11 | REQ-ADM-01~05 |
+| T13 | Daily Case Digest email to the Coordinator only (MVP as of 2026-10-04)<br>案件日报邮件，只发给协调员（2026-10-04 起属于 MVP） | T07、T08、T12 | REQ-DIG; REQ-CASE-01 |
+| T14 | Administration Console: Case creation and participant setup (next version after MVP)<br>管理控制台：案件创建与参与人设置（MVP 之后的下一版本） | T03、T11 | REQ-ADM-01~05 |
 
 ---
 
@@ -271,29 +271,29 @@
 - Status: P0, coding side done (2026-10-02); real-channel acceptance items Blocked on external resources. 280/280 tests green (was 274; +6 integration `tests/integration/admin/test-cases.test.ts`), E2E 4/4 green (3 new specs + smoke), lint/tsc/build clean, `npm run drill:restore` executed with PASS. `POST /api/admin/test-cases` (REQ-OPS-07) live behind `requireAdminMfa`; Playwright dual-browser journeys cover AC03/AC05/AC12 key paths on the mock chain; `docs/runbook/mvp-test-case.md` + `docs/deployment.md` written; worker is driven in-process via `src/instrumentation.ts` (`NOTIFICATION_WORKER=off` for external drivers). Blocked (external resources, not passable by simulation): real email delivery acceptance (AC01/AC08/AC12 real-channel parts — needs the operator SMTP mailbox wired to a real EmailProvider and real recipient addresses, O05/O07), AC10 China-Vietnam real-network test (needs the O07 test window/devices), production-scale recovery drill (needs O08 environment resources; local drill at trivial data volume done and passing). Details in PROGRESS.md.
 - 状态：P0，编码侧已完成（2026-10-02）；真实渠道验收项因外部资源阻塞。280/280 测试通过（原 274；新增 6 个集成测试 `tests/integration/admin/test-cases.test.ts`），E2E 4/4 通过（3 个新 spec＋冒烟），lint/tsc/build 无错误，`npm run drill:restore` 实际执行为 PASS。`POST /api/admin/test-cases`（REQ-OPS-07）在 `requireAdminMfa` 后上线；Playwright 双浏览器旅程在模拟链路上覆盖 AC03/AC05/AC12 关键路径；`docs/runbook/mvp-test-case.md` 与 `docs/deployment.md` 已写；worker 经 `src/instrumentation.ts` 进程内驱动（外部驱动时设 `NOTIFICATION_WORKER=off`）。阻塞项（外部资源，不以模拟冒充）：真实邮件送达验收（AC01/AC08/AC12 真实渠道部分——需要运营方 SMTP 接入真实 EmailProvider 并用真实收件地址验证，O05/O07）、AC10 中越真机网络测试（需 O07 测试窗口/设备）、生产规模恢复演练（需 O08 环境资源；本地小数据量演练已完成且通过）。详见 PROGRESS.md。
 
-## T13 Daily Case Digest Email (P1, Added in v1.5) / T13 案件日报邮件（P1，v1.5 新增）
+## T13 Daily Case Digest Email to the Coordinator (MVP as of 2026-10-04) / T13 发给协调员的案件日报（2026-10-04 起属于 MVP）
 
-- Goal: every day at 00:00 (Asia/Ho_Chi_Minh), aggregate per active case the published messages and published attachments of the previous Vietnamese calendar day, and send a Daily Case Digest email to all Vietnamese Lawyers of the case (the Coordinator can turn it off per Lawyer) and the Coordinator; subject "CaseName-SendDate-Record" (e.g., DG-Juyang-2026OCT8-Record); the case name is required when creating a case. Priority P1 (the first version after MVP).
-- 目标：每日 00:00（Asia/Ho_Chi_Minh）按活跃案件汇总上一越南日历日的已发布消息与已发布附件，向本案全部越南律师（协调员可按律师关闭）与协调员发送日报邮件；标题「案件名称-发送日-Record」（如 DG-Juyang-2026OCT8-Record）；创建案件时案件名称必填。优先级 P1（MVP 之后第一个版本）。
+- Goal: every day at 00:00 (Asia/Ho_Chi_Minh), aggregate per active case the published messages and published attachments of the previous Vietnamese calendar day, and email that digest only to the Case Coordinator. The Coordinator forwards it to other people. Lawyers and Clients are not recipients in this MVP. Subject "CaseName-SendDate-Record" (e.g., DG-Juyang-2026OCT8-Record). Priority P0. Not implemented yet. The 2026-10-04 decision replaces the v1.5 recipient list (lawyers plus coordinators).
+- 目标：每日 00:00（Asia/Ho_Chi_Minh）按活跃案件汇总上一越南日历日的已发布消息与已发布附件，只把这份日报寄给案件协调员。协调员再转给其他人。本 MVP 不发给律师和客户。标题「案件名称-发送日-Record」（如 DG-Juyang-2026OCT8-Record）。优先级 P0。尚未实现。2026-10-04 的决定取代 v1.5 的收件人（律师加协调员）。
 - SPEC references: REQ-DIG-01~06; REQ-CASE-01.
 - SPEC 引用：REQ-DIG-01~06；REQ-CASE-01。
-- Dependencies: T07 (notification core), T08 (attachment publish), T12 (real email channel).
-- 依赖：T07（通知核心）、T08（附件发布）、T12（真实邮件通道）。
-- Acceptance criteria: fires on time under a simulated clock; includes only published content (Pending Review/returned/rejected not included); recipients = the case's Lawyers + Coordinator, sent individually per person, can be turned off per Lawyer and recorded in the audit trail; no send when there is no new content that day; archived cases do not send; correct subject format (including case-name-required validation and 2026OCT8-style dates); oversized attachments are split by sequence number; failure retry and final failure are visible; digest_runs records are complete.
-- 验收标准：模拟时钟下按时触发；仅含已发布内容（待审/退回/拒绝不纳入）；收件人 = 本案律师＋协调员、逐人单独发送、可按律师关闭且入审计；当日无新内容不发送；归档案件不发送；标题格式正确（含案件名称必填校验、2026OCT8 式日期）；附件超限按序号拆分；失败重试与最终失败可见；digest_runs 记录完整。
-- Expected new/modified: `src/modules/digest/**`, `src/server/jobs/digest-worker.ts`, `prisma/migrations/*` (case_members.digest_opt_out, digest_runs, notification kind case_digest). `cases.title` is already required in T03; T13 only reads it.
-- 预计新增/修改：`src/modules/digest/**`、`src/server/jobs/digest-worker.ts`、`prisma/migrations/*`（case_members.digest_opt_out、digest_runs、通知种类 case_digest）。`cases.title` 已在 T03 设为必填；T13 只读取它。
-- Tests to add/update: `tests/unit/digest/subject-format.test.ts`, `tests/integration/digest/daily-run.test.ts`, `tests/integration/digest/opt-out.test.ts`.
-- 同步测试：`tests/unit/digest/subject-format.test.ts`、`tests/integration/digest/daily-run.test.ts`、`tests/integration/digest/opt-out.test.ts`。
-- Test commands: `npm run test -- digest`, `npm run test:int -- digest`.
-- 测试命令：`npm run test -- digest`、`npm run test:int -- digest`。
-- Status: P1, pending start (after MVP acceptance).
-- 状态：P1 待启动（MVP 验收后）。
+- Dependencies: T07 (notification core), T08 (attachment publish), T12 (real email channel, already wired as F06).
+- 依赖：T07（通知核心）、T08（附件发布）、T12（真实邮件通道，F06 已接通）。
+- Acceptance criteria: fires on time under a simulated clock; includes only published content (Pending Review/returned/rejected not included); the only recipients are the case's active Coordinators, one message each; Lawyers and Clients receive nothing; no per-lawyer opt-out in this slice; no send when there is no new published content that day; archived cases do not send; correct subject format (2026OCT8-style dates); oversized attachments are split by sequence number; failure retry and final failure are visible; digest_runs records are complete.
+- 验收标准：模拟时钟下按时触发；仅含已发布内容（待审/退回/拒绝不纳入）；收件人只有本案有效协调员，每人一封；律师和客户不收到；本切片不做按律师关闭；当日没有新发布内容则不发送；归档案件不发送；标题格式正确（2026OCT8 式日期）；附件超限按序号拆分；失败重试与最终失败可见；digest_runs 记录完整。
+- Expected new/modified: `src/modules/digest/**`, a scheduled pass beside the existing notification worker, `prisma/migrations/*` (`digest_runs`, notification kind `case_digest`). `cases.title` and `case_members.digest_opt_out` already exist from T03. T13 does not build an opt-out screen. `digest_opt_out` stays unused until a later version sends the digest to Lawyers.
+- 预计新增/修改：`src/modules/digest/**`、挂在现有通知 worker 旁的定时趟次、`prisma/migrations/*`（`digest_runs`、通知种类 `case_digest`）。`cases.title` 与 `case_members.digest_opt_out` 已在 T03 存在。T13 不做关闭开关界面。在后续版本把日报发给律师之前，`digest_opt_out` 保持不用。
+- Tests to add/update: `tests/unit/digest/subject-format.test.ts`, `tests/integration/digest/daily-run.test.ts` (coordinator receives it; lawyer and client do not; empty day skips; archived case skips).
+- 同步测试：`tests/unit/digest/subject-format.test.ts`、`tests/integration/digest/daily-run.test.ts`（协调员收到；律师和客户收不到；当日无内容跳过；归档案件跳过）。
+- Test commands: `npm run test -- digest`.
+- 测试命令：`npm run test -- digest`。
+- Status: P0, not started (2026-10-04). Next coding task. Do not also build T14.
+- 状态：P0，未开始（2026-10-04）。下一件编码工作。不要同时做 T14。
 
 ## T14 Administration Console: Case Creation and Participant Setup (P1, Added in v0.10) / T14 管理控制台：案件创建与参与人设置（P1，v0.10 新增）
 
-- Goal: the System Operations Administrator has a web page to create a Case and to set each Case's Chinese Clients, Vietnamese Lawyers, and Coordinators (user request 2026-10-03). Participant setup reuses the standard invitation flow (one activation email per entered address; the code binds that email, the Case, and the role). The administrator is never a member and never sees Case content. Priority P1 — not in the MVP.
-- 目标：系统运维管理员有一个网页，可以创建案件并设置每个案件的中国客户、越南律师与协调员（用户 2026-10-03 提出）。参与人设置复用标准邀请流程（每个被输入地址一封激活邮件；激活码绑定该邮箱、案件与角色）。管理员绝不成为成员、绝不查看案件正文。优先级 P1——不进入 MVP。
+- Goal: the System Operations Administrator has a web page to create a Case and to set each Case's Chinese Clients, Vietnamese Lawyers, and Coordinators (user request 2026-10-03). Participant setup reuses the standard invitation flow (one activation email per entered address; the code binds that email, the Case, and the role). The administrator is never a member and never sees Case content. Priority: the next version after this MVP. Confirmed again 2026-10-04: do not build this page for the current launch. An operator creates the one real case and the test case, and records each invite in `LOCAL_DEV_NOTES.md`.
+- 目标：系统运维管理员有一个网页，可以创建案件并设置每个案件的中国客户、越南律师与协调员（用户 2026-10-03 提出）。参与人设置复用标准邀请流程（每个被输入地址一封激活邮件；激活码绑定该邮箱、案件与角色）。管理员绝不成为成员、绝不查看案件正文。优先级：本 MVP 之后的下一版本。2026-10-04 再次确认：这次上线不建这个页面。操作者建立那一个真实案件和测试案件，并把每条邀请记入 `LOCAL_DEV_NOTES.md`。
 - SPEC references: REQ-ADM-01~05; REQ-CASE-01; REQ-AUTH-01/12; REQ-PM-06/10; REQ-OPS-01.
 - SPEC 引用：REQ-ADM-01~05；REQ-CASE-01；REQ-AUTH-01/12；REQ-PM-06/10；REQ-OPS-01。
 - Dependencies: T03 (cases/members/invites), T11 (admin MFA + audit). Real delivery of the activation emails depends on the real EmailProvider (F06/O05); development uses the fake provider.
@@ -306,8 +306,8 @@
 - 同步测试：`tests/integration/admin/console-cases.test.ts`（MFA 拦截、名册仅元数据、每地址一封、管理员非成员、追加/撤销语义、创建期角色不符拒绝、审计行）。
 - Test commands: `npm run test -- admin`.
 - 测试命令：`npm run test -- admin`。
-- Status: P1, pending start (user decision).
-- 状态：P1 待启动（待用户决定）。
+- Status: next version after MVP. Not started. Do not build it in the current launch (user, 2026-10-04).
+- 状态：MVP 之后的下一版本。未开始。这次上线不要做（用户，2026-10-04）。
 
 ## Dependency Graph and Execution Order / 依赖图与执行顺序
 
@@ -316,7 +316,7 @@ Dependency graph:
 
 ```
 T01 → T02 → T03 → T04 → T05 → T07 → T08 ─────────┐
-                    │      ↘ T06                 ├→ T12 → T13 (P1)
+                    │      ↘ T06                 ├→ T12 → T13 (MVP, coordinator only)
                     └──────────→ T10 ← T07       │
                     └──────────→ T11 ← T04、T07、T08 ─┘
 （T09 为 P1，依赖 T06 与 T08，不在 MVP 关键路径上）
@@ -333,9 +333,9 @@ Test output, migration records, and the list of changed files are written into P
 
 ## Pilot Follow-ups after the 2026-10-03 Shanghai Test / 2026-10-03 上海试点之后的跟进
 
-The three roles are in the fictitious case and can see the client's three identical messages. The lawyer's phone had dropped its session and was sent to Sign in; a new login now opens `/cases`. The items below are the remaining work, ordered by what blocks this pilot. T01–T13 keep their existing status. T09 and T13 stay P1.
+The three roles are in the fictitious case and can see the client's three identical messages. The lawyer's phone had dropped its session and was sent to Sign in; a new login now opens `/cases`. The items below are the remaining work, ordered by what blocks this pilot. On 2026-10-04 the user moved T13 into the MVP (coordinator only) and left T14 for the next version. T09 stays P1.
 
-三方已在虚构案件中，并能看到客户发出的三句相同消息。律师手机丢失了登录状态并被送到登录页；现在重新登录会打开 `/cases`。下面按是否挡住这次试点排序。T01–T13 的原状态不变。T09 与 T13 仍是 P1。
+三方已在虚构案件中，并能看到客户发出的三句相同消息。律师手机丢失了登录状态并被送到登录页；现在重新登录会打开 `/cases`。下面按是否挡住这次试点排序。2026-10-04 用户把 T13 纳入 MVP（只发给协调员），T14 留到下一版本。T09 仍是 P1。
 
 | Order | ID | Task | Compared with the three requested changes | Status |
 | --- | --- | --- | --- | --- |
@@ -349,12 +349,13 @@ The three roles are in the fictitious case and can see the client's three identi
 | 8 | F08 | T12 leftovers: AC10 China–Vietnam network test, production-scale restore drill (O07/O08). | After the pilot UI. Blocked on external resources. | Blocked |
 | 9 | F09 | P0 review gaps already found: display names are not checked for contact channels (REQ-MOD-02); no account-recovery API (REQ-AUTH-10); no API for a later administrator; session tokens are stored in plaintext. The 2026-10-03 code review expanded this list — CURSOR_REVIEW.md Section 10 items R1–R9 must be fixed before real data, R10–R22 right after. | After F01–F05. Expanded by the 2026-10-03 code review. | Later |
 | 10 | F10 | Re-run the three failing end-to-end journeys from the 2026-10-03 review, after F01 and F04. | Quality. Done 2026-10-03: all specs pass in three consecutive full runs (7/7 each). The dual-user visibility timeout did not recur; the leading suspect (cold dev-server compiles consuming the expect window) is addressed by compiling the journey routes in global setup, and `trace: retain-on-failure` now captures evidence on any recurrence. No sleeps added, no assertion weakened. | Done |
-| 11 | T09, T13 | DOCX bilingual conversion and the daily digest. | Already P1. They stay behind this pilot list. | P1 |
+| 11 | T09 | DOCX bilingual conversion. | Stays P1. | P1 |
 | 12 | F11 | Publish ordinary messages and clean files immediately. Hold only a message or file name that explicitly asks about or negotiates the firm's litigation retainer fee. Contact details in a message or file name publish. A display name that contains a contact channel is still rejected on save. Scan failure stays unpublished. | Requested 2026-10-03 after the Shanghai pilot: not every attachment or message waits for review. | Done |
 | 13 | F12 | Case entry is the invited email plus the invitation code that was sent. The first use joins the case. The same pair signs in to that case again from any browser. Case entry does not ask for a 6-digit code. The administrator still uses the email OTP. | Requested 2026-10-03: the client was stopped on the 6-digit code page. | Done |
 | 14 | F13 | Show a timestamp on every conversation record and every upload record the viewer can see (REQ-MSG-11, REQ-FILE-04). Format it with the timezone set on that computer, and print the offset beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7 for the same instant. The role does not choose the offset. The message list and the file list both print that labeled time. | Requested 2026-10-03. The timezone rule was set the same evening: the lawyer's computer is UTC+7, the client's computer is UTC+8, and each computer's own setting is what gets labeled. The screen now does this. | Done |
 | 15 | F14 | A Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels, buttons, placeholders, status text, and automatic-mode messages from other people use that one language. The two languages are not written on the same control. Real Vietnamese wording of Chinese messages stays F07. | Restated 2026-10-03 from the lawyer's phone. The screen now uses one language per control. | Done |
-| 16 | F15 | Administration Console: the administrator has a page to create a Case and to set each Case's Chinese Clients, Vietnamese Lawyers, and Coordinators. Written into SPEC v0.10 (REQ-ADM-01~05) as task T14. | Requested 2026-10-03. Explicitly not in the MVP. | P1 |
+| 16 | F15 | Administration Console: the administrator has a page to create a Case and to set each Case's Chinese Clients, Vietnamese Lawyers, and Coordinators. Written into SPEC (REQ-ADM-01~05) as task T14. | Requested 2026-10-03. Confirmed 2026-10-04: the next version after this MVP. The current launch creates cases by hand and records them in `LOCAL_DEV_NOTES.md`. | Next version |
+| 17 | F16 | Daily email to the Coordinator only (T13). 00:00 Asia/Ho_Chi_Minh, previous Vietnamese calendar day, published messages and published attachments, subject `{Case name}-{send date}-Record`. Lawyers and Clients are not recipients. | Moved into the MVP on 2026-10-04. Not implemented. | Not started |
 
 | 顺序 | ID | 任务 | 与提出的三处修改比较 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -368,9 +369,38 @@ The three roles are in the fictitious case and can see the client's three identi
 | 8 | F08 | T12 剩余项：AC10 中越网络测试、生产规模恢复演练（O07/O08）。 | 排在试点界面之后。外部资源阻塞。 | 阻塞 |
 | 9 | F09 | 已发现的 P0 复核缺口：显示名未按联系渠道检查（REQ-MOD-02）；没有账号找回接口（REQ-AUTH-10）；没有后续管理员接口；会话令牌明文存放。2026-10-03 代码复核扩充了这份清单——CURSOR_REVIEW.md 第 10 节 R1–R9 须在接入真实数据前修复，R10–R22 紧随其后。 | 排在 F01–F05 之后。已由 2026-10-03 代码复核扩充。 | 稍后 |
 | 10 | F10 | F01 与 F04 之后，重跑 2026-10-03 复核里失败的三段端到端旅程。 | 质量项。2026-10-03 完成：连续三轮完整运行全部通过（每轮 7/7）。双用户可见性超时未再出现；首要嫌疑（dev server 冷编译占满 expect 窗口）已通过在 global setup 预编译旅程路由解决，并加入 `trace: retain-on-failure` 以便复发时留证。未加 sleep，未削弱断言。 | 已完成 |
-| 11 | T09、T13 | DOCX 双语转换与案件日报。 | 原本就是 P1。仍排在这份试点清单之后。 | P1 |
+| 11 | T09 | DOCX 双语转换。 | 仍是 P1。 | P1 |
 | 12 | F11 | 普通消息和扫描通过的文件立即发布。只有消息或文件名显式询问或协商律所诉讼委托费用时才待审。消息或文件名里的联系方式直接发布。显示名含联系渠道时仍拒绝保存。扫描失败不发布。 | 2026-10-03 上海试点之后提出：不是每条消息和每个附件都要等审核。 | 已完成 |
 | 13 | F12 | 进入案件使用受邀邮箱加上已经发出的邀请码。第一次使用即加入该案件。之后同一组邮箱和邀请码可以从任意浏览器再次进入该案件。案件入口不再要 6 位验证码。管理员仍用邮箱验证码。 | 2026-10-03 提出：客户停在 6 位验证码页面。 | 已完成 |
 | 14 | F13 | 观看者能看到的每条对话记录和每条上传记录都显示时间戳（REQ-MSG-11、REQ-FILE-04）。按那台电脑的时区设置换算，并在时间旁边标出时区。设为 UTC+8 的电脑标 UTC+8。同一时刻在设为 UTC+7 的电脑上标 UTC+7。时区不按角色写死。消息列表和文件列表都标出这个时间。 | 2026-10-03 提出。当晚补上时区规则：律师的电脑是 UTC+7，客户的电脑是 UTC+8，各自电脑的设置就是要标出的时区。界面已按此显示。 | 已完成 |
 | 15 | F14 | 中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮、提示、状态文字，以及自动模式下别人发来的消息，都用这一种语言。同一控件上不并列两种语言。中文消息的真实越南语译文仍是 F07。 | 2026-10-03 从律师手机再次确认。界面已改成同一控件只用一种语言。 | 已完成 |
-| 16 | F15 | 管理控制台：管理员有一个页面，可以添加案件，并设置每个案件的中国客户、越南律师与协调员。已写入 SPEC v0.10（REQ-ADM-01~05），即任务 T14。 | 2026-10-03 提出。明确不进入 MVP。 | P1 |
+| 16 | F15 | 管理控制台：管理员有一个页面，可以添加案件，并设置每个案件的中国客户、越南律师与协调员。已写入 SPEC（REQ-ADM-01~05），即任务 T14。 | 2026-10-03 提出。2026-10-04 确认：留在本 MVP 之后的下一版本。这次上线由操作者建案，并记入 `LOCAL_DEV_NOTES.md`。 | 下一版本 |
+| 17 | F16 | 只发给协调员的每日邮件（T13）。Asia/Ho_Chi_Minh 00:00，上一越南日历日，已发布消息与已发布附件，标题 `{案件名称}-{发送日}-Record`。律师和客户不是收件人。 | 2026-10-04 纳入 MVP。尚未实现。 | 未开始 |
+
+## Launch scope decided 2026-10-04 / 2026-10-04 确定的上线范围
+
+This launch has one real Case and one test Case. The user deferred a domain, HTTPS, and a real file scanner for this launch. The current Shanghai host stays the entry: HTTP, `SESSION_COOKIE_SECURE=false`, stub file scanner under `CLC_FICTITIOUS_TEST_HOST=1`. Do not treat those three as work for the next coding task.
+
+这次上线是一个真实案件加一个测试案件。用户把域名、HTTPS 和正式文件扫描推迟到这次上线之后。上海主机仍是入口：HTTP、`SESSION_COOKIE_SECURE=false`、在 `CLC_FICTITIOUS_TEST_HOST=1` 下使用替身文件扫描。下一件编码工作不要改这三件。
+
+Case creation has no product screen in this MVP. The operator creates the cases. Each invite is one row in `LOCAL_DEV_NOTES.md` (git-ignored). Do not copy the row into PLAN, SPEC, PROGRESS, SESSIONS, or any other committed file. The columns are:
+
+本 MVP 没有建案页面。操作者建案。每条邀请在 `LOCAL_DEV_NOTES.md`（不入库）里占一行。不要把该行抄进 PLAN、SPEC、PROGRESS、SESSIONS 或其他会提交的文件。列是：
+
+| Column | What to write |
+| --- | --- |
+| case | Case id and title |
+| email | Address the invitation was sent to |
+| role | client, lawyer, or coordinator |
+| invite_code | The code in that email |
+| sent_at | When the invitation email was sent |
+| first_login_at | When that email and code first signed in. Leave blank until the audit row `auth.login` with `via: invite` exists for that membership. Then fill this cell. |
+
+| 列 | 写什么 |
+| --- | --- |
+| case | 案件 id 与标题 |
+| email | 邀请发往的邮箱 |
+| role | client、lawyer 或 coordinator |
+| invite_code | 那封邮件里的邀请码 |
+| sent_at | 邀请邮件发出的时间 |
+| first_login_at | 该邮箱与邀请码第一次登录的时间。在该成员出现 `auth.login` 且 `via: invite` 的审计行之前留空。出现后填上。 |

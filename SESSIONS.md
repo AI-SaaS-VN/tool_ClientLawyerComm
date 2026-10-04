@@ -963,12 +963,6 @@ Deploy this build to the Shanghai test host if the user asks. Do not start real 
 
 Continue the pilot on this build. F07 stays blocked on O05. Do not start real Kimi calls.<br>在这次构建上继续试点。F07 仍阻塞于 O05。不要开始真实 Kimi 调用。
 
----
-
----
-
----
-
 ## Session 2026-10-03-06 (Ended) / 会话 2026-10-03-06（已结束）
 
 - Date/Timezone: 2026-10-03, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-03，UTC（研发 VPS 上的 Kimi Code）
@@ -1071,5 +1065,22 @@ Fix R1/R2/R3/R6 (before real data) or start T14, whichever the user asks. F06 (r
 ### First Step Next Time / 下次第一步
 
 Fix R1/R2/R3/R6 (before real data) or start T14 (admin console), whichever the user asks. F06 and F07 are both done and deployed; F08 stays blocked on O07/O08.<br>按用户要求修 R1/R2/R3/R6（先于真实数据）或开工 T14（管理控制台）。F06 与 F07 均已完成并部署；F08 仍阻塞于 O07/O08。
+
+---
+
+## Session 2026-10-04-01 (Ended) / 会话 2026-10-04-01（已结束）
+
+- Date/Timezone: 2026-10-04, UTC+8<br>日期/时区：2026-10-04，UTC+8
+- Goal: record the launch scope for the next coder. No application code.<br>本次目标：把上线范围写给下一位编码者。不改应用代码。
+
+### Actual Actions / 实际动作
+
+1. The user will run one real Case and one test Case. Domain, HTTPS, and a real file scanner stay deferred. The Shanghai host remains HTTP with the stub scanner.<br>用户将运行一个真实案件和一个测试案件。域名、HTTPS 与正式文件扫描继续推迟。上海主机仍是 HTTP，文件扫描仍是替身。
+2. The daily email enters the MVP and goes only to the Coordinator (T13 / F16, SPEC REQ-DIG v0.11). Lawyers and Clients are not recipients. This is the next coding task. It is not implemented.<br>每日邮件进入 MVP，并且只发给协调员（T13 / F16，SPEC REQ-DIG v0.11）。律师和客户不是收件人。这是下一件编码工作。尚未实现。
+3. The case-creation page stays the next version (T14 / F15). An operator creates cases now. Each invite is a row in git-ignored `LOCAL_DEV_NOTES.md`: case, email, role, invite code, sent time, first login time. Those values must not be copied into this file or any other committed file.<br>建案页面留在下一版本（T14 / F15）。现在由操作者建案。每条邀请在不入库的 `LOCAL_DEV_NOTES.md` 里占一行：案件、邮箱、角色、邀请码、发送时间、第一次登录时间。这些值不得抄进本文件或其他会提交的文件。
+
+### First Step Next Time / 下次第一步
+
+Implement T13 / F16. Do not build the case-creation page. Do not change the HTTP entry or the stub scanner unless the user asks.<br>实现 T13 / F16。不要做建案页面。除非用户要求，不要改 HTTP 入口或替身扫描。
 
 ---

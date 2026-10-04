@@ -19,8 +19,8 @@
 - 2026-10-03 再次确认：中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮、提示，以及自动模式下别人发来的消息，都用这一种语言。
 - Every conversation record and every upload record the viewer can see shows a timestamp formatted with that computer's timezone setting, and the offset is printed beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7. The role does not choose the offset (confirmed 2026-10-03).
 - 观看者能看到的每条对话记录和每条上传记录都按那台电脑的时区设置显示时间，并在时间旁边标出时区。设为 UTC+8 的电脑标 UTC+8。设为 UTC+7 的电脑标 UTC+7。时区不按角色写死（2026-10-03 确认）。
-- MVP includes two-way Urgent Alerts (email channel), file sharing (PDF/DOCX/JPG/PNG, 20MB), Permission Revocation, Archive, administrator MFA (separate admin account), Audit Trail, Backup and Restore, and one-step activation bound to the invited email (v1.11); languages are Chinese (Simplified/Traditional)/Vietnamese/English; the Coordinator may participate in chat (v1.4). Moved to P1: phone registration/SMS, DOCX Bilingual Parallel Document, Cross-case Mix-up Prevention UI, Daily Case Digest email (v1.5).
-- MVP 含双向紧急提醒（邮件渠道）、文件分享（PDF/DOCX/JPG/PNG，20MB）、权限撤销、归档、管理员 MFA（独立管理员账号）、审计、备份恢复，以及绑定受邀邮箱的一步激活（v1.11）；语言为中（简/繁）/越/英；协调员可参与聊天（v1.4）。移至或新增于 P1：手机注册/短信、DOCX 双语对照、防串案界面、案件日报邮件（v1.5）。
+- MVP includes two-way Urgent Alerts (email channel), file sharing (PDF/DOCX/JPG/PNG, 20MB), Permission Revocation, Archive, administrator MFA (separate admin account), Audit Trail, Backup and Restore, one-step activation bound to the invited email (v1.11), and a Daily Case Digest sent only to the Coordinator (2026-10-04; not built yet). Languages are Chinese (Simplified/Traditional)/Vietnamese/English. The Coordinator may participate in chat (v1.4). Later: phone registration/SMS, DOCX bilingual documents, the cross-case UI, sending the digest to Lawyers, and the case-creation page.
+- MVP 含双向紧急提醒（邮件渠道）、文件分享（PDF/DOCX/JPG/PNG，20MB）、权限撤销、归档、管理员 MFA（独立管理员账号）、审计、备份恢复、绑定受邀邮箱的一步激活（v1.11），以及只发给协调员的案件日报（2026-10-04；尚未实现）。语言为中（简/繁）/越/英。协调员可参与聊天（v1.4）。后续：手机注册/短信、DOCX 双语对照、防串案界面、把日报也发给律师、建案页面。
 
 ## Confirmed Technical Direction (technical defaults; reversible details may be optimized but must be recorded) / 已确认技术方向（技术默认值，可逆细节可优化但须记录）
 
@@ -39,8 +39,8 @@
 | --- | --- |
 | SOW.md | v1.11 execution baseline. Activation is one step and the code is bound to the invited email. The repository implements it<br>v1.11 执行基线。激活是一步，激活码绑定受邀邮箱。本仓库已实现 |
 | VIBE_CODING_INPUT.md | Historical launch-instruction entry point. Where it conflicts with SOW v1.11, SOW prevails. The historical body is kept and still contains superseded sentences<br>历史启动指令入口。与 SOW v1.11 冲突时以 SOW 为准。历史正文保留，其中仍有已被取代的句子 |
-| SPEC.md | v0.10 requirements, permissions, state machines, data, API, and exceptions; adds the P1 Administration Console (REQ-ADM)<br>v0.10 需求、权限、状态机、数据、API 与异常；新增 P1 管理控制台（REQ-ADM） |
-| PLAN.md | v0.10 task breakdown. P0 coding T01–T08 and T10–T12 is done, as are pilot follow-ups F01–F05 and F10–F14; F06–F08 are blocked on external resources. F09's gap list was expanded by the 2026-10-03 code review (CURSOR_REVIEW.md Section 10). T09/T13/T14 (T14 = F15 admin console) are P1<br>v0.10 任务拆分。P0 编码 T01–T08 与 T10–T12 已完成，试点跟进 F01–F05 与 F10–F14 亦完成；F06–F08 因外部资源阻塞。F09 的缺口清单已由 2026-10-03 代码复核扩充（CURSOR_REVIEW.md 第 10 节）。T09/T13/T14（T14＝F15 管理控制台）属于 P1 |
+| SPEC.md | v0.11 requirements. The Coordinator-only digest is MVP (REQ-DIG). The Administration Console (REQ-ADM) is the next version.<br>v0.11 需求。只发给协调员的日报属于 MVP（REQ-DIG）。管理控制台（REQ-ADM）是下一版本。 |
+| PLAN.md | v0.11 task breakdown. Next coding task is T13 / F16 (coordinator daily email, not started). T14 / F15 (case-creation page) is the next version. Domain, HTTPS, and a real file scanner are deferred for one real Case plus one test Case. Invite rows go in git-ignored `LOCAL_DEV_NOTES.md`.<br>v0.11 任务拆分。下一件编码是 T13 / F16（发给协调员的每日邮件，未开始）。T14 / F15（建案页面）是下一版本。域名、HTTPS 与正式文件扫描在一个真实案件加一个测试案件的这次上线中推迟。邀请明细写在不入库的 `LOCAL_DEV_NOTES.md`。 |
 | README.md | Project overview, commands, and repo map (replaced the create-next-app boilerplate 2026-10-03)<br>项目概览、命令与仓库地图（2026-10-03 替换 create-next-app 模板） |
 | docs/runbook/mvp-test-case.md | REQ-OPS-07 runbook: one-step activation with the invited email and the activation code<br>REQ-OPS-07 运行指引：用受邀邮箱和激活码一步激活 |
 | docs/deployment.md | Service composition, env-var list, migrations, backup/restore, test-period entry caveats<br>服务组成、环境变量清单、迁移、备份/恢复、测试期入口注意事项 |

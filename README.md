@@ -4,11 +4,11 @@ A web-based, case-isolated communication system: Chinese Client — Vietnamese L
 
 基于网页、按案件隔离的沟通系统：中国客户—越南律师—案件协调员。一步激活（受邀邮箱加上激活码）、发布受控的消息流水线、对话翻译（中简繁/越/英）、文件分享、紧急提醒、审核后台、管理员 MFA 与完整审计。
 
-## Status / 状态（2026-10-03）
+## Status / 状态（2026-10-04）
 
-All P0 (MVP) coding tasks T01–T08 and T10–T12 are done. The Shanghai test host is serving the app over HTTP. PLAN.md v0.9 follow-ups F01–F05 and F10–F14 are done in the repository and on the Shanghai test host. F09 is later. F13 labels each conversation and upload time with that computer's timezone. F14 shows one language: a Chinese client sees Traditional Chinese, a Vietnamese lawyer sees Vietnamese, and a coordinator sees Simplified Chinese. After F13/F14, `npm run test` is 286/286 and `npm run test:e2e` is 7/7. F07 is done: lawyer Vietnamese becomes the client's Traditional Chinese, and client Traditional Chinese becomes the lawyer's Vietnamese through real Kimi calls (O05 approved for translation on 2026-10-03; test host runs TRANSLATION_PROVIDER=kimi). F06 and F08 stay blocked. T09/T13 are P1. See PROGRESS.md.
+All P0 coding tasks T01–T08 and T10–T12 are done. The Shanghai test host is serving the app over HTTP. F01–F07 and F10–F14 are done. The next coding task is F16 / T13: a daily email of published messages and files, sent only to the Case Coordinator. The case-creation page (T14) is the next version; an operator creates the one real case and the test case. Domain, HTTPS, and a real file scanner are deferred for this launch. T09 stays later. See PROGRESS.md.
 
-全部 P0（MVP）编码任务 T01–T08、T10–T12 已完成。上海测试机已通过 HTTP 提供本应用。PLAN.md v0.9 的跟进项 F01–F05 与 F10–F14 已在仓库和上海测试机完成。F09 稍后。F13 给每条对话和上传时间标出该电脑的时区。F14 屏幕只用一种语言：中国客户看到繁体中文，越南律师看到越南语，协调员看到简体中文。F13/F14 之后 `npm run test` 为 286/286，`npm run test:e2e` 为 7/7。F07 已完成：律师的越南语经真实 Kimi 调用变成客户的繁体中文，客户的繁体中文变成律师的越南语（翻译方向的 O05 于 2026-10-03 获批；测试机 TRANSLATION_PROVIDER=kimi）。F06 与 F08 仍阻塞。T09/T13 为 P1。见 PROGRESS.md。
+全部 P0 编码任务 T01–T08、T10–T12 已完成。上海测试机已通过 HTTP 提供本应用。F01–F07 与 F10–F14 已完成。下一件编码工作是 F16 / T13：把已发布的消息和文件做成每日邮件，只发给案件协调员。建案页面（T14）是下一版本；操作者建立那一个真实案件和测试案件。域名、HTTPS 与正式文件扫描在这次上线中推迟。T09 仍在更后。见 PROGRESS.md。
 
 ## Commands / 命令
 
