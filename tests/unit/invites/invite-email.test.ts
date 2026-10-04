@@ -24,6 +24,8 @@ describe("buildInviteEmail", () => {
     expect(mail.text).toContain("使用方法");
     expect(mail.text).toContain("DG-Juyang2026OCT");
     expect(mail.text).toContain("7 天内有效");
+    expect(mail.text).toContain("律师那边会自动显示为越南语");
+    expect(mail.text).not.toContain("越南律师");
     expect(mail.text).not.toContain("Mã mờ" + "i");
   });
 

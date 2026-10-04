@@ -1113,7 +1113,7 @@ The MVP P0 scope is fully coded and deployed. Next per user: either the R-series
 
 ---
 
-## Session 2026-10-04-02 (In progress / 进行中 — wave 1 of real-case provisioning done; wave 2 awaits user confirmation) / 会话 2026-10-04-02（进行中——真实案件开通第一波已完成；第二波待用户确认）
+## Session 2026-10-04-02 (Ended) / 会话 2026-10-04-02（已结束）
 
 - Date/Timezone: 2026-10-04, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-04，UTC（研发 VPS 上的 Kimi Code）
 - Goal (user request): provision the one real case on the Shanghai test host and send invitation emails that name the inviter and the case, include the login webpage and usage instructions; send to the coordinator first, and only after confirmation to the two Chinese clients and the Vietnamese lawyer.<br>本次目标（用户要求）：在上海测试机上开通那一个真实案件并发送邀请邮件——邮件要点名邀请人与案件、写清登录网址和使用方法；先发协调员，确认无误后再发两名中国客户和越南律师。
@@ -1130,13 +1130,18 @@ The MVP P0 scope is fully coded and deployed. Next per user: either the R-series
 
 - New: src/modules/invites/email.ts, tests/unit/invites/invite-email.test.ts, scripts/provision-case.ts. Modified: src/modules/invites/service.ts, tests/integration/auth/invite-flow.test.ts, tsconfig.json, PROGRESS.md, SESSIONS.md, LOCAL_DEV_NOTES.md (git-ignored).<br>新增：email.ts、其单测、provision-case.ts。修改：invites/service.ts、invite-flow 集成测试、tsconfig.json、PROGRESS/SESSIONS、LOCAL_DEV_NOTES.md（不入库）。
 
+### Wave 2 and Close-out (later in the same session) / 第二波与收尾（同一会话稍后）
+
+- The coordinator confirmed the first email arrived correctly. Per the user's wording rule, role labels in the email are just 客户/律师 (no 中国/越南 prefixes — the translation line now says 律师那边, and a unit test pins it). The provisioning script's skip-guard was fixed to dedupe per email (decrypting stored sentToEnc) instead of per role, which would have skipped the second client.<br>协调员确认第一封邮件到达无误。按用户的措辞规则，邮件中角色只写 客户/律师（不加 中国/越南 前缀——自动翻译说明句改为「律师那边」，并有单测钉住）。开通脚本的跳过守卫改为按邮箱去重（解密存量 sentToEnc 比对），否则第二名客户会被误跳过。
+- Wave 2 sent and accepted: two clients (zh-Hant, zh-Hans) and the lawyer (vi). All four invite rows and the full text of every sent email are recorded in `LOCAL_DEV_NOTES.md` per the user's instruction (sent content kept for reference). Tunnel closed, temp env/config files deleted.<br>第二波已发出并被接受：两名客户（繁体、简体）与律师（越南语）。全部四行邀请登记与每封已发邮件全文已按用户要求记入 `LOCAL_DEV_NOTES.md` 备考。隧道已关、临时 env/配置已删。
+
 ### Unfinished Items / 未完成项
 
-- Wave 2 (the two Chinese clients and the Vietnamese lawyer) waits for the user's confirmation of the coordinator's email. Their languages: one client Traditional, one client Simplified (explicit per-invite `lang`), lawyer Vietnamese.<br>第二波（两名中国客户与越南律师）待用户确认协调员邮件后发。语言：一名客户繁体、一名客户简体（逐邀请显式 `lang`）、律师越南语。
+- `first_login_at` cells stay blank until each member's `auth.login` (`via: invite`) audit row appears; backfill them then.<br>各成员的 `first_login_at` 待其 `auth.login`（`via: invite`）审计行出现后回填。
 - The convertZh char map is partial (misses e.g. 刘/锋/统/换）, so the zh-Hant intro fallback is best-effort; wave-2 config passes an explicit zh-Hant intro. Expanding the map is a separate improvement.<br>convertZh 字表不全（缺 刘/锋/统/换 等），zh-Hant 开场兜底是尽力转换；第二波配置会显式提供繁体开场。扩充字表是独立改进项。
 
 ### First Step Next Time / 下次第一步
 
-On user confirmation: re-open the tunnel, write the wave-2 config (three invites with per-language intros), run `scripts/provision-case.ts`, record the three rows in `LOCAL_DEV_NOTES.md`, then fill `first_login_at` cells when the `auth.login` (`via: invite`) audit rows appear.<br>用户确认后：重开隧道，写第二波配置（三封邀请、按语言开场），运行 `scripts/provision-case.ts`，把三行登记进 `LOCAL_DEV_NOTES.md`，待出现 `auth.login`（`via: invite`）审计行后回填 `first_login_at`。
+Watch the four invitees' first logins and backfill `first_login_at` in `LOCAL_DEV_NOTES.md`; support the pilot (translation latency, digest at 00:00 HCMC). Next coding per user: R1/R2/R3/R6 fixes or anything newly reported.<br>关注四位受邀人的首次登录并回填 `LOCAL_DEV_NOTES.md` 的 `first_login_at`；保障试点（翻译延迟、越南 0 点日报）。下一件编码按用户指示：R1/R2/R3/R6 修复或新报告的问题。
 
 ---

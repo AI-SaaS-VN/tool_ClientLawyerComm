@@ -19,7 +19,7 @@
 // (same convention as scripts/bootstrap-admin.ts).
 import "dotenv/config";
 
-import { createCipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -48,6 +48,14 @@ function encryptText(plain: string): string {
   const ciphertext = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return `v1:${iv.toString("hex")}:${tag.toString("hex")}:${ciphertext.toString("hex")}`;
+}
+
+function decryptText(payload: string): string {
+  const [version, ivHex, tagHex, dataHex] = payload.split(":");
+  if (version !== "v1" || !ivHex || !tagHex || !dataHex) throw new Error("bad ciphertext");
+  const decipher = createDecipheriv("aes-256-gcm", getDataKey(), Buffer.from(ivHex, "hex"));
+  decipher.setAuthTag(Buffer.from(tagHex, "hex"));
+  return Buffer.concat([decipher.update(Buffer.from(dataHex, "hex")), decipher.final()]).toString("utf8");
 }
 
 function normalizeEmail(email: string): string {
@@ -119,12 +127,12 @@ async function main() {
       const email = normalizeEmail(entry.email ?? "");
       if (!email || !email.includes("@")) throw new Error(`invalid email: ${entry.email}`);
 
-      const pending = await prisma.invite.findFirst({
+      const pending = await prisma.invite.findMany({
         where: { caseId: kase.id, role: entry.role, usedAt: null, revokedAt: null },
-        select: { id: true },
+        select: { sentToEnc: true },
       });
-      if (pending) {
-        console.log(`skipped (an unused ${entry.role} invite already exists): ${email}`);
+      if (pending.some((row) => normalizeEmail(decryptText(row.sentToEnc)) === email)) {
+        console.log(`skipped (an unused invite already exists): ${email}`);
         continue;
       }
 
