@@ -336,7 +336,7 @@ PostgreSQL；全部业务表含 created_at/updated_at；外键与状态枚举在
 | docx_jobs | id, file_id, status, page_count, paragraph_count, error_code, output_variant_id | P1 only (T09). Not created by MVP migrations<br>仅 P1（T09）。MVP 迁移不建此表 |
 | notification_tasks | id, kind(peer_urgent/review_alert/check_failed_alert/case_digest), case_id, recipient_channel_id, status, dedupe_key, attempts, next_retry_at, provider_ref, confirmed_at, cancelled_at | State machine see 10.1. `case_digest` is the Coordinator daily email (REQ-DIG, MVP). `check_failed_alert` carries no body<br>状态机见 10.1。`case_digest` 是发给协调员的每日邮件（REQ-DIG，MVP）。`check_failed_alert` 不含正文 |
 | audit_logs | id, actor_id, action, target_type, target_id, case_id, result, created_at, meta_json | No content/keys<br>不含正文/密钥 |
-| digest_runs | id, case_id, digest_date, status, recipients_json, parts, error | Daily Case Digest sending records (REQ-DIG-05, MVP)<br>案件日报发送记录（REQ-DIG-05，MVP） |
+| digest_runs | id, case_id, digest_date, status, recipients_json, parts, error, body_text, parts_json | Daily Case Digest sending records (REQ-DIG-05, MVP). `digest_date` is text `YYYY-MM-DD`; `body_text`/`parts_json` freeze the rendered body and the file→part assignment at generation; status adds `queued` at generation before sent/partial/failed; `error` also records the skip reason (empty_day/no_verified_coordinator/case_archived)<br>案件日报发送记录（REQ-DIG-05，MVP）。`digest_date` 为文本 `YYYY-MM-DD`；`body_text`/`parts_json` 在生成时冻结正文与文件分卷；status 在生成时为 `queued`，之后转 sent/partial/failed；`error` 兼记跳过原因（empty_day/no_verified_coordinator/case_archived） |
 
 ## 14. API Overview (Draft) / API 概览（草案）
 

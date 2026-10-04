@@ -7,6 +7,7 @@ import { fakeEmailProvider } from "@/server/providers/email/fake";
 
 export async function resetDatabase(): Promise<void> {
   await prisma.auditLog.deleteMany();
+  await prisma.digestRun.deleteMany();
   await prisma.fileVariant.deleteMany();
   await prisma.file.deleteMany();
   await prisma.translationVersion.deleteMany();

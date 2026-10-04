@@ -1,5 +1,11 @@
 import { decryptText } from "@/modules/auth/crypto";
 import {
+  buildDigestPartEmail,
+  generateDigestsForDate,
+  refreshDigestRunStatus,
+} from "@/modules/digest/service";
+import { parseDigestDedupeKey } from "@/modules/digest/subject";
+import {
   MAX_NOTIFICATION_ATTEMPTS,
   backoffDelayMs,
   groupAlertsIntoBatches,
@@ -11,6 +17,7 @@ import {
   buildUrgentFailedAlertEmail,
 } from "@/modules/notifications/templates";
 import { prisma } from "@/lib/db";
+import { recordAudit } from "@/server/audit/log";
 import { getEmailProvider } from "@/server/providers/email";
 import type { EmailProvider } from "@/server/providers/email/interface";
 
@@ -26,6 +33,10 @@ export const ESCALATE_TO_OPS_MS = 2 * 60 * 60_000;
 export interface NotificationWorkerDeps {
   clock?: Clock;
   emailProvider?: EmailProvider;
+  // REQ-DIG-01: opt-in daily digest generation. Default false so tests that
+  // drive this worker with simulated clocks never generate digests
+  // unintentionally; the runtime loop (startNotificationWorker) opts in.
+  digest?: boolean;
 }
 
 export interface WorkerRunSummary {
@@ -48,6 +59,15 @@ export async function runNotificationWorkerOnce(
   const emailProvider = deps.emailProvider ?? getEmailProvider();
   const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0 };
 
+  if (deps.digest) {
+    // Idempotent via the unique (case_id, digest_date): a failure here is
+    // retried by the next pass, so it must not block the alert queue.
+    try {
+      await generateDigestsForDate(clock.now());
+    } catch {
+      // The next tick replays generation; nothing is lost.
+    }
+  }
   summary.cancelled += await cancelStaleAlerts(clock.now());
   summary.escalated += await advanceEscalations(clock.now());
   await sendDueAlerts(clock, emailProvider, summary);
@@ -108,7 +128,7 @@ async function sendDueAlerts(
   const now = clock.now();
   const due = await prisma.notificationTask.findMany({
     where: {
-      kind: { in: ["review_alert", "check_failed_alert", "peer_urgent", "urgent_failed_alert"] },
+      kind: { in: ["review_alert", "check_failed_alert", "peer_urgent", "urgent_failed_alert", "case_digest"] },
       status: "queued",
       OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
     },
@@ -126,6 +146,8 @@ async function sendDueAlerts(
   }
 
   // Batches are per (kind, case, recipient): each kind has its own template.
+  // case_digest is exempt from batching: every part is its own email with its
+  // own attachments (REQ-DIG-05), so each task is submitted on its own.
   const byKind = new Map<string, DueAlert[]>();
   for (const alert of sendable) {
     const group = byKind.get(alert.kind);
@@ -133,6 +155,12 @@ async function sendDueAlerts(
     else byKind.set(alert.kind, [alert]);
   }
   for (const [kind, alerts] of byKind) {
+    if (kind === "case_digest") {
+      for (const alert of alerts) {
+        await submitDigestTask(alert, clock, emailProvider, summary);
+      }
+      continue;
+    }
     for (const batch of groupAlertsIntoBatches(alerts).values()) {
       await submitBatch(kind, batch, clock, emailProvider, summary);
     }
@@ -143,6 +171,8 @@ async function sendDueAlerts(
 // permission, and the channel immediately before sending. peer_urgent
 // recipients only need an active membership (any role); the coordinator
 // alerts require the reviewer/backup duty flags (or an active ops lead).
+// case_digest recipients are ALL active coordinator members (REQ-DIG-02) —
+// the duty flags do not gate the daily digest.
 async function preSendRecheck(
   alert: {
     id: string;
@@ -179,7 +209,16 @@ async function preSendRecheck(
       ? (await prisma.caseMember.findFirst({
           where: { caseId: alert.caseId, userId: alert.recipientUserId, status: "active" },
         })) !== null
-      : alert.recipientUser.globalRole === "ops_lead"
+      : alert.kind === "case_digest"
+        ? (await prisma.caseMember.findFirst({
+            where: {
+              caseId: alert.caseId,
+              userId: alert.recipientUserId,
+              status: "active",
+              memberRole: "coordinator",
+            },
+          })) !== null
+        : alert.recipientUser.globalRole === "ops_lead"
         ? alert.recipientUser.status === "active"
         : (await prisma.caseMember.findFirst({
             where: {
@@ -315,12 +354,111 @@ async function buildEmailForKind(
   });
 }
 
+// REQ-DIG-05/06: one digest part task = one email. The body comes from the
+// frozen digest_runs row, attachments are the part's published shared copies,
+// and every successful send is audited (never the content). Final failure
+// stays visible on both the task and the digest run; the recipient is the
+// coordinator themselves, so no extra alert email is registered.
+async function submitDigestTask(
+  alert: {
+    id: string;
+    caseId: string;
+    dedupeKey: string;
+    attempts: number;
+    case: { title: string };
+    recipientChannel: { valueEnc: string } | null;
+    recipientUserId: string;
+  },
+  clock: Clock,
+  emailProvider: EmailProvider,
+  summary: WorkerRunSummary,
+): Promise<void> {
+  const now = clock.now();
+  const parsed = parseDigestDedupeKey(alert.dedupeKey);
+  const run = parsed
+    ? await prisma.digestRun.findUnique({
+        where: {
+          caseId_digestDate: { caseId: parsed.caseId, digestDate: parsed.digestDate },
+        },
+      })
+    : null;
+
+  let email: { subject: string; text: string; attachments?: { filename: string; content: Buffer }[] } | null = null;
+  let lastError = "provider_rejected";
+  if (run && parsed) {
+    try {
+      email = await buildDigestPartEmail({ caseTitle: alert.case.title, run, part: parsed.part });
+    } catch {
+      email = null;
+      lastError = "digest_build_failed";
+    }
+  } else {
+    lastError = "digest_run_missing";
+  }
+
+  let accepted = false;
+  if (email) {
+    try {
+      accepted = (
+        await emailProvider.send({ to: decryptText(alert.recipientChannel!.valueEnc), ...email })
+      ).accepted;
+    } catch {
+      accepted = false;
+    }
+  }
+
+  if (accepted && run && parsed) {
+    summary.submitted += 1;
+    await prisma.notificationTask.update({
+      where: { id: alert.id },
+      data: {
+        status: "submitted",
+        submittedAt: now,
+        attempts: { increment: 1 },
+        providerRef: "fake-outbox",
+        lastError: null,
+        nextRetryAt: null,
+      },
+    });
+    await recordAudit(prisma, {
+      actorId: alert.recipientUserId,
+      action: "digest.send",
+      result: "success",
+      targetType: "digest_run",
+      targetId: run.id,
+      caseId: alert.caseId,
+      meta: { digestDate: run.digestDate, part: parsed.part, parts: run.parts },
+    });
+    await refreshDigestRunStatus(run, null);
+    return;
+  }
+
+  const attempts = alert.attempts + 1;
+  const delay = backoffDelayMs(attempts);
+  if (delay === null || attempts >= MAX_NOTIFICATION_ATTEMPTS) {
+    summary.failed += 1;
+    await prisma.notificationTask.update({
+      where: { id: alert.id },
+      data: { status: "failed", attempts, lastError },
+    });
+    if (run) await refreshDigestRunStatus(run, lastError);
+  } else {
+    summary.retried += 1;
+    await prisma.notificationTask.update({
+      where: { id: alert.id },
+      data: { attempts, nextRetryAt: new Date(now.getTime() + delay), lastError },
+    });
+  }
+}
+
 // Dev-runtime driver: first attempt well inside the 30-second internal
 // target (REQ-NTF-07). Tests drive runNotificationWorkerOnce directly with a
 // simulated clock instead.
 export function startNotificationWorker(intervalMs = 10_000): () => void {
   const tick = () => {
-    runNotificationWorkerOnce().catch(() => {
+    // digest: the in-process worker also generates the daily case digest
+    // (REQ-DIG-01); idempotent, so 10s ticks and restarts are safe.
+    runNotificationWorkerOnce({ digest: true }).catch(() => {
       // The next tick replays the persistent queue; nothing is lost.
     });
   };

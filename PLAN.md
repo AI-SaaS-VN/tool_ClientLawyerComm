@@ -287,8 +287,8 @@
 - 同步测试：`tests/unit/digest/subject-format.test.ts`、`tests/integration/digest/daily-run.test.ts`（协调员收到；律师和客户收不到；当日无内容跳过；归档案件跳过）。
 - Test commands: `npm run test -- digest`.
 - 测试命令：`npm run test -- digest`。
-- Status: P0, not started (2026-10-04). Next coding task. Do not also build T14.
-- 状态：P0，未开始（2026-10-04）。下一件编码工作。不要同时做 T14。
+- Status: P0, done (2026-10-04). Implemented as specced: `src/modules/digest/{subject,service}.ts`, migration `20261004022028_t13_digest_runs` (digest_runs + `case_digest` kind), the in-process worker generates the just-ended Vietnam day's digest every pass (`digest: true`, idempotent on unique (case_id, digest_date)), and sends one email per (coordinator, part) with the published shared-copy files attached. 329/329 tests (was 306; +15 unit, +8 integration), tsc/lint/build clean. Recorded deviations: `digest_runs` carries `body_text`/`parts_json` beyond the SPEC §13 field list (body frozen at generation), run status adds `queued`, and `error` doubles as the skip reason.
+- 状态：P0，已完成（2026-10-04）。按规格实现：`src/modules/digest/{subject,service}.ts`、迁移 `20261004022028_t13_digest_runs`（digest_runs 表＋`case_digest` 类型）、进程内 worker 每趟为刚结束的越南日生成日报（`digest: true`，以 (case_id, digest_date) 唯一约束幂等），并按（协调员 × 分卷）各发一封、随附已发布共享副本文件。329/329 测试通过（原 306；新增 15 单测＋8 集成），tsc/lint/build 无错误。已记录的偏离：`digest_runs` 在 SPEC §13 字段之外多了 `body_text`/`parts_json`（生成时冻结正文），运行状态增加 `queued`，`error` 兼作跳过原因。
 
 ## T14 Administration Console: Case Creation and Participant Setup (P1, Added in v0.10) / T14 管理控制台：案件创建与参与人设置（P1，v0.10 新增）
 
@@ -355,7 +355,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 14 | F13 | Show a timestamp on every conversation record and every upload record the viewer can see (REQ-MSG-11, REQ-FILE-04). Format it with the timezone set on that computer, and print the offset beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7 for the same instant. The role does not choose the offset. The message list and the file list both print that labeled time. | Requested 2026-10-03. The timezone rule was set the same evening: the lawyer's computer is UTC+7, the client's computer is UTC+8, and each computer's own setting is what gets labeled. The screen now does this. | Done |
 | 15 | F14 | A Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels, buttons, placeholders, status text, and automatic-mode messages from other people use that one language. The two languages are not written on the same control. Real Vietnamese wording of Chinese messages stays F07. | Restated 2026-10-03 from the lawyer's phone. The screen now uses one language per control. | Done |
 | 16 | F15 | Administration Console: the administrator has a page to create a Case and to set each Case's Chinese Clients, Vietnamese Lawyers, and Coordinators. Written into SPEC (REQ-ADM-01~05) as task T14. | Requested 2026-10-03. Confirmed 2026-10-04: the next version after this MVP. The current launch creates cases by hand and records them in `LOCAL_DEV_NOTES.md`. | Next version |
-| 17 | F16 | Daily email to the Coordinator only (T13). 00:00 Asia/Ho_Chi_Minh, previous Vietnamese calendar day, published messages and published attachments, subject `{Case name}-{send date}-Record`. Lawyers and Clients are not recipients. | Moved into the MVP on 2026-10-04. Not implemented. | Not started |
+| 17 | F16 | Daily email to the Coordinator only (T13). 00:00 Asia/Ho_Chi_Minh, previous Vietnamese calendar day, published messages and published attachments, subject `{Case name}-{send date}-Record`. Lawyers and Clients are not recipients. | Moved into the MVP on 2026-10-04. Done the same day: generation is idempotent on (case, day), one email per coordinator per ≤20MB part, empty days and archived cases record a skipped run. | Done |
 
 | 顺序 | ID | 任务 | 与提出的三处修改比较 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -375,7 +375,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 14 | F13 | 观看者能看到的每条对话记录和每条上传记录都显示时间戳（REQ-MSG-11、REQ-FILE-04）。按那台电脑的时区设置换算，并在时间旁边标出时区。设为 UTC+8 的电脑标 UTC+8。同一时刻在设为 UTC+7 的电脑上标 UTC+7。时区不按角色写死。消息列表和文件列表都标出这个时间。 | 2026-10-03 提出。当晚补上时区规则：律师的电脑是 UTC+7，客户的电脑是 UTC+8，各自电脑的设置就是要标出的时区。界面已按此显示。 | 已完成 |
 | 15 | F14 | 中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮、提示、状态文字，以及自动模式下别人发来的消息，都用这一种语言。同一控件上不并列两种语言。中文消息的真实越南语译文仍是 F07。 | 2026-10-03 从律师手机再次确认。界面已改成同一控件只用一种语言。 | 已完成 |
 | 16 | F15 | 管理控制台：管理员有一个页面，可以添加案件，并设置每个案件的中国客户、越南律师与协调员。已写入 SPEC（REQ-ADM-01~05），即任务 T14。 | 2026-10-03 提出。2026-10-04 确认：留在本 MVP 之后的下一版本。这次上线由操作者建案，并记入 `LOCAL_DEV_NOTES.md`。 | 下一版本 |
-| 17 | F16 | 只发给协调员的每日邮件（T13）。Asia/Ho_Chi_Minh 00:00，上一越南日历日，已发布消息与已发布附件，标题 `{案件名称}-{发送日}-Record`。律师和客户不是收件人。 | 2026-10-04 纳入 MVP。尚未实现。 | 未开始 |
+| 17 | F16 | 只发给协调员的每日邮件（T13）。Asia/Ho_Chi_Minh 00:00，上一越南日历日，已发布消息与已发布附件，标题 `{案件名称}-{发送日}-Record`。律师和客户不是收件人。 | 2026-10-04 纳入 MVP。当天完成：以（案件, 日）幂等生成，每名协调员每 ≤20MB 分卷一封邮件，无内容日与归档案件记为跳过的运行。 | 已完成 |
 
 ## Launch scope decided 2026-10-04 / 2026-10-04 确定的上线范围
 

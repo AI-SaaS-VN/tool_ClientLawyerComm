@@ -46,6 +46,7 @@ export class SmtpEmailProvider implements EmailProvider {
       to: message.to,
       subject: message.subject,
       text: message.text,
+      ...(message.attachments ? { attachments: message.attachments } : {}),
     });
     const accepted = Array.isArray(info.accepted) && info.accepted.length > 0;
     return { accepted };

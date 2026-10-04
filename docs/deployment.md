@@ -11,9 +11,9 @@ Scope: the MVP pilot environment. This document contains no real secrets, mailbo
 | Next.js 16 App(Node runtime) | `npm run build` 后 `npm run start`;开发用 `npm run dev`。唯一对外 HTTP 入口。 |
 | PostgreSQL 16 | 应用库;本地开发由 `docker compose up -d` 提供(`clc-postgres`)。 |
 | MinIO(S3 兼容) | 私有 bucket 存文件原件/共享副本;无预签名 URL,下载一律经服务端授权代理。 |
-| 通知 worker | **由 Web 进程内驱动**:`src/instrumentation.ts` 在服务启动时以 10 秒间隔跑持久队列的幂等趟次(at-least-once,崩溃重放不丢)。设 `NOTIFICATION_WORKER=off` 可关闭(仅当改用外部驱动时;E2E 即如此,改由 `POST /api/test/worker` 显式触发)。 |
+| 通知 worker | **由 Web 进程内驱动**:`src/instrumentation.ts` 在服务启动时以 10 秒间隔跑持久队列的幂等趟次(at-least-once,崩溃重放不丢)。设 `NOTIFICATION_WORKER=off` 可关闭(仅当改用外部驱动时;E2E 即如此,改由 `POST /api/test/worker` 显式触发)。同一 worker 还负责案件日报(REQ-DIG,F16/T13):每趟为刚结束的越南日历日(Asia/Ho_Chi_Minh,固定 UTC+7)按活跃案件幂等生成一次日报(唯一约束 (case_id, digest_date)),只发本案有效协调员,每人每 ≤20MB 分卷一封,随附当日已发布文件;无内容日/归档案件/无已验证邮箱协调员记为 skipped,不发送。 |
 
-Notification worker: driven **in-process** — `src/instrumentation.ts` starts `startNotificationWorker()` at server boot (idempotent 10s passes over the persistent queue; at-least-once, crash replay loses nothing). Set `NOTIFICATION_WORKER=off` only when an external driver is used (E2E does this and triggers passes explicitly via `POST /api/test/worker`).
+Notification worker: driven **in-process** — `src/instrumentation.ts` starts `startNotificationWorker()` at server boot (idempotent 10s passes over the persistent queue; at-least-once, crash replay loses nothing). Set `NOTIFICATION_WORKER=off` only when an external driver is used (E2E does this and triggers passes explicitly via `POST /api/test/worker`). The same worker also generates the Daily Case Digest (REQ-DIG, F16/T13): each pass idempotently covers the single just-ended Vietnam calendar day (Asia/Ho_Chi_Minh, fixed UTC+7; unique (case_id, digest_date)), sending only the case's active coordinators — one email per coordinator per ≤20MB part with the day's published files attached; empty days, archived cases, and cases with no verified coordinator email are recorded as skipped runs with no send.
 
 ## 2. 环境变量 / Environment variables
 
@@ -24,7 +24,7 @@ See `.env.example` for the full list (placeholders only, never real values). Key
 - `DATABASE_URL` — 应用库连接串。
 - `MINIO_*` / `STORAGE_PROVIDER=minio` — 私有对象存储。
 - `APP_DATA_KEY` — 32 字节 hex 的 AES-256-GCM 密钥,加密联系方式与 MFA secret;`openssl rand -hex 32` 生成;**轮换即失效**,丢失则已加密数据不可读。
-- `EMAIL_PROVIDER` / `TRANSLATION_PROVIDER` / `LLM_PROVIDER` / `FILE_SCANNER` — 除翻译外目前只有 `fake`/`stub` 实现,**生产环境会拒绝这些替身**;真实 SMTP 接入属外部资源待落实项(O05)。翻译方向已经 F07 落地: `TRANSLATION_PROVIDER=kimi` 走真实 Kimi 调用(读 `KIMI_BASE_URL`/`KIMI_MODEL`,2026-10-03 经用户批准 O05)。指定的虚构数据测试机是其余替身的唯一例外:设 `CLC_FICTITIOUS_TEST_HOST=1`(见下)。该开关不得用于存放真实案情的主机。
+- `EMAIL_PROVIDER` / `TRANSLATION_PROVIDER` / `LLM_PROVIDER` / `FILE_SCANNER` — 真实实现已落地两个:`EMAIL_PROVIDER=smtp`(F06,2026-10-03;`SmtpEmailProvider` 经 `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_AUTH_CODE`/`EMAIL_FROM` 走运营方邮箱,587/STARTTLS 或 465 隐式 TLS)与 `TRANSLATION_PROVIDER=kimi`(F07;读 `KIMI_BASE_URL`/`KIMI_MODEL`,2026-10-03 经用户批准 O05)。`LLM_PROVIDER`(审核语义判断)与 `FILE_SCANNER` 仍只有替身,**生产环境会拒绝替身**;指定的虚构数据测试机是替身的唯一例外:设 `CLC_FICTITIOUS_TEST_HOST=1`(见下)。该开关不得用于存放真实案情的主机。
 - `SESSION_COOKIE_SECURE` — 默认 `true`。**仅**在备案前的 HTTP-IP 测试入口(虚构数据)可设 `false`;接入任何真实数据前必须恢复 `true`(REQ-AUTH-06)。
 - `APP_BASE_URL` — 提醒邮件中的登录链接前缀(不含路径)。
 - `NOTIFICATION_WORKER` — 默认 `on`,见上表。
@@ -33,6 +33,9 @@ See `.env.example` for the full list (placeholders only, never real values). Key
 
 ```bash
 npx prisma migrate deploy
+# schema 有变更时还要重建 Prisma Client(migrate deploy 不做这件事),否则 build 类型检查会失败:
+# When the schema changed, also regenerate the Prisma Client (migrate deploy does not), or the build's type check fails:
+npx prisma generate
 ```
 
 对新环境先建库再执行;不要对含数据的环境使用 `migrate reset`。CI/集成测试的 `clc_test` 与 E2E 的 `clc_e2e` 由各自 globalSetup 自动建库并重放迁移。
@@ -50,11 +53,11 @@ RPO ≤24h / RTO ≤8h are **targets to be validated by drills**, not achieved c
 
 ## 5. 测试期访问入口(上海测试环境)/ Test-period entry (Shanghai test environment)
 
-2026-10-04 用户确认这次上线保持现状：一个真实案件加一个测试案件，不做域名、HTTPS 和正式文件扫描。2026-10-03 已把本应用部署到 SOW O02 指定的上海测试主机。对外入口是该机的 **HTTP 80 端口**(备案完成前没有 TLS)。主机上的 `.env` 设置 `CLC_FICTITIOUS_TEST_HOST=1`、`SESSION_COOKIE_SECURE=false`、`APP_BASE_URL` 为该 HTTP 入口;邮件和文件扫描仍用替身实现,因为真实 SMTP 仍被 O05 挡住;翻译自 2026-10-03(F07)起走真实 Kimi(`TRANSLATION_PROVIDER=kimi`,模型 kimi-k2.6,O05 翻译方向已经用户批准)。只允许虚构数据。验证码留在该进程的 outbox 里,只能在测试机本机读取;`/api/test/` 对外返回 404。激活是一步:受邀邮箱加上激活码,再次进入仍用同一组邮箱和邀请码,不另发 6 位验证码。客户默认屏幕为繁体中文、律师为越南语、时间戳按电脑时区标注，这三条已在界面实现。越南语与繁体中文的自动翻译自 F07(2026-10-03)起在测试机上走真实 Kimi 调用,实测单向约 16–34 秒。具体 IP 不写入本仓库。
+2026-10-04 用户确认这次上线保持现状：一个真实案件加一个测试案件，不做域名、HTTPS 和正式文件扫描。2026-10-03 已把本应用部署到 SOW O02 指定的上海测试主机。对外入口是该机的 **HTTP 80 端口**(备案完成前没有 TLS)。主机上的 `.env` 设置 `CLC_FICTITIOUS_TEST_HOST=1`、`SESSION_COOKIE_SECURE=false`、`APP_BASE_URL` 为该 HTTP 入口;文件扫描仍用替身实现,而邮件自 F06(2026-10-03)起走真实 SMTP(`EMAIL_PROVIDER=smtp`,运营方邮箱),翻译自 F07(2026-10-03)起走真实 Kimi(`TRANSLATION_PROVIDER=kimi`,模型 kimi-k2.6)。只允许虚构数据。邀请邮件真实送达受邀邮箱;`/api/test/` 对外返回 404。激活是一步:受邀邮箱加上激活码,再次进入仍用同一组邮箱和邀请码,不另发 6 位验证码。客户默认屏幕为繁体中文、律师为越南语、时间戳按电脑时区标注，这三条已在界面实现。越南语与繁体中文的自动翻译实测单向约 16–34 秒。案件日报自 F16(2026-10-04)起只发本案协调员:每个越南日历日结束后由进程内 worker 生成,当日无新发布内容则不发送。具体 IP 不写入本仓库。
 
 研发主机上的自动化测试仍访问 `http://localhost:3100`:Playwright 和开发服务器在同一台机器上。笔记本的 `127.0.0.1` 不是研发主机,也不是测试机。
 
-On 2026-10-04 the user kept this launch as it is: one real Case plus one test Case, with no domain, no HTTPS, and no real file scanner. On 2026-10-03 this application was deployed to the Shanghai test host named in SOW O02. The public entry is **HTTP port 80** on that host (no TLS until ICP filing). That host's `.env` sets `CLC_FICTITIOUS_TEST_HOST=1`, `SESSION_COOKIE_SECURE=false`, and `APP_BASE_URL` to that HTTP entry; mail and file scanning stay on the stand-in implementations because real SMTP remains blocked by O05, while translation uses real Kimi calls since F07 (2026-10-03, `TRANSLATION_PROVIDER=kimi`, model kimi-k2.6, O05 approved by the user for the translation direction). Fictitious data only. Verification codes stay in that process's outbox and can be read only on the test host itself; `/api/test/` returns 404 to the public. Activation is one step: the invited email plus the activation code, with no second 6-digit code. The concrete IP is not written in this repository.
+On 2026-10-04 the user kept this launch as it is: one real Case plus one test Case, with no domain, no HTTPS, and no real file scanner. On 2026-10-03 this application was deployed to the Shanghai test host named in SOW O02. The public entry is **HTTP port 80** on that host (no TLS until ICP filing). That host's `.env` sets `CLC_FICTITIOUS_TEST_HOST=1`, `SESSION_COOKIE_SECURE=false`, and `APP_BASE_URL` to that HTTP entry; file scanning stays on the stand-in, while mail uses real SMTP since F06 (2026-10-03, `EMAIL_PROVIDER=smtp`, operator mailbox) and translation uses real Kimi calls since F07 (2026-10-03, `TRANSLATION_PROVIDER=kimi`, model kimi-k2.6). Fictitious data only. Invitation emails are really delivered to the invited addresses; `/api/test/` returns 404 to the public. Activation is one step: the invited email plus the activation code, with no second 6-digit code. The Daily Case Digest (F16, 2026-10-04) goes only to the case's coordinators, generated by the in-process worker after each Vietnam calendar day closes; a day with no newly published content sends nothing. The concrete IP is not written in this repository.
 
 Automated tests on the development host still use `http://localhost:3100`, because Playwright and the dev server run on that same machine. The laptop's `127.0.0.1` is neither the development host nor the test host.
 

@@ -102,6 +102,7 @@ model Case {
   reviewTasks   ReviewTask[]
   notificationTasks NotificationTask[]
   files         File[]
+  digestRuns    DigestRun[]
 
   @@map("cases")
 }
@@ -261,7 +262,7 @@ model ReviewTask {
 // Persistent notification queue (SPEC 10.1 state machine). kind/status CHECKs
 // are hand-added in the migration; 'peer_urgent'/'check_failed_alert' kinds
 // are registered by T08/T10, 'urgent_failed_alert' by T10 (REQ-NTF-05 final-
-// failure notice to can_review coordinators). sender_user_id is set on
+// failure notice to can_review coordinators), 'case_digest' by T13 (REQ-DIG). sender_user_id is set on
 // peer_urgent tasks so the sender can track delivery status (REQ-NTF-04).
 // recipient_channel_id is nullable: a recipient without a verified email
 // channel still gets a row (status failed, last_error no_channel) so the
@@ -296,6 +297,34 @@ model NotificationTask {
   @@index([reviewTaskId])
   @@index([senderUserId])
   @@map("notification_tasks")
+}
+
+// REQ-DIG-05: one row per (case, Vietnam calendar day) generation — the
+// unique (case_id, digest_date) makes daily generation idempotent across
+// worker restarts and 10s ticks. digest_date is the Asia/Ho_Chi_Minh calendar
+// date stored as text YYYY-MM-DD (a DATE column would surface as UTC midnight
+// and invite off-by-one bugs). recipients_json = { emailed: userId[],
+// skipped: { userId, reason }[] }; error doubles as the skip reason
+// (empty_day / no_verified_coordinator / case_archived). body_text and
+// parts_json freeze the rendered digest at generation so a later
+// republication cannot change an already-queued digest; parts_json is the
+// deterministic file→part assignment [{ part, fileIds }].
+model DigestRun {
+  id             String   @id @default(uuid()) @db.Uuid
+  caseId         String   @map("case_id") @db.Uuid
+  case           Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  digestDate     String   @map("digest_date")
+  status         String   @default("queued")
+  recipientsJson Json     @map("recipients_json")
+  parts          Int      @default(0)
+  error          String?
+  bodyText       String?  @map("body_text")
+  partsJson      Json?    @map("parts_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([caseId, digestDate])
+  @@map("digest_runs")
 }
 
 // Append-only (no updated_at). REQ-OPS-01: operator, action, target, case,
