@@ -4,6 +4,12 @@
 - 更新日期：2026-10-05（UTC）｜维护方式：每完成一个任务或阶段即更新
 - Re-verified 2026-10-03 after F13/F14: `npm run test` 286/286 (42 files), `npm run test:e2e` 7/7, `npx tsc --noEmit` clean. The T01–T12 records below describe the earlier build.<br>2026-10-03 在 F13/F14 之后复核：`npm run test` 286/286（42 个文件）、`npm run test:e2e` 7/7、`npx tsc --noEmit` 无错误。下面 T01–T12 的记录描述的是更早的那次构建。
 
+## Real-case pilot / 真实案件试点状态（2026-10-05）
+
+The one real case is live on the Shanghai test host since 2026-10-04: all four invitations (one coordinator, two clients, one lawyer) were delivered over real SMTP. Day 1 (2026-10-05): the coordinator and the lawyer signed in (return sign-in with the same email + invite code works); the lawyer published three messages; their zh-Hans/zh-Hant translations failed in the parallel auto-backfill (Kimi rate limiting, CURSOR_REVIEW 13.2) and were regenerated serially via the retry API (all ready). The lawyer's "messages not sending" report was resolved as unfamiliarity, not a defect — the coordinator sees the messages. SOW v1.12 / SPEC v0.12 / PLAN v0.12 (invitation codes no longer expire) is implemented, tested (335/335), deployed, and pushed. The two client accounts have not yet signed in.
+
+真实案件试点（2026-10-05）：那一个真实案件自 2026-10-04 起在上海测试机运行，四封邀请（一名协调员、两名客户、一名律师）均经真实 SMTP 送达。首日（10-05）：协调员与律师已登录（同一邮箱＋邀请码的返回登录可用）；律师发布三条消息；其中文译文在并行自动回填中触发 Kimi 限流而失败（CURSOR_REVIEW 13.2），已用重试接口串行补齐（全部 ready）。律师报「发不出消息」经核实为不熟悉系统，非缺陷——协调员能看到消息。SOW v1.12 / SPEC v0.12 / PLAN v0.12（邀请码长期有效）已实现、测试（335/335）、部署并推送。两名客户账号尚未登录。
+
 ## Pilot status / 试运行状态（2026-10-03）
 
 The Shanghai test host is serving this app on HTTP port 80 with fictitious data and stand-in providers (`CLC_FICTITIOUS_TEST_HOST=1`). The coordinator, the lawyer, and the client are members of one fictitious case. The client published three copies of the same sentence because the send button gave no in-flight feedback. Login now returns to `/cases`, and the session cookie sets `maxAge`. Those host fixes are committed (F05, verified in commit 3182639).
