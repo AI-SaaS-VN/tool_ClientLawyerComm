@@ -1161,8 +1161,12 @@ Watch the four invitees' first logins and backfill `first_login_at` in `LOCAL_DE
 - The parallel-backfill rate-limit defect (CURSOR_REVIEW 13.2) is worked around, not fixed: serialized backfill or a worker queue plus error-category logging is still open.<br>并发回填限流缺陷（CURSOR_REVIEW 13.2）只是绕行未根治：串行化或移入后台队列、错误类别日志仍待做。
 - Two clients (the two Chinese-side accounts) have not yet logged in; `first_login_at` backfill continues.<br>两名客户账号尚未首登；`first_login_at` 回填继续。
 
+### Deployment / 部署
+
+The v1.12 build is live on the Shanghai test host: migration `20261005060001_invite_no_expiry` applied, prisma client regenerated, build rc=0, service restarted; health/login 200, `/api/test/outbox` 404, and a coordinator return sign-in via the public entry returned 200.<br>v1.12 构建已上线上海测试机：迁移已应用、prisma client 已重建、build rc=0、服务已重启；health/login 200、`/api/test/outbox` 404，协调员经公网入口再次登录返回 200。
+
 ### First Step Next Time / 下次第一步
 
-Deploy the v1.12 build to the Shanghai test host (migration + prisma generate + build + restart) if not already done in this session's tail; otherwise watch the remaining invitees' first logins.<br>若本会话收尾未完成，则把 v1.12 构建部署到上海测试机（迁移＋prisma generate＋build＋重启）；否则关注其余受邀人首登。
+Watch the remaining invitees' first logins and backfill `first_login_at`; decide with the user whether to fix the parallel-backfill rate limiting (CURSOR_REVIEW 13.2).<br>关注其余受邀人首登并回填 `first_login_at`；与用户定夺是否根治并发回填限流（CURSOR_REVIEW 13.2）。
 
 ---
