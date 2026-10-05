@@ -356,6 +356,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 15 | F14 | A Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels, buttons, placeholders, status text, and automatic-mode messages from other people use that one language. The two languages are not written on the same control. Real Vietnamese wording of Chinese messages stays F07. | Restated 2026-10-03 from the lawyer's phone. The screen now uses one language per control. | Done |
 | 16 | F15 | Administration Console: the administrator has a page to create a Case and to set each Case's Chinese Clients, Vietnamese Lawyers, and Coordinators. Written into SPEC (REQ-ADM-01~05) as task T14. | Requested 2026-10-03. Confirmed 2026-10-04: the next version after this MVP. The current launch creates cases by hand and records them in `LOCAL_DEV_NOTES.md`. | Next version |
 | 17 | F16 | Daily email to the Coordinator only (T13). 00:00 Asia/Ho_Chi_Minh, previous Vietnamese calendar day, published messages and published attachments, subject `{Case name}-{send date}-Record`. Lawyers and Clients are not recipients. | Moved into the MVP on 2026-10-04. Done the same day: generation is idempotent on (case, day), one email per coordinator per ≤20MB part, empty days and archived cases record a skipped run. | Done |
+| 18 | F17 | Translation backfill root fix: move automatic translation out of the message-list request into the in-process worker queue (serialized provider calls, backoff retry, error-category logging). | 2026-10-05 pilot finding (CURSOR_REVIEW 13.2): parallel Kimi calls trip rate limiting. User decision 2026-10-05: interim = fast model `kimi-k2.7-code-highspeed` on the test host (config-only, done, ~2s per call); the worker-queue fix follows 48 hours later (≈2026-10-07). | Scheduled 2026-10-07 |
 
 | 顺序 | ID | 任务 | 与提出的三处修改比较 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -376,6 +377,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 15 | F14 | 中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮、提示、状态文字，以及自动模式下别人发来的消息，都用这一种语言。同一控件上不并列两种语言。中文消息的真实越南语译文仍是 F07。 | 2026-10-03 从律师手机再次确认。界面已改成同一控件只用一种语言。 | 已完成 |
 | 16 | F15 | 管理控制台：管理员有一个页面，可以添加案件，并设置每个案件的中国客户、越南律师与协调员。已写入 SPEC（REQ-ADM-01~05），即任务 T14。 | 2026-10-03 提出。2026-10-04 确认：留在本 MVP 之后的下一版本。这次上线由操作者建案，并记入 `LOCAL_DEV_NOTES.md`。 | 下一版本 |
 | 17 | F16 | 只发给协调员的每日邮件（T13）。Asia/Ho_Chi_Minh 00:00，上一越南日历日，已发布消息与已发布附件，标题 `{案件名称}-{发送日}-Record`。律师和客户不是收件人。 | 2026-10-04 纳入 MVP。当天完成：以（案件, 日）幂等生成，每名协调员每 ≤20MB 分卷一封邮件，无内容日与归档案件记为跳过的运行。 | 已完成 |
+| 18 | F17 | 翻译回填根治：把自动翻译从消息列表请求移入进程内 worker 队列（串行调 provider、退避重试、错误类别日志）。 | 2026-10-05 试点发现（CURSOR_REVIEW 13.2）：并发调 Kimi 触发限流。用户 2026-10-05 决定：先用快速模型 `kimi-k2.7-code-highspeed`（纯配置，已完成，单次约 2 秒）；worker 队列方案 48 小时后（≈2026-10-07）实施。 | 已排期 2026-10-07 |
 
 ## Launch scope decided 2026-10-04 / 2026-10-04 确定的上线范围
 

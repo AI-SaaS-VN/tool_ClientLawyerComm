@@ -1158,6 +1158,8 @@ Watch the four invitees' first logins and backfill `first_login_at` in `LOCAL_DE
 
 ### Later the Same Session (evening) / 同一会话稍后（傍晚）
 
+- Evening additions: (a) user decision on the translation rate limiting — interim fast model `kimi-k2.7-code-highspeed` applied on the test host (config-only, verified live at ~2s per call) and the worker-queue root fix scheduled for ≈2026-10-07 (recorded as PLAN F17); (b) a second lawyer invited to the real case by operator script (vi email, SMTP accepted; invite row + full email text in `LOCAL_DEV_NOTES.md`).<br>傍晚补充：(a) 用户对翻译限流的决定——测试机先换快速模型 `kimi-k2.7-code-highspeed`（纯配置，实测约 2 秒/次），worker 队列根治排期 ≈2026-10-07（记为 PLAN F17）；(b) 经操作员脚本为真实案件新增一名律师邀请（越南语邮件，SMTP 已接受；邀请行与邮件全文见 `LOCAL_DEV_NOTES.md`）。
+
 - The second client (Simplified Chinese) signed in at 05:59 UTC and published two messages; vi/zh-Hant translations pre-warmed serially. A new defect was found and fixed: `key-field-check.ts` counted the bare đồng inside hợp đồng (contract) as a VND mention, so a long notary-office message's vi translation was withheld as needs_review. đồng/dong now count as VND only when number-adjacent (+2 unit tests, 337/337, tsc/build clean, deployed to the test host; retried translation ready). Recorded in CURSOR_REVIEW 13.3. Only the Traditional-Chinese client account has not signed in.<br>第二位客户（简体）于 05:59 UTC 首登并发布两条消息；vi/zh-Hant 译文已串行预热。其间发现并修复新缺陷：key-field-check.ts 把 hợp đồng（合同）中的裸 đồng 误计为越盾，致一条公证处长消息的 vi 译文被 needs_review 暂扣。现 đồng/dong 须紧跟数字才计 VND（+2 单测，337/337，tsc/build 干净，已部署测试机；重试译文 ready）。已记入 CURSOR_REVIEW 13.3。现仅剩繁体客户账号未登录。
 
 ### Unfinished Items / 未完成项
