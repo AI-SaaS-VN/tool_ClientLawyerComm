@@ -33,7 +33,6 @@ import {
 } from "../src/modules/invites/email.ts";
 import { SmtpEmailProvider } from "../src/server/providers/email/smtp.ts";
 
-const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const ROLES = ["client", "lawyer", "coordinator"] as const;
 
 function getDataKey(): Buffer {
@@ -143,7 +142,6 @@ async function main() {
           sentToEnc: encryptText(email),
           caseId: kase.id,
           role: entry.role,
-          expiresAt: new Date(Date.now() + INVITE_TTL_MS),
           createdBy: admin.id,
         },
       });

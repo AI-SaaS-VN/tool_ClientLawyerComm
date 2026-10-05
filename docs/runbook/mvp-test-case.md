@@ -4,7 +4,7 @@
 
 For the bootstrapped administrator with TOTP MFA already enrolled: create one fictitious test case and send one activation email to each of three fictitious addresses — coordinator, Chinese client, Vietnamese lawyer.
 
-**规则 / Rules:** 只使用虚构邮箱（如 `@example.com` / `@test.invalid`）与虚构案情，绝不使用真实个人地址或真实案情。激活是一步：受邀人输入本人邮箱和激活码。激活码绑定该邮箱、案件与角色。只有该邮箱可以接受。激活码未使用且未过期时，换一个浏览器也可以进入。激活邮件只发往被输入的地址。
+**规则 / Rules:** 只使用虚构邮箱（如 `@example.com` / `@test.invalid`）与虚构案情，绝不使用真实个人地址或真实案情。激活是一步：受邀人输入本人邮箱和激活码。激活码绑定该邮箱、案件与角色。只有该邮箱可以接受。邀请码长期有效；未使用时，换一个浏览器也可以进入。激活邮件只发往被输入的地址。
 
 Activation is one step. The invited person enters their own email and the activation code. The code is bound to that email, the case, and the role. Only that email can accept it. Any browser can join while the code is unused and unexpired. The activation email goes only to the entered address. Use fictitious mailboxes only (e.g. `@example.com` / `@test.invalid`) and fictitious case facts — never real personal addresses or real case facts.
 
@@ -55,7 +55,7 @@ Each recipient opens `$APP_BASE_URL/invite`, enters the activation code from the
   Each recipient sees exactly this one case in `/cases`; the case page lists exactly the three members with the assigned roles.
 - **管理员不在案件聊天成员中**:管理员访问 `GET /api/cases` 或案件页返回 403/404;案件 `case_members` 表无管理员行。
   The administrator is not a chat member: `GET /api/cases` and the case page deny the admin (403/404); `case_members` has no admin row.
-- 其他邮箱不能使用该激活码。码被用过或过期后再提交会被拒绝。
+- 其他邮箱不能使用该激活码。邀请码长期有效；码被用过后，同一邮箱再次提交即为再次登录，其他邮箱或已撤销的码会被拒绝。
   A different email cannot use the code. A used or expired code is rejected.
 - 全程可审计:`GET /api/admin/audit-logs?caseId=<caseId>`(带 `x-totp-code`)可见 `case.create`(meta.origin=admin_test_case)与三条 `invite.create`,actor 均为管理员;随后每个激活产生 `invite.accept` 与 `auth.login` 行。
   Everything is auditable: `GET /api/admin/audit-logs?caseId=<caseId>` (with `x-totp-code`) shows `case.create` (meta.origin=admin_test_case) and three `invite.create` rows by the admin; each activation adds `invite.accept` and `auth.login` rows.

@@ -53,7 +53,7 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; te
         "3. 之後仍用同一信箱和同一邀請碼進入該案件，不需要另外的 6 位驗證碼。",
         "",
         "進入案件後，您可以傳送訊息和檔案。您輸入的中文，律師那邊會自動顯示為越南語；對方的越南語，您這邊會自動顯示為中文。",
-        "邀請碼只綁定本信箱，請勿轉寄。尚未使用的邀請碼 7 天內有效。",
+        "邀請碼只綁定本信箱，請勿轉寄。邀請碼長期有效。",
       ].join("\n"),
     };
   }
@@ -72,7 +72,7 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; te
         "3. Sau đó vẫn dùng cùng email và cùng mã mời để vào lại vụ án, không cần mã 6 số khác.",
         "",
         "Trong vụ án, bạn có thể gửi tin nhắn và tệp. Tiếng Việt bạn nhập sẽ tự động hiển thị thành tiếng Trung cho khách hàng; tiếng Trung của khách hàng cũng tự động hiển thị thành tiếng Việt cho bạn.",
-        "Mã mời chỉ gắn với email này, vui lòng không chuyển tiếp. Mã chưa dùng có hiệu lực trong 7 ngày.",
+        "Mã mời chỉ gắn với email này, vui lòng không chuyển tiếp. Mã mời có hiệu lực lâu dài.",
       ].join("\n"),
     };
   }
@@ -90,7 +90,7 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; te
       "3. 之后仍用同一邮箱和同一邀请码进入该案件，不需要另外的 6 位验证码。",
       "",
       "进入案件后，您可以发送消息和文件。您输入的中文，律师那边会自动显示为越南语；对方的越南语，您这边会自动显示为中文。",
-      "邀请码只绑定本邮箱，请勿转发。尚未使用的邀请码 7 天内有效。",
+      "邀请码只绑定本邮箱，请勿转发。邀请码长期有效。",
     ].join("\n"),
   };
 }

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // The code itself and the notification address are never returned;
     // the code travels only in the activation email.
     return NextResponse.json({
-      invite: { id: invite.id, caseId: invite.caseId, role: invite.role, expiresAt: invite.expiresAt },
+      invite: { id: invite.id, caseId: invite.caseId, role: invite.role },
     });
   } catch (error) {
     return errorResponse(error);

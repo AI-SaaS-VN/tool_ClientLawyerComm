@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "invites" ALTER COLUMN "expires_at" DROP NOT NULL;

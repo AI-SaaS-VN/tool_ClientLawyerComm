@@ -1145,3 +1145,24 @@ The MVP P0 scope is fully coded and deployed. Next per user: either the R-series
 Watch the four invitees' first logins and backfill `first_login_at` in `LOCAL_DEV_NOTES.md`; support the pilot (translation latency, digest at 00:00 HCMC). Next coding per user: R1/R2/R3/R6 fixes or anything newly reported.<br>关注四位受邀人的首次登录并回填 `LOCAL_DEV_NOTES.md` 的 `first_login_at`；保障试点（翻译延迟、越南 0 点日报）。下一件编码按用户指示：R1/R2/R3/R6 修复或新报告的问题。
 
 ---
+## Session 2026-10-05-01 (Ended) / 会话 2026-10-05-01（已结束）
+
+- Date/Timezone: 2026-10-05, UTC (Kimi Code on the dev VPS)<br>日期/时区：2026-10-05，UTC（研发 VPS 上的 Kimi Code）
+- Goal (user request): pilot day-1 support — the coordinator could not sign in, the lawyer reported messages not sending; then remove the invitation-code expiry (user instruction: a time-limited code cannot serve as the return-login credential).<br>本次目标（用户要求）：试点首日保障——协调员登录不上、律师报消息发不出；随后按用户指示取消邀请码有效期（有时间限制的码无法充当再次登录凭证）。
+
+### Actual Actions / 实际动作
+
+1. Coordinator login diagnosis (read-only forensics on the test host): the invite is unrevoked and valid, the account and sessions are healthy, the desktop session was still polling the case page at 09:37 CST; no login POST from the coordinator reached nginx all day; an external curl of `/api/invites/activate` with the coordinator's credentials returned 200 (`alreadyMember`). Conclusion: client-side, not a system fault. The "Server Reference ID … Received \"x\"" errors in the app log are internet-scanner noise (`POST /` from a Censys host). The coordinator later signed in successfully.<br>协调员登录排查（测试机只读取证）：邀请未撤销未过期、账号与会话健康、当天 09:37 CST 桌面会话仍在轮询案件页；全天 nginx 未收到协调员的登录 POST；用协调员凭据从外部 curl 激活接口返回 200（alreadyMember）。结论：客户端侧问题，非系统故障；日志中的 "Server Reference ID … Received \"x\"" 系扫描器噪音。协调员随后已成功登录。
+2. Lawyer "cannot send" diagnosis: all three sends returned 201 and are published. The real defect is the automatic translation backfill (`attachTranslations` Promise.all) firing parallel Kimi calls that trip rate limiting, so whole batches land failed (7 parallel → 1 done; 3 parallel → 0 done). Sequential single-message retries all succeed (kimi-k2.6 ~18–35s per call). All three pilot messages were re-translated serially into zh-Hans and zh-Hant (state ready). Findings recorded in CURSOR_REVIEW Section 13.<br>律师「发不出」排查：三次发送全部 201 且已发布。真实缺陷是自动翻译回填（attachTranslations 的 Promise.all）并发调 Kimi 触发限流，整批失败（7 并发 1 成；3 并发全败）；逐条串行重试全部成功（kimi-k2.6 单次约 18–35 秒）。试点 3 条消息已串行补齐 zh-Hans 与 zh-Hant 译文（ready）。结论记入 CURSOR_REVIEW 第 13 节。
+3. SOW v1.12 / SPEC v0.12 / PLAN v0.12 (user instruction): invitation codes no longer expire. Removed every expiry check (`getValidInvite`, `activateByEmailAndCode`, the atomic claim in `acceptInvite`), `resendInvite` no longer rewrites `expires_at`, new invites store NULL (migration `20261005060001_invite_no_expiry`), the create-invite response drops the field, the invitation email says "long-lived" in zh-Hans/zh-Hant/vi instead of "7 days", and `scripts/provision-case.ts` matches. Tests updated (legacy-expiresAt now activates; copy assertions pin the new wording). GLOSSARY and the test-case runbook updated. `npm run test` 335/335, tsc/lint clean.<br>SOW v1.12 / SPEC v0.12 / PLAN v0.12（用户指示）：邀请码不再过期。移除全部过期检查（getValidInvite、activateByEmailAndCode、acceptInvite 的原子占码），resendInvite 不再改写 expires_at，新邀请写 NULL（迁移 20261005060001_invite_no_expiry），建邀请响应去掉该字段，邀请邮件三种语言改「长期有效」，provision 脚本同步。测试相应更新。GLOSSARY 与测试案件 runbook 同步。`npm run test` 335/335，tsc/lint 无错误。
+
+### Unfinished Items / 未完成项
+
+- The parallel-backfill rate-limit defect (CURSOR_REVIEW 13.2) is worked around, not fixed: serialized backfill or a worker queue plus error-category logging is still open.<br>并发回填限流缺陷（CURSOR_REVIEW 13.2）只是绕行未根治：串行化或移入后台队列、错误类别日志仍待做。
+- Two clients (the two Chinese-side accounts) have not yet logged in; `first_login_at` backfill continues.<br>两名客户账号尚未首登；`first_login_at` 回填继续。
+
+### First Step Next Time / 下次第一步
+
+Deploy the v1.12 build to the Shanghai test host (migration + prisma generate + build + restart) if not already done in this session's tail; otherwise watch the remaining invitees' first logins.<br>若本会话收尾未完成，则把 v1.12 构建部署到上海测试机（迁移＋prisma generate＋build＋重启）；否则关注其余受邀人首登。
+
+---

@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.11 | Date: 2026-10-04
-- 版本：0.11｜日期：2026-10-04
-- Basis: SPEC.md v0.11, SOW.md v1.11 plus the 2026-10-04 scope note. The decided activation path is one step: the invited email plus the activation code, and only that email can accept that code (REQ-AUTH-01, REQ-AUTH-12). The repository implements that one-step path (F02). P0 tasks are T01–T08, T10–T12, and T13. T09 and T14 stay P1. v0.11 moves T13 into the MVP and narrows it: the daily email goes only to the Case Coordinator. The case-creation page (T14) stays the next version. Until that page exists, an operator creates cases and writes the provisioning rows in `LOCAL_DEV_NOTES.md` (git-ignored).
-- 依据：SPEC.md v0.11、SOW.md v1.11 加上 2026-10-04 的范围说明。已决定的激活路径是一步：受邀邮箱加上激活码，且只有该邮箱能接受该码（REQ-AUTH-01、REQ-AUTH-12）。本仓库已实现这一步激活（F02）。P0 任务为 T01–T08、T10–T12 与 T13。T09 与 T14 仍是 P1。v0.11 把 T13 纳入 MVP，并收窄为只发给案件协调员。建案页面（T14）留在下一版本。该页面出现之前，由操作者建案，并把建案记录写在 `LOCAL_DEV_NOTES.md`（不入库）。
+- Version: 0.12 | Date: 2026-10-05
+- 版本：0.12｜日期：2026-10-05
+- Basis: SPEC.md v0.12, SOW.md v1.12 plus the 2026-10-04 scope note. The decided activation path is one step: the invited email plus the activation code, and only that email can accept that code (REQ-AUTH-01, REQ-AUTH-12). The repository implements that one-step path (F02). Invitation codes do not expire (v1.12): the same code is the return sign-in credential. P0 tasks are T01–T08, T10–T12, and T13. T09 and T14 stay P1. v0.11 moves T13 into the MVP and narrows it: the daily email goes only to the Case Coordinator. The case-creation page (T14) stays the next version. Until that page exists, an operator creates cases and writes the provisioning rows in `LOCAL_DEV_NOTES.md` (git-ignored).
+- 依据：SPEC.md v0.12、SOW.md v1.12 加上 2026-10-04 的范围说明。已决定的激活路径是一步：受邀邮箱加上激活码，且只有该邮箱能接受该码（REQ-AUTH-01、REQ-AUTH-12）。本仓库已实现这一步激活（F02）。邀请码长期有效（v1.12）：同一邀请码即再次登录的凭证。P0 任务为 T01–T08、T10–T12 与 T13。T09 与 T14 仍是 P1。v0.11 把 T13 纳入 MVP，并收窄为只发给案件协调员。建案页面（T14）留在下一版本。该页面出现之前，由操作者建案，并把建案记录写在 `LOCAL_DEV_NOTES.md`（不入库）。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -360,7 +360,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 顺序 | ID | 任务 | 与提出的三处修改比较 | 状态 |
 | --- | --- | --- | --- | --- |
 | 1 | F01 | 案件页增加附件控件。T08 已能通过接口上传、扫描、送审和下载。案件页没有按钮，试点无法交换文件。 | 这是第 3 项修改。它挡住正在进行的案件，排在注册和登录去向的剩余项之前。 | 已完成 |
-| 2 | F02 | 一步激活（v1.11，2026-10-03 决定）。受邀人输入本人邮箱和激活码。激活码绑定该邮箱、一个案件和一个角色。只有该邮箱能接受。邮箱加激活码就是校验，激活过程不再另要 6 位验证码。激活码未使用且未过期时，换一个浏览器也可以进入该案件。同一邮箱以后接受另一个案件的激活码时，加入同一账号。角色不符则拒绝。已在仓库实现，并由邀请集成测试覆盖。之后再次进入仍用同一邮箱和邀请码（F12）。管理员仍用邮箱验证码。 | 这是已确认的第 2 项修改。 | 已完成 |
+| 2 | F02 | 一步激活（v1.11，2026-10-03 决定）。受邀人输入本人邮箱和激活码。激活码绑定该邮箱、一个案件和一个角色。只有该邮箱能接受。邮箱加激活码就是校验，激活过程不再另要 6 位验证码。激活码未使用时，换一个浏览器也可以进入该案件（邀请码长期有效，v1.12）。同一邮箱以后接受另一个案件的激活码时，加入同一账号。角色不符则拒绝。已在仓库实现，并由邀请集成测试覆盖。之后再次进入仍用同一邮箱和邀请码（F12）。管理员仍用邮箱验证码。 | 这是已确认的第 2 项修改。 | 已完成 |
 | 3 | F03 | 补完登录成功后的去向。登录已经会打开 `/cases`（2026-10-03 已部署）。2026-10-03（后续会话）完成剩余项：`/` 按会话状态跳转（已登录 → `/cases`，未登录 → `/login`），不再显示 Next.js 起始页；接受邀请成功后直接打开所加入案件的页面（activate/accept 响应已带 `caseId`）。会话 Cookie 的 `maxAge` 此前已加，无需再改。 | 这是第 1 项修改。各部分现都已进入仓库。 | 已完成 |
 | 4 | F04 | 一次点击只发出一条消息。客户连点三次，产生三句相同消息，因为按钮没有表示正在发送。请求进行时禁用按钮，并在不必再点一次的情况下显示新消息。 | 不是那三项修改。2026-10-03 观察到。已与 F01 一起完成：请求在途时按钮禁用并显示发送中状态（另有重入守卫），POST 响应后立即重拉列表。E2E 断言快速连点只产生一条消息。 | 已完成 |
 | 5 | F05 | 提交已经部署、尚未进 Git 的测试机修复：HTTP 页面发送不再调用 `crypto.randomUUID()`、登录打开 `/cases`、虚构测试机的提供者开关，以及部署说明。 | 记账项。2026-10-03 核实：四项修复都在 commit 3182639 中且工作区干净，该项已由 F02 会话完成。 | 已完成 |

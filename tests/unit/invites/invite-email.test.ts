@@ -23,7 +23,8 @@ describe("buildInviteEmail", () => {
     expect(mail.text).toContain("invitee@example.com");
     expect(mail.text).toContain("使用方法");
     expect(mail.text).toContain("DG-Juyang2026OCT");
-    expect(mail.text).toContain("7 天内有效");
+    expect(mail.text).toContain("邀请码长期有效");
+    expect(mail.text).not.toContain("7 天");
     expect(mail.text).toContain("律师那边会自动显示为越南语");
     expect(mail.text).not.toContain("越南律师");
     expect(mail.text).not.toContain("Mã mờ" + "i");
@@ -36,7 +37,8 @@ describe("buildInviteEmail", () => {
     expect(mail.text).toContain("邀請碼：ABCDE-12345");
     expect(mail.text).toContain("登入網址：http://entry.example/invite");
     expect(mail.text).toContain("使用方式");
-    expect(mail.text).toContain("7 天內有效");
+    expect(mail.text).toContain("邀請碼長期有效");
+    expect(mail.text).not.toContain("7 天");
     expect(mail.text).not.toContain("邀请码");
   });
 
@@ -47,7 +49,8 @@ describe("buildInviteEmail", () => {
     expect(mail.text).toContain("Mã mờ" + "i của bạn: ABCDE-12345");
     expect(mail.text).toContain("Trang đăng nhập: http://entry.example/invite");
     expect(mail.text).toContain("Cách sử dụng");
-    expect(mail.text).toContain("7 ngày");
+    expect(mail.text).toContain("hiệu lực lâu dài");
+    expect(mail.text).not.toContain("7 ngày");
     expect(mail.text).not.toMatch(/[一-鿿]/);
   });
 

@@ -63,7 +63,7 @@ describe("invitation + OTP flow", () => {
     expect(mail.subject).toContain("案件邀請");
     expect(mail.text).toContain("邀請碼");
     expect(mail.text).toContain("/invite");
-    expect(mail.text).toContain("7 天內有效");
+    expect(mail.text).toContain("邀請碼長期有效");
     const code = extractInviteCode(mail.text);
 
     const bodyText = JSON.stringify(await res.json());
@@ -165,18 +165,18 @@ describe("invitation + OTP flow", () => {
     expect(invite.usedAt).toBeNull();
   });
 
-  it("rejects an expired unused code, and the same email plus code signs in again", async () => {
+  it("accepts an unused code past its legacy expiresAt (no expiry since v1.12), and the same email plus code signs in again", async () => {
     const { kase, cookie } = await seedCaseWithCoordinator();
 
-    const expiredRes = await inviteByCoordinator(cookie, kase.id, "exp@example.com", "client");
-    const expiredInviteId = (await expiredRes.json()).invite.id as string;
+    const legacyRes = await inviteByCoordinator(cookie, kase.id, "exp@example.com", "client");
+    const legacyInviteId = (await legacyRes.json()).invite.id as string;
     await prisma.invite.update({
-      where: { id: expiredInviteId },
+      where: { id: legacyInviteId },
       data: { expiresAt: new Date(Date.now() - 1000) },
     });
-    const expiredCode = extractInviteCode(fakeEmailProvider.outbox.at(-1)!.text);
-    const reqExpired = await activate("exp@example.com", expiredCode);
-    expect(reqExpired.status).toBe(410);
+    const legacyCode = extractInviteCode(fakeEmailProvider.outbox.at(-1)!.text);
+    const reqLegacy = await activate("exp@example.com", legacyCode);
+    expect(reqLegacy.status).toBe(200);
 
     const okRes = await inviteByCoordinator(cookie, kase.id, "ok@example.com", "client");
     expect(okRes.status).toBe(200);

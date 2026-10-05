@@ -13,7 +13,6 @@ import { getEmailProvider } from "@/server/providers/email";
 
 import { buildInviteEmail, INVITE_EMAIL_LANGS, type InviteEmailLang } from "./email";
 
-export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const INVITABLE_ROLES = ["client", "lawyer", "coordinator"] as const;
 export type InvitableRole = (typeof INVITABLE_ROLES)[number];
 
@@ -107,7 +106,6 @@ export async function issueInvite(input: {
       sentToEnc: encryptText(input.email),
       caseId: input.caseId,
       role: input.role,
-      expiresAt: new Date(Date.now() + INVITE_TTL_MS),
       createdBy: input.actorId,
     },
   });
@@ -134,12 +132,11 @@ export async function issueInvite(input: {
   return { invite, code };
 }
 
-export async function getValidInvite(code: string, now: Date = new Date()): Promise<Invite> {
+export async function getValidInvite(code: string): Promise<Invite> {
   const invite = await prisma.invite.findUnique({ where: { codeHash: hashInviteCode(code) } });
   if (!invite) throw new ApiError(400, "invalid_invite");
   if (invite.revokedAt) throw new ApiError(410, "invite_revoked");
   if (invite.usedAt) throw new ApiError(410, "invite_used");
-  if (invite.expiresAt.getTime() <= now.getTime()) throw new ApiError(410, "invite_expired");
   return invite;
 }
 
@@ -208,7 +205,6 @@ export async function activateByEmailAndCode(
   if (invitedEmail(invite) !== normalized) throw new ApiError(403, "email_mismatch");
   if (invite.revokedAt) throw new ApiError(410, "invite_revoked");
   if (invite.usedAt) return signInWithAcceptedCode(invite, normalized);
-  if (invite.expiresAt.getTime() <= now.getTime()) throw new ApiError(410, "invite_expired");
   assertInvitableRole(invite.role);
   const user = await ensureActiveRecipient(normalized, invite.role, now);
   if (user.globalRole !== invite.role) throw new ApiError(403, "role_mismatch");
@@ -280,7 +276,7 @@ export async function acceptInvite(
   code: string,
   now: Date = new Date(),
 ): Promise<{ caseId: string; role: InvitableRole; alreadyMember: boolean }> {
-  const invite = await getValidInvite(code, now);
+  const invite = await getValidInvite(code);
   await assertUserOwnsInvitedEmail(user, invite);
   if (user.globalRole !== invite.role) {
     throw new ApiError(403, "role_mismatch");
@@ -291,16 +287,16 @@ export async function acceptInvite(
 
   // Atomically claim the single-use code: this closes the race where two
   // concurrent accepts both pass getValidInvite. The loser gets the same
-  // 410 family of errors as a sequential replay.
+  // 410 family of errors as a sequential replay. Invitation codes do not
+  // expire (v1.12): the same code is also the return-login credential.
   const claimed = await prisma.invite.updateMany({
-    where: { id: invite.id, usedAt: null, revokedAt: null, expiresAt: { gt: now } },
+    where: { id: invite.id, usedAt: null, revokedAt: null },
     data: { usedAt: now },
   });
   if (claimed.count === 0) {
     const current = await prisma.invite.findUniqueOrThrow({ where: { id: invite.id } });
     if (current.revokedAt) throw new ApiError(410, "invite_revoked");
-    if (current.usedAt) throw new ApiError(410, "invite_used");
-    throw new ApiError(410, "invite_expired");
+    throw new ApiError(410, "invite_used");
   }
 
   const existing = await prisma.caseMember.findUnique({
@@ -365,10 +361,7 @@ export async function resendInvite(inviteId: string, actor: User): Promise<void>
   const code = generateInviteCode();
   await prisma.invite.update({
     where: { id: invite.id },
-    data: {
-      codeHash: hashInviteCode(code),
-      expiresAt: new Date(Date.now() + INVITE_TTL_MS),
-    },
+    data: { codeHash: hashInviteCode(code) },
   });
   await recordAudit(prisma, {
     actorId: actor.id,
