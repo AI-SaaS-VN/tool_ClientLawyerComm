@@ -70,6 +70,20 @@ describe("checkKeyFields (REQ-TR-05)", () => {
       .toContain("negations");
   });
 
+  it("does not treat the Vietnamese word hợp đồng (contract) as a currency mention", () => {
+    // đồng alone is also the everyday word inside hợp đồng (合同/contract);
+    // only a number-adjacent đồng/dong counts as VND.
+    const source = "公证处不对合同、Invoice、装箱单、报关单、付款凭证等相关资料做公证。";
+    const translation =
+      "Phòng công chứng không công chứng hợp đồng, Invoice, phiếu đóng gói, tờ khai hải quan, chứng từ thanh toán.";
+    expect(checkKeyFields(source, translation).mismatches).not.toContain("currency");
+  });
+
+  it("still counts a number-adjacent đồng as VND", () => {
+    const result = checkKeyFields("诉讼费 500 元", "phí tố tụng 500.000 đồng");
+    expect(result.mismatches).toContain("currency");
+  });
+
   it("reports every mismatched category at once, in a stable order", () => {
     const source = "赔偿 2,300,000 元，2026年3月15日前不得逾期。";
     const translation = "compensation 9,900 USD, due 2026-04-15, late payment allowed.";

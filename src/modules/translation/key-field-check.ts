@@ -14,7 +14,10 @@ function sortedNumbers(text: string): string[] {
 
 const CURRENCY_TOKENS: Array<[RegExp, string]> = [
   [/人民币|人民幣|¥|￥|\bRMB\b|\bCNY\b|yuan|nhân dân tệ|nhan dan te/gi, "CNY"],
-  [/越盾|đồng|dong|\bVND\b/gi, "VND"],
+  // đồng/dong only count when they follow a number: bare "đồng" is also part
+  // of everyday words like hợp đồng (合同/contract), which must not read as
+  // a currency mention. 越盾/VND are unambiguous on their own.
+  [/越盾|\bVND\b|\d[\d.,]*\s*(?:đồng|dong)\b/gi, "VND"],
   [/美元|\$|\bUSD\b|dollars?/gi, "USD"],
 ];
 
