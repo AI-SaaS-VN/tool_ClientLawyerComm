@@ -220,6 +220,11 @@ model TranslationVersion {
   model         String?
   promptVersion String?  @map("prompt_version")
   keyFieldCheck String?  @map("key_field_check")
+  // F17 queue fields: attempts counts provider tries on this row's chain;
+  // nextRetryAt gates when a queued row may run (null = as soon as pacing
+  // allows).
+  attempts      Int       @default(0)
+  nextRetryAt   DateTime? @map("next_retry_at")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 

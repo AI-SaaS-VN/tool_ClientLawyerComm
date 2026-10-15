@@ -1301,3 +1301,32 @@ On the development Linux: read this entry, then PROGRESS, then PLAN F18. Bring u
 On the development Linux: read this entry, then PROGRESS, then PLAN F18. Bring up local Docker (`clc-postgres`, `clc-minio`) and get `npm run test` green. Then F18, test first. Do not start T16, T17, or T18 before T15. Do not write application code on the US test machine, and do not move the case on the Shanghai test machine.<br>在开发用的 Linux 上：先读本条，再读 PROGRESS，再读 PLAN F18。启动本机 Docker（`clc-postgres`、`clc-minio`），让 `npm run test` 通过。然后做 F18，先写失败测试。T15 完成之前不要开始 T16、T17、T18。不要在美国测试机上写应用代码，也不要搬动上海测试机上的案件。
 
 ---
+## Session 2026-10-15-01 (Ended) / 会话 2026-10-15-01（已结束）
+
+- Date/Timezone: 2026-10-15, UTC (Kimi Code on the dev Linux)<br>日期/时区：2026-10-15，UTC（研发 Linux 上的 Kimi Code）
+- Goal (user request): read SESSIONS/PROGRESS/PLAN/SOW/SPEC and start the next development phase.<br>本次目标（用户要求）：读取各进度文档，开始下一阶段研发。
+
+### Actual Actions / 实际动作
+
+1. Committed the other agent's (Cursor, 10-08/10-09) uncommitted phase-2 design docs (SOW v1.13 / SPEC v0.13 / PLAN v0.13, ADRs 0001/0002, prototypes, US test machine prep) as `5d006fb`. Baseline was green: 337/337.<br>先把另一代理（Cursor，10-08/10-09）未提交的第二阶段设计文档提交为 5d006fb。基线全绿 337/337。
+2. F18 (client default Simplified Chinese): `defaultScreenLang`, client option order, and `ROLE_DEFAULT_LANG.client` now zh-Hans; tests and e2e assertions updated. New +1 unit test.<br>F18（客户默认简体中文）：defaultScreenLang、客户语言选项顺序、邀请默认语言均改 zh-Hans；测试与 e2e 断言同步。
+3. Diagnosed the translation stalls with pilot data: the Kimi org cap is **3 RPM** (provider error verbatim). Retried the 10 stuck pilot translations at 21s spacing: 4 cleared, 6 stay needs_review (genuine number/negation divergence; no coordinator approval UI exists — noted as a gap).<br>用试点数据查实翻译卡住的根因：Kimi 账号上限 3 RPM（provider 报错原文）。按 21 秒间隔重试 10 条卡住的译文：4 条转 ready，6 条仍 needs_review（数字/否定词确有出入；系统尚无协调员放行界面——已记为缺口）。
+4. Key-field checker false-positive fix: 非常 and 是否's 否 no longer count as negations; vi "được không" question form excluded symmetrically. +1 unit test (12/12 in that file).<br>关键字段校验误报修复：非常、是否的否不再计否定；越语 được không 疑问式对称排除。
+5. F17 (worker-queue translation): auto mode only queues version rows; the in-process worker drains serially at one provider call per 21s with bounded backoff retry (≤3 attempts, new version per attempt); typed failure logging added; migration `20261015163142_f17_translation_queue` (attempts/next_retry_at); e2e worker driver passes a zero pacing floor. SPEC v0.14 / PLAN v0.14.<br>F17（翻译入 worker 队列）：自动模式只入队；进程内 worker 按 21 秒定速串行执行、退避重试 ≤3 次、失败记类型化日志；迁移 20261015163142；e2e 驱动传零间隔。SPEC v0.14 / PLAN v0.14。
+6. E2E harness: fixed `isInviteMail` (broken since the 10-04 per-language emails — now matches `/invite` URL + code pattern); dual-user and review-alert drive the worker explicitly. Full-suite runs on this loaded box (load >9) crash Chromium renderers intermittently; all specs pass individually and the full suite passed 7/7 when load dropped.<br>E2E 基建：修复 isInviteMail（10-04 按语言邮件起即坏）；dual-user/review-alert 显式驱动 worker。宿主机高负载（>9）时 Chromium 渲染进程间歇崩溃；各规格单独全过，负载回落后全量 7/7 通过。
+
+### Verification / 验证
+
+- `npm run test` 340/340 (47 files), `npm run test:e2e` 7/7, tsc/lint/build clean. Deployed to the Shanghai test host (migration + generate + build rc=0 + restart; health 200, outbox 404).<br>`npm run test` 340/340（47 个文件），E2E 7/7，tsc/lint/build 无错误。已部署上海测试机。
+
+### Unfinished Items / 未完成项
+
+- Six pilot messages sit at needs_review with no coordinator approval path; candidates for a small approve-translation affordance or manual correction by the author.<br>6 条试点消息停在 needs_review 且无放行界面；候选方案：给协调员加译文放行按钮，或由作者修正重试。
+- frank (the Traditional-Chinese client) has never logged in; his zh-Hant translations generate on his first read.<br>frank 从未登录；其繁体译文将在他首次阅读时生成。
+- Next phase-2 code: T15 (Attachment Translation Page). Do not start T16/T17/T18 before T15.<br>下一阶段下一件代码：T15 附件翻译页。T15 完成前不动 T16/T17/T18。
+
+### First Step Next Time / 下次第一步
+
+T15 per PLAN (first failing test `tests/unit/files/attachment-translation-page.test.ts`).<br>按 PLAN 做 T15（第一份失败测试 `tests/unit/files/attachment-translation-page.test.ts`）。
+
+---

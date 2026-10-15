@@ -8,6 +8,7 @@ import { isSupportedLang, isZhConversionPair } from "@/modules/translation/langs
 import { convertZh } from "@/modules/translation/zh-convert";
 import { recordAudit } from "@/server/audit/log";
 import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
+import { LlmFailure } from "@/server/providers/llm/interface";
 import { getLlmTranslationProvider } from "@/server/providers/llm";
 
 export type TranslationState =
@@ -63,18 +64,23 @@ async function latestVersion(
 }
 
 // REQ-TR-04: every attempt inserts a new row at version max+1; no row is ever
-// overwritten. Provider faults end as status failed (REQ-MSG-10) — this
-// function itself only throws on storage errors.
-async function createAndRun(message: Message, targetLang: string): Promise<TranslationVersion> {
+// overwritten. `attempts` counts provider tries within one auto chain; a
+// nonzero `delayMs` defers the row via nextRetryAt (worker backoff, F17).
+export async function queueTranslation(
+  message: Message,
+  targetLang: string,
+  opts: { attempts?: number; delayMs?: number } = {},
+): Promise<TranslationVersion> {
   const latest = await latestVersion(message.id, targetLang);
-  let row: TranslationVersion;
   try {
-    row = await prisma.translationVersion.create({
+    return await prisma.translationVersion.create({
       data: {
         messageId: message.id,
         targetLang,
         version: (latest?.version ?? 0) + 1,
         status: "queued",
+        attempts: opts.attempts ?? 0,
+        nextRetryAt: opts.delayMs ? new Date(Date.now() + opts.delayMs) : null,
       },
     });
   } catch (error) {
@@ -84,14 +90,34 @@ async function createAndRun(message: Message, targetLang: string): Promise<Trans
     }
     throw error;
   }
-  row = await prisma.translationVersion.update({
-    where: { id: row.id },
+}
+
+// Runs one queued version to completion: zh pairs never reach the provider;
+// LLM pairs call it once. Provider faults end as status failed (REQ-MSG-10)
+// with the typed category logged — this function itself only throws on
+// storage errors.
+export async function runTranslationVersion(row: TranslationVersion): Promise<TranslationVersion> {
+  const message = await prisma.message.findUnique({ where: { id: row.messageId } });
+  // The source must be published before any provider call (REQ-TR-09).
+  if (!message || message.status !== "published") {
+    return prisma.translationVersion.update({
+      where: { id: row.id },
+      data: { status: "failed" },
+    });
+  }
+  const claimed = await prisma.translationVersion.updateMany({
+    where: { id: row.id, status: "queued" },
     data: { status: "translating" },
   });
+  if (claimed.count === 0) {
+    // Another runner took it; report the current state.
+    return prisma.translationVersion.findUniqueOrThrow({ where: { id: row.id } });
+  }
+  const current = (await prisma.translationVersion.findUniqueOrThrow({ where: { id: row.id } }))!;
 
-  if (isZhConversionPair(message.sourceLang, targetLang)) {
-    const text = convertZh(message.sourceText, targetLang as "zh-Hans" | "zh-Hant");
-    return finishWithCheck(row, message.sourceText, text, {
+  if (isZhConversionPair(message.sourceLang, row.targetLang)) {
+    const text = convertZh(message.sourceText, row.targetLang as "zh-Hans" | "zh-Hant");
+    return finishWithCheck(current, message.sourceText, text, {
       provider: "zh-converter",
       model: "static-map-v1",
       promptVersion: null,
@@ -105,16 +131,20 @@ async function createAndRun(message: Message, targetLang: string): Promise<Trans
     const result = await provider.translate({
       text: message.sourceText,
       sourceLang: message.sourceLang,
-      targetLang,
+      targetLang: row.targetLang,
     });
-    return finishWithCheck(row, message.sourceText, result.text, {
+    return finishWithCheck(current, message.sourceText, result.text, {
       provider: provider.id,
       model: result.model,
       promptVersion: result.promptVersion,
     });
-  } catch {
-    // REQ-MSG-10: timeout/rate-limit/format faults mark the version failed;
-    // the source text stays published and untouched.
+  } catch (error) {
+    const kind = error instanceof LlmFailure ? error.kind : "unknown";
+    console.error("translation_failed", {
+      targetLang: row.targetLang,
+      kind,
+      version: current.version,
+    });
     const failed = await prisma.translationVersion.update({
       where: { id: row.id },
       data: { status: "failed", provider: provider.id },
@@ -125,10 +155,15 @@ async function createAndRun(message: Message, targetLang: string): Promise<Trans
       targetType: "message",
       targetId: message.id,
       caseId: message.caseId,
-      meta: { targetLang },
+      meta: { targetLang: row.targetLang, kind },
     });
     return failed;
   }
+}
+
+async function createAndRun(message: Message, targetLang: string): Promise<TranslationVersion> {
+  const row = await queueTranslation(message, targetLang);
+  return runTranslationVersion(row);
 }
 
 // REQ-TR-05: key fields are checked independently; a mismatch stores the text
@@ -252,23 +287,20 @@ export async function attachTranslations<T extends MessageViewLike>(
     if (!latestByMessage.has(version.messageId)) latestByMessage.set(version.messageId, version);
   }
 
-  // F07: with a real provider in the loop, the automatic backfill must not
-  // serialize N+1 slow calls inside the list request — missing translations
-  // are kicked off in parallel. Provider faults are already contained inside
-  // createAndRun (the version ends failed; REQ-MSG-10), so one bad message
-  // never affects the others.
+  // F17: LLM translations are queued for the worker (the provider account is
+  // rate-capped, so inline parallel calls trip the limit). zh↔zh pairs are
+  // deterministic and still resolve inline. The reader sees "waiting" until
+  // the worker finishes the row.
   if (mode === "auto") {
     const missing = views.filter(
       (v) => v.status === "published" && v.sourceLang !== preferred && !latestByMessage.has(v.id),
     );
-    if (missing.length) {
-      const created = await Promise.all(
-        missing.map(async (view) => {
-          const message = await prisma.message.findUniqueOrThrow({ where: { id: view.id } });
-          return createAndRun(message, preferred);
-        }),
-      );
-      for (const row of created) latestByMessage.set(row.messageId, row);
+    for (const view of missing) {
+      const message = await prisma.message.findUniqueOrThrow({ where: { id: view.id } });
+      const row = isZhConversionPair(message.sourceLang, preferred)
+        ? await createAndRun(message, preferred)
+        : await queueTranslation(message, preferred);
+      latestByMessage.set(row.messageId, row);
     }
   }
 

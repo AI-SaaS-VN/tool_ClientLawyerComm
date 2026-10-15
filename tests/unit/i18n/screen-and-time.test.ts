@@ -2,18 +2,23 @@ import { describe, expect, it } from "vitest";
 
 import { uiText } from "@/modules/i18n/copy";
 import { formatRecordTime } from "@/modules/i18n/record-time";
-import { defaultScreenLang, langFromAcceptLanguage, screenLangForUser } from "@/modules/i18n/screen-lang";
+import { defaultScreenLang, langFromAcceptLanguage, screenLangForUser, screenLangOptions } from "@/modules/i18n/screen-lang";
 
 describe("screen language", () => {
-  it("defaults a client to Traditional Chinese and a lawyer to Vietnamese", () => {
-    expect(defaultScreenLang("client")).toBe("zh-Hant");
+  it("defaults a client to Simplified Chinese (F18) and a lawyer to Vietnamese", () => {
+    expect(defaultScreenLang("client")).toBe("zh-Hans");
     expect(defaultScreenLang("lawyer")).toBe("vi");
     expect(defaultScreenLang("coordinator")).toBe("zh-Hans");
   });
 
   it("keeps a stored preference", () => {
     expect(screenLangForUser({ preferredLang: "en", globalRole: "client" })).toBe("en");
-    expect(screenLangForUser({ preferredLang: null, globalRole: "client" })).toBe("zh-Hant");
+    expect(screenLangForUser({ preferredLang: null, globalRole: "client" })).toBe("zh-Hans");
+  });
+
+  it("offers the client Simplified first, Traditional only as a switch (F18)", () => {
+    expect(screenLangOptions("client")).toEqual(["zh-Hans", "zh-Hant", "en"]);
+    expect(screenLangOptions("lawyer")[0]).toBe("vi");
   });
 
   it("reads one language from Accept-Language", () => {

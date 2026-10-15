@@ -12,6 +12,6 @@ export async function POST() {
   const enabled =
     process.env.NODE_ENV !== "production" && (process.env.EMAIL_PROVIDER ?? "fake") === "fake";
   if (!enabled) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  const summary = await runNotificationWorkerOnce();
+  const summary = await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
   return NextResponse.json({ summary });
 }

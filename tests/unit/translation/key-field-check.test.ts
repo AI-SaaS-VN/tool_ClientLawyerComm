@@ -84,6 +84,29 @@ describe("checkKeyFields (REQ-TR-05)", () => {
     expect(result.mismatches).toContain("currency");
   });
 
+  it("ignores 非常, 是否, and the Vietnamese được không question form (pilot false positives)", () => {
+    // 非常 = "very", 是否 = "whether", được không = yes/no question particle.
+    expect(
+      checkKeyFields(
+        "我们不懂越语，去越南办理公证非常困难。",
+        "Chúng tôi không hiểu tiếng Việt nên làm công chứng tại Việt Nam rất khó khăn.",
+      ).ok,
+    ).toBe(true);
+    expect(
+      checkKeyFields(
+        "贵律师所是否可以代办？",
+        "Văn phòng luật sư của quý vị có thể nhận làm thay được không?",
+      ).mismatches,
+    ).not.toContain("negations");
+    // A genuinely dropped negation still holds the version.
+    expect(
+      checkKeyFields(
+        "các bên không có tranh chấp và hợp đồng không bắt buộc, không liên quan",
+        "各方不存在争议，该合同不必列入。",
+      ).mismatches,
+    ).toContain("negations");
+  });
+
   it("reports every mismatched category at once, in a stable order", () => {
     const source = "赔偿 2,300,000 元，2026年3月15日前不得逾期。";
     const translation = "compensation 9,900 USD, due 2026-04-15, late payment allowed.";

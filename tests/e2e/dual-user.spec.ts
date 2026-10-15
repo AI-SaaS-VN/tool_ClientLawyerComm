@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { convertZh } from "../../src/modules/translation/zh-convert";
-import { acceptInviteViaUi, activatedUserContext, runId, seedTriangle } from "./helpers";
+import { acceptInviteViaUi, activatedUserContext, runId, runWorkerOnce, seedTriangle } from "./helpers";
 
 // AC03 key path: Chinese client and Vietnamese lawyer in two separate
 // browser contexts — activation, live delivery, automatic translation,
@@ -29,12 +28,18 @@ test("dual-browser zh/vi journey: send, auto translation, manual translate, repl
     await viPage.getByTestId("case-link").click();
 
     // The Chinese client sends a message; the Vietnamese lawyer's open page
-    // receives it live (SSE refresh) with the automatic translation.
+    // receives it live (SSE refresh). F17: the list queues the translation
+    // and the worker pass completes it, so the test drives the queue
+    // explicitly once the message has arrived.
     const first = `你好，请确认收到委托材料。${id}`;
     await zhPage.getByTestId("message-input").fill(first);
     await zhPage.getByTestId("message-send").click();
-    await expect(zhPage.getByTestId("message-list")).toContainText(convertZh(first, "zh-Hant"));
+    // F18: the client defaults to Simplified Chinese, so their own Simplified
+    // message shows as-is (same language, no conversion).
+    await expect(zhPage.getByTestId("message-list")).toContainText(first);
     await expect(zhPage.getByTestId("message-time").first()).toHaveText(/UTC[+-]\d+/);
+    await expect(viPage.getByTestId("message-item")).toHaveCount(1);
+    await runWorkerOnce(request);
     await expect(viPage.getByTestId("message-list")).toContainText(`[vi] ${first}`);
 
     // Manual mode: a message that arrives after the switch shows the source
@@ -49,11 +54,13 @@ test("dual-browser zh/vi journey: send, auto translation, manual translate, repl
     await expect(secondItem.getByTestId("translation-text")).toContainText(`[vi] ${second}`);
 
     // The lawyer replies in Vietnamese; the Chinese client sees the
-    // automatic Traditional Chinese translation.
+    // automatic Simplified Chinese translation once the queue has run.
     const reply = `Tôi đã nhận được, cảm ơn. ${id}`;
     await viPage.getByTestId("message-input").fill(reply);
     await viPage.getByTestId("message-send").click();
-    await expect(zhPage.getByTestId("message-list")).toContainText(`[zh-Hant] ${reply}`);
+    await expect(zhPage.getByTestId("message-item")).toHaveCount(3);
+    await runWorkerOnce(request);
+    await expect(zhPage.getByTestId("message-list")).toContainText(`[zh-Hans] ${reply}`);
   } finally {
     await zhContext.close();
     await viContext.close();
@@ -87,9 +94,8 @@ test("rapid repeated send clicks produce exactly one message", async ({ browser,
     await send.dispatchEvent("click");
     await send.dispatchEvent("click");
     await send.dispatchEvent("click");
-    // The client's screen shows the Traditional form of what was typed.
-    const shown = convertZh(text, "zh-Hant");
-    await expect(page.getByTestId("message-list")).toContainText(shown);
+    // F18: the client's screen is Simplified by default — text shows as typed.
+    await expect(page.getByTestId("message-list")).toContainText(text);
     await expect(page.getByTestId("message-time").first()).toHaveText(/UTC[+-]\d+/);
     await expect(page.getByTestId("message-item").filter({ hasText: id })).toHaveCount(1);
   } finally {

@@ -16,8 +16,10 @@ import { buildInviteEmail, INVITE_EMAIL_LANGS, type InviteEmailLang } from "./em
 export const INVITABLE_ROLES = ["client", "lawyer", "coordinator"] as const;
 export type InvitableRole = (typeof INVITABLE_ROLES)[number];
 
+// F18: a client invite email defaults to Simplified Chinese; the operator can
+// still pass lang="zh-Hant" for a Traditional reader.
 const ROLE_DEFAULT_LANG: Record<InvitableRole, InviteEmailLang> = {
-  client: "zh-Hant",
+  client: "zh-Hans",
   lawyer: "vi",
   coordinator: "zh-Hans",
 };

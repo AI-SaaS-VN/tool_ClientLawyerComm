@@ -60,10 +60,11 @@ describe("invitation + OTP flow", () => {
     expect(fakeEmailProvider.outbox).toHaveLength(1);
     expect(fakeEmailProvider.outbox[0]!.to).toBe("client1@example.com");
     const mail = fakeEmailProvider.outbox[0]!;
-    expect(mail.subject).toContain("案件邀請");
-    expect(mail.text).toContain("邀請碼");
+    // F18: the client invite email defaults to Simplified Chinese.
+    expect(mail.subject).toContain("案件邀请");
+    expect(mail.text).toContain("邀请码");
     expect(mail.text).toContain("/invite");
-    expect(mail.text).toContain("邀請碼長期有效");
+    expect(mail.text).toContain("邀请码长期有效");
     const code = extractInviteCode(mail.text);
 
     const bodyText = JSON.stringify(await res.json());

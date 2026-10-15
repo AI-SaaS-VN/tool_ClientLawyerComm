@@ -50,7 +50,7 @@ test("rule-blocked message → review alert → coordinator approves → visible
     await clientPage.goto(`/cases/${triangle.caseId}`);
     await clientPage.getByTestId("message-input").fill(held);
     await clientPage.getByTestId("message-send").click();
-    await expect(clientPage.getByTestId("message-list")).toContainText("待審核");
+    await expect(clientPage.getByTestId("message-list")).toContainText("待审核");
     await expect(lawyerPage.getByTestId("message-list")).not.toContainText(held);
 
     // The explicitly driven worker pass mails the review alert to the
@@ -75,10 +75,11 @@ test("rule-blocked message → review alert → coordinator approves → visible
     await expect(coordinatorPage.getByTestId("review-empty")).toBeVisible();
 
     // After approval the message is visible to the other party (live
-    // refresh) and the author no longer sees it as pending.
-    await expect(lawyerPage.getByTestId("message-list")).toContainText(held);
+    // refresh); F17 queues its translation, so a worker pass completes it.
+    await expect(lawyerPage.getByTestId("message-item")).toHaveCount(1);
+    await runWorkerOnce(request);
     await expect(lawyerPage.getByTestId("message-list")).toContainText(`[vi] ${held}`);
-    await expect(clientPage.getByTestId("message-list")).not.toContainText("待審核");
+    await expect(clientPage.getByTestId("message-list")).not.toContainText("待审核");
 
     // The completed review cancels its queued alerts: another pass sends
     // nothing more to anyone in this case.

@@ -58,8 +58,11 @@ function isOtpMail(entry: OutboxEntry): boolean {
   return entry.text.includes("verification code");
 }
 
+// Invitation emails are per-language (F16): the Chinese labels are 邀请码/
+// 邀請碼 and the Vietnamese one is "Mã mời". The language-neutral markers are
+// the /invite login URL and the grouped code itself.
 export function isInviteMail(entry: OutboxEntry): boolean {
-  return entry.text.includes("邀请码");
+  return entry.text.includes("/invite") && /\b[0-9A-Z]{5}-[0-9A-Z]{5}\b/.test(entry.text);
 }
 
 // The local bootstrap is the only way admin accounts come into being

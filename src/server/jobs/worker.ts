@@ -16,6 +16,8 @@ import {
   buildReviewAlertEmail,
   buildUrgentFailedAlertEmail,
 } from "@/modules/notifications/templates";
+import { queueTranslation, runTranslationVersion } from "@/modules/translation/service";
+import { isZhConversionPair } from "@/modules/translation/langs";
 import { prisma } from "@/lib/db";
 import { recordAudit } from "@/server/audit/log";
 import { getEmailProvider } from "@/server/providers/email";
@@ -37,6 +39,10 @@ export interface NotificationWorkerDeps {
   // drive this worker with simulated clocks never generate digests
   // unintentionally; the runtime loop (startNotificationWorker) opts in.
   digest?: boolean;
+  // F17: minimum wall-clock gap between LLM translation calls. The provider
+  // account is capped (Kimi org limit: 3 RPM), so the queue is drained one
+  // call per gap. Tests pass 0 to drain without waiting.
+  translationMinIntervalMs?: number;
 }
 
 export interface WorkerRunSummary {
@@ -45,9 +51,21 @@ export interface WorkerRunSummary {
   submitted: number;
   retried: number;
   failed: number;
+  translated: number;
+  translationFailed: number;
 }
 
 const BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
+
+// F17: the Kimi organization cap is 3 RPM, so provider calls are paced at one
+// per 21 seconds. zh↔zh conversions are local and not paced.
+export const TRANSLATION_MIN_INTERVAL_MS = 21_000;
+export const MAX_TRANSLATION_ATTEMPTS = 3;
+let lastLlmTranslationCallAt = 0;
+
+export function resetTranslationPacingForTests(): void {
+  lastLlmTranslationCallAt = 0;
+}
 
 // One pass of the persistent queue: cancel stale alerts, advance escalation,
 // then send what is due. Every pass is idempotent, so replaying after a
@@ -57,7 +75,7 @@ export async function runNotificationWorkerOnce(
 ): Promise<WorkerRunSummary> {
   const clock = deps.clock ?? systemClock;
   const emailProvider = deps.emailProvider ?? getEmailProvider();
-  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0 };
+  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0 };
 
   if (deps.digest) {
     // Idempotent via the unique (case_id, digest_date): a failure here is
@@ -71,7 +89,50 @@ export async function runNotificationWorkerOnce(
   summary.cancelled += await cancelStaleAlerts(clock.now());
   summary.escalated += await advanceEscalations(clock.now());
   await sendDueAlerts(clock, emailProvider, summary);
+  await runTranslationQueuePass(
+    deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
+    summary,
+  );
   return summary;
+}
+
+// F17: drains queued translation versions one provider call per pacing gap.
+// zh↔zh conversions are local and always run. A provider failure leaves the
+// version failed and queues a backoff retry (new version row, REQ-TR-04)
+// until the attempt budget is spent.
+async function runTranslationQueuePass(
+  minIntervalMs: number,
+  summary: WorkerRunSummary,
+): Promise<void> {
+  const due = await prisma.translationVersion.findMany({
+    where: {
+      status: "queued",
+      OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: new Date() } }],
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  for (const row of due) {
+    const message = await prisma.message.findUnique({ where: { id: row.messageId } });
+    const local =
+      message !== null && isZhConversionPair(message.sourceLang, row.targetLang);
+    if (!local) {
+      if (Date.now() - lastLlmTranslationCallAt < minIntervalMs) break;
+      lastLlmTranslationCallAt = Date.now();
+    }
+    const finished = await runTranslationVersion(row);
+    if (finished.status === "failed") {
+      summary.translationFailed += 1;
+      if (message && row.attempts + 1 < MAX_TRANSLATION_ATTEMPTS) {
+        const delay = backoffDelayMs(row.attempts + 1) ?? 15 * 60_000;
+        await queueTranslation(message, row.targetLang, {
+          attempts: row.attempts + 1,
+          delayMs: delay,
+        });
+      }
+    } else {
+      summary.translated += 1;
+    }
+  }
 }
 
 // REQ-NTF-13 / REQ-OPS-03: queued alerts whose review task was decided or

@@ -47,7 +47,7 @@ test("case-page attachment: ordinary upload is published and downloaded by the l
 
     const ownItem = clientPage.getByTestId("file-item").filter({ hasText: fileName });
     await expect(ownItem).toBeVisible();
-    await expect(ownItem).toContainText("已發布");
+    await expect(ownItem).toContainText("已发布");
     await expect(ownItem.getByTestId("file-time")).toHaveText(/UTC[+-]\d+/);
 
     const lawyerPage = await lawyerContext.newPage();
@@ -66,7 +66,7 @@ test("case-page attachment: ordinary upload is published and downloaded by the l
 
     await clientPage.reload();
     await expect(clientPage.getByTestId("file-item").filter({ hasText: fileName })).toContainText(
-      "已發布",
+      "已发布",
     );
   } finally {
     await clientContext.close();

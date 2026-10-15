@@ -1,10 +1,11 @@
 import { isSupportedLang, type SupportedLang } from "@/modules/translation/langs";
 
-// REQ-TR-01 / F14. A stored preference wins. Otherwise the role default applies:
-// client Traditional Chinese, lawyer Vietnamese, coordinator Simplified Chinese.
+// REQ-TR-01 / F14 / F18. A stored preference wins. Otherwise the role default
+// applies: client Simplified Chinese (F18, 2026-10-09 — Traditional appears
+// only after the client switches), lawyer Vietnamese, coordinator Simplified
+// Chinese.
 export function defaultScreenLang(role: string): SupportedLang {
   if (role === "lawyer") return "vi";
-  if (role === "client") return "zh-Hant";
   return "zh-Hans";
 }
 
@@ -19,7 +20,7 @@ export function screenLangForUser(user: {
 // Languages this role may switch to. The first entry is the role default.
 export function screenLangOptions(role: string): SupportedLang[] {
   if (role === "lawyer") return ["vi", "zh-Hans", "zh-Hant", "en"];
-  if (role === "client") return ["zh-Hant", "zh-Hans", "en"];
+  if (role === "client") return ["zh-Hans", "zh-Hant", "en"];
   return ["zh-Hans", "zh-Hant", "en"];
 }
 

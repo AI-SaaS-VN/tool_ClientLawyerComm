@@ -50,11 +50,18 @@ function sortedDates(text: string): string[] {
   return dates.sort();
 }
 
+// Refined against pilot false positives (2026-10-15): 非常 ("very") is not a
+// negation; the 否 inside 是否 ("whether") is a question form, as is the
+// Vietnamese "được không" sentence-final particle — both are excluded on
+// their side so the two stay balanced. A dropped or added real negation still
+// flips the count (e.g. 3 markers vs 2 holds the version).
 const NEGATION_PATTERNS = [
-  /不|没|无|無|未|否|勿|莫|别|別|非/g,
+  /不|没|无(?!论)|無|未|(?<!是)否|勿|莫|别|別|非(?!常)/g,
   /không|khong|chưa|chua|đừng|dung|chẳng|chang/gi,
   /\b(?:not|no|never|none|cannot)\b|n't/gi,
 ];
+
+const VI_QUESTION_KHONG = /được\s+không/gi;
 
 function negationCount(text: string): number {
   let count = 0;
@@ -62,6 +69,8 @@ function negationCount(text: string): number {
     pattern.lastIndex = 0;
     count += (text.match(pattern) ?? []).length;
   }
+  VI_QUESTION_KHONG.lastIndex = 0;
+  count -= (text.match(VI_QUESTION_KHONG) ?? []).length;
   return count;
 }
 

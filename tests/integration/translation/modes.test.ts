@@ -8,6 +8,7 @@ import {
 import { POST as translateMessage } from "@/app/api/messages/[id]/translate/route";
 import { prisma } from "@/lib/db";
 import { setMessageCheckerForTests } from "@/modules/messages/check";
+import { runNotificationWorkerOnce, resetTranslationPacingForTests } from "@/server/jobs/worker";
 import { fakeLlmTranslationProvider } from "@/server/providers/llm/fake";
 import { LlmFailure } from "@/server/providers/llm/interface";
 
@@ -96,13 +97,28 @@ describe("translation modes (REQ-TR-01/02/03/04/07, REQ-MSG-09)", () => {
     fakeLlmTranslationProvider.reset();
   });
 
-  it("auto mode translates published messages into the reader's preferred language and records provider/model/prompt version (REQ-TR-03)", async () => {
+  it("auto mode queues the translation, the worker runs it, and the row records provider/model/prompt version (REQ-TR-03, F17)", async () => {
     const { kase, cookie, lawyerCookie } = await seedChat({ coordinatorLang: "en" });
     const message = await send(kase.id, lawyerCookie, "请于2026年3月15日前答复。", "t-auto-1");
 
+    // F17: the list request only queues — no provider call inside the GET.
     const coordinatorList = await listFor(kase.id, cookie, "auto");
     expect(coordinatorList).toHaveLength(1);
     expect(coordinatorList[0]!.translation).toEqual({
+      targetLang: "en",
+      state: "waiting",
+      text: null,
+      version: 1,
+    });
+    expect(fakeLlmTranslationProvider.calls).toHaveLength(0);
+
+    // The lawyer's list queues her own target too; one worker pass drains both.
+    const lawyerList = await listFor(kase.id, lawyerCookie, "auto");
+    expect(lawyerList[0]!.translation).toMatchObject({ targetLang: "vi", state: "waiting" });
+    await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
+
+    const after = await listFor(kase.id, cookie, "auto");
+    expect(after[0]!.translation).toEqual({
       targetLang: "en",
       state: "ready",
       text: "[en] 请于2026年3月15日前答复。",
@@ -110,7 +126,7 @@ describe("translation modes (REQ-TR-01/02/03/04/07, REQ-MSG-09)", () => {
     });
 
     const row = await prisma.translationVersion.findFirstOrThrow({
-      where: { messageId: message.id as string },
+      where: { messageId: message.id as string, targetLang: "en" },
     });
     expect(row).toMatchObject({
       targetLang: "en",
@@ -122,9 +138,8 @@ describe("translation modes (REQ-TR-01/02/03/04/07, REQ-MSG-09)", () => {
       keyFieldCheck: "pass",
     });
 
-    // The lawyer's own default preference is vi (REQ-TR-01 role defaults).
-    const lawyerList = await listFor(kase.id, lawyerCookie, "auto");
-    expect(lawyerList[0]!.translation).toMatchObject({ targetLang: "vi", state: "ready" });
+    const lawyerAfter = await listFor(kase.id, lawyerCookie, "auto");
+    expect(lawyerAfter[0]!.translation).toMatchObject({ targetLang: "vi", state: "ready" });
   });
 
   it("auto mode shows a waiting state while a translation is unfinished and never substitutes the foreign source (REQ-MSG-09)", async () => {
@@ -281,69 +296,90 @@ describe("translation modes (REQ-TR-01/02/03/04/07, REQ-MSG-09)", () => {
     expect((await invalid.json()).error).toBe("invalid_source_lang");
   });
 
-  it("auto mode backfills missing translations in parallel, and one failure never blocks the others (F07, REQ-MSG-10)", async () => {
+  it("auto mode queues missing translations and the worker drains them serially; one failure gets a bounded backoff retry (F17, REQ-MSG-10)", async () => {
     const { kase, cookie, lawyerCookie } = await seedChat({ coordinatorLang: "en" });
     await send(kase.id, lawyerCookie, "第一份材料已提交。", "t-par-1");
     await send(kase.id, lawyerCookie, "请确认开庭时间。", "t-par-2");
     await send(kase.id, lawyerCookie, "第三份材料稍后补交。", "t-par-3");
 
-    let inFlight = 0;
-    let maxInFlight = 0;
-    let entered = 0;
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    const originalTranslate = fakeLlmTranslationProvider.translate;
-    fakeLlmTranslationProvider.translate = async (input) => {
-      inFlight += 1;
-      maxInFlight = Math.max(maxInFlight, inFlight);
-      entered += 1;
-      if (entered === 3) release();
-      // Every call waits until all three have started; a serial backfill
-      // would deadlock here, so the gate falls through after 3s and the
-      // maxInFlight assertion below fails instead.
-      await Promise.race([gate, new Promise((resolve) => setTimeout(resolve, 3000))]);
-      try {
-        return await originalTranslate.call(fakeLlmTranslationProvider, input);
-      } finally {
-        inFlight -= 1;
-      }
-    };
+    // The list request queues three rows and calls the provider zero times.
+    const list = await listFor(kase.id, cookie, "auto");
+    expect(list).toHaveLength(3);
+    expect(list.every((m) => (m.translation as Record<string, unknown>).state === "waiting")).toBe(
+      true,
+    );
+    expect(fakeLlmTranslationProvider.calls).toHaveLength(0);
+
     fakeLlmTranslationProvider.setFixedResponse((input) => {
-      if (input.text.includes("开庭")) throw new LlmFailure("timeout");
+      if (input.text.includes("开庭")) throw new LlmFailure("rate_limited");
       return `[${input.targetLang}] ${input.text}`;
     });
-    try {
-      const list = await listFor(kase.id, cookie, "auto");
-      expect(list).toHaveLength(3);
-      // All three calls overlapped — a serial backfill would never exceed 1.
-      expect(maxInFlight).toBe(3);
-      const byText = new Map(list.map((m) => [m.sourceText, m.translation]));
-      expect(byText.get("第一份材料已提交。")).toMatchObject({ state: "ready", version: 1 });
-      expect(byText.get("请确认开庭时间。")).toEqual({
-        targetLang: "en",
-        state: "failed",
-        text: null,
-        version: 1,
-      });
-      expect(byText.get("第三份材料稍后补交。")).toMatchObject({ state: "ready", version: 1 });
 
-      const rows = await prisma.translationVersion.findMany();
-      expect(rows).toHaveLength(3);
-      expect(rows.filter((r) => r.status === "done")).toHaveLength(2);
-      expect(rows.filter((r) => r.status === "failed")).toHaveLength(1);
+    // One pass with no pacing floor drains the queue serially: the two good
+    // rows finish, the rate-limited one fails and queues a delayed retry
+    // (attempts=1, nextRetryAt in the future).
+    await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
+    let rows = await prisma.translationVersion.findMany({ orderBy: { createdAt: "asc" } });
+    expect(rows.filter((r) => r.status === "done")).toHaveLength(2);
+    const failedRow = rows.find((r) => r.status === "failed")!;
+    expect(failedRow.attempts).toBe(0);
+    const retryRow = rows.find((r) => r.status === "queued" && r.attempts === 1)!;
+    expect(retryRow.nextRetryAt).not.toBeNull();
 
-      // A re-list reuses the settled rows and does not re-run the failed one.
-      fakeLlmTranslationProvider.reset();
-      const again = await listFor(kase.id, cookie, "auto");
-      expect(again.map((m) => (m.translation as Record<string, unknown>).state)).toEqual(
-        expect.arrayContaining(["ready", "ready", "failed"]),
-      );
-      expect(fakeLlmTranslationProvider.calls).toHaveLength(0);
-    } finally {
-      fakeLlmTranslationProvider.translate = originalTranslate;
-    }
+    const again = await listFor(kase.id, cookie, "auto");
+    const byText = new Map(again.map((m) => [m.sourceText, m.translation]));
+    expect(byText.get("第一份材料已提交。")).toMatchObject({ state: "ready", version: 1 });
+    // The failed message already has its backoff retry queued, so readers see
+    // the in-flight retry (waiting), not the dead attempt.
+    expect(byText.get("请确认开庭时间。")).toMatchObject({ state: "waiting", version: 2 });
+    expect(byText.get("第三份材料稍后补交。")).toMatchObject({ state: "ready", version: 1 });
+
+    // The retry is not due yet (backoff); a pass leaves it queued. Once due,
+    // the next pass completes it as a new version (REQ-TR-04).
+    await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
+    expect(
+      await prisma.translationVersion.count({ where: { id: retryRow.id, status: "queued" } }),
+    ).toBe(1);
+    await prisma.translationVersion.update({
+      where: { id: retryRow.id },
+      data: { nextRetryAt: new Date(Date.now() - 1000) },
+    });
+    fakeLlmTranslationProvider.reset();
+    await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
+    rows = await prisma.translationVersion.findMany({
+      where: { messageId: retryRow.messageId },
+      orderBy: { version: "asc" },
+    });
+    expect(rows.map((r) => r.status)).toEqual(["failed", "done"]);
+    expect(rows[1]).toMatchObject({ version: 2, attempts: 1 });
+
+    const settled = await listFor(kase.id, cookie, "auto");
+    expect(
+      (settled.find((m) => m.sourceText === "请确认开庭时间。")!.translation as Record<string, unknown>)
+        .state,
+    ).toBe("ready");
+  });
+
+  it("paces provider calls: one LLM translation per pacing gap, zh pairs unpaced (F17)", async () => {
+    const { kase, cookie, lawyerCookie } = await seedChat({ coordinatorLang: "en" });
+    await send(kase.id, lawyerCookie, "第一条材料。", "t-pace-1");
+    await send(kase.id, lawyerCookie, "第二条材料。", "t-pace-2");
+
+    await listFor(kase.id, cookie, "auto");
+    expect(await prisma.translationVersion.count({ where: { status: "queued" } })).toBe(2);
+
+    // Default pacing (21s floor): the first pass runs one provider call, and
+    // an immediate second pass runs none.
+    resetTranslationPacingForTests();
+    await runNotificationWorkerOnce();
+    expect(await prisma.translationVersion.count({ where: { status: "done" } })).toBe(1);
+    await runNotificationWorkerOnce();
+    expect(await prisma.translationVersion.count({ where: { status: "done" } })).toBe(1);
+
+    // After the gap elapses the next row runs.
+    resetTranslationPacingForTests();
+    await runNotificationWorkerOnce();
+    expect(await prisma.translationVersion.count({ where: { status: "done" } })).toBe(2);
   });
 
   it("PATCH /api/auth/me stores language preferences and rejects unsupported codes (REQ-TR-01)", async () => {
