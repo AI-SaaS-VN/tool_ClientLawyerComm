@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.12 | Date: 2026-10-05
-- 版本：0.12｜日期：2026-10-05
-- Basis: SPEC.md v0.12, SOW.md v1.12 plus the 2026-10-04 scope note. The decided activation path is one step: the invited email plus the activation code, and only that email can accept that code (REQ-AUTH-01, REQ-AUTH-12). The repository implements that one-step path (F02). Invitation codes do not expire (v1.12): the same code is the return sign-in credential. P0 tasks are T01–T08, T10–T12, and T13. T09 and T14 stay P1. v0.11 moves T13 into the MVP and narrows it: the daily email goes only to the Case Coordinator. The case-creation page (T14) stays the next version. Until that page exists, an operator creates cases and writes the provisioning rows in `LOCAL_DEV_NOTES.md` (git-ignored).
-- 依据：SPEC.md v0.12、SOW.md v1.12 加上 2026-10-04 的范围说明。已决定的激活路径是一步：受邀邮箱加上激活码，且只有该邮箱能接受该码（REQ-AUTH-01、REQ-AUTH-12）。本仓库已实现这一步激活（F02）。邀请码长期有效（v1.12）：同一邀请码即再次登录的凭证。P0 任务为 T01–T08、T10–T12 与 T13。T09 与 T14 仍是 P1。v0.11 把 T13 纳入 MVP，并收窄为只发给案件协调员。建案页面（T14）留在下一版本。该页面出现之前，由操作者建案，并把建案记录写在 `LOCAL_DEV_NOTES.md`（不入库）。
+- Version: 0.13 | Date: 2026-10-09
+- 版本：0.13｜日期：2026-10-09
+- Basis: SPEC.md v0.13, SOW.md v1.13. Invitation codes do not expire (v1.12). The second phase is specified and not built: T15 Attachment Translation Page, then T16 Coordinator Brief, then T18 Target Company registry, then T17 statute note. Do not start T16, T17, or T18 before T15. F18 (client default Simplified Chinese) is still not in the application and is the small change before T15. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
+- 依据：SPEC.md v0.13、SOW.md v1.13。邀请码长期有效（v1.12）。第二阶段已写入、尚未实现：T15 附件翻译页，然后 T16 协调员备忘，然后 T18 目标公司工商查询，然后 T17 法条备忘。T15 完成之前不要开始 T16、T17、T18。F18（客户默认简体中文）还没有进应用，是 T15 之前的小改动。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -38,6 +38,10 @@
 | T12 | End-to-end dual-user + Backup and Restore drill + real-channel acceptance<br>端到端双用户＋备份恢复演练＋真实链路验收 | T01–T08、T10、T11 | AC01–AC06、AC08–AC12（AC07 属 P1）；O07/O08 |
 | T13 | Daily Case Digest email to the Coordinator only (MVP as of 2026-10-04)<br>案件日报邮件，只发给协调员（2026-10-04 起属于 MVP） | T07、T08、T12 | REQ-DIG; REQ-CASE-01 |
 | T14 | Administration Console: Case creation and participant setup (next version after MVP)<br>管理控制台：案件创建与参与人设置（MVP 之后的下一版本） | T03、T11 | REQ-ADM-01~05 |
+| T15 | Attachment Translation Page<br>附件翻译页 | T08、T06 | REQ-ATT-01~05 |
+| T16 | Coordinator Brief<br>协调员备忘 | T15 | REQ-BRIEF-01~03 |
+| T17 | China-and-Vietnam statute note<br>中国法与越南法备忘 | T16 | REQ-STAT-01~02 |
+| T18 | Target Company registry lookup<br>目标公司工商查询 | T15 | REQ-REG-01~02 |
 
 ---
 
@@ -309,6 +313,58 @@
 - Status: next version after MVP. Not started. Do not build it in the current launch (user, 2026-10-04).
 - 状态：MVP 之后的下一版本。未开始。这次上线不要做（用户，2026-10-04）。
 
+## T15 Attachment Translation Page / T15 附件翻译页
+
+- Goal: a published PDF, DOCX, JPG, or PNG opens an HTML page from 打开附件翻译. The page shows extracted source text, then one translation. Chinese becomes Vietnamese. Vietnamese becomes Traditional Chinese. The original stays downloadable. Selectable text is extracted on the machine. Photos and scans use the existing Kimi. No separate OCR service. Extraction failure creates no page. Not a Markdown download. Not the paragraph-numbered DOCX. Priority: first task of the second phase. Deploy stays the existing Lighthouse steps in `docs/deployment.md`.
+- 目标：已发布的 PDF、DOCX、JPG 或 PNG 用「打开附件翻译」打开 HTML 页面。页面先是抽出的源文，再是一种译文。中文译成越南语。越南语译成繁体中文。原件仍可下载。可选中的文字在本机抽取。照片和扫描页用现有的 Kimi。不另设 OCR 服务。抽不出文字时不生成这一页。不是 Markdown 下载。不是段落编号的 DOCX。优先级：第二阶段的第一件。部署仍用 `docs/deployment.md` 里现有的 Lighthouse 步骤。
+- SPEC references: REQ-ATT-01~05; REQ-FILE-05; REQ-TR-06.
+- SPEC 引用：REQ-ATT-01~05；REQ-FILE-05；REQ-TR-06。
+- Dependencies: T08, T06.
+- 依赖：T08、T06。
+- Acceptance criteria: the first failing test is `tests/unit/files/attachment-translation-page.test.ts`. A published file with extracted Chinese text produces a page whose body is the source text, then Vietnamese. A published file with extracted Vietnamese text produces Traditional Chinese after the source. A file that yields no text has no page, and the file row says so. A member who cannot download the original cannot open the page. An unpublished file has no page for the other members.
+- 验收标准：第一份失败测试是 `tests/unit/files/attachment-translation-page.test.ts`。已发布且抽出中文的文件，页面正文先是源文，然后是越南语。已发布且抽出越南语的文件，源文之后是繁体中文。抽不出文字的文件没有这一页，文件行上写明。不能下载原件的成员不能打开这一页。未发布的文件不给其他成员这一页。
+- Status: Not started. Do this before T16, T17, and T18.
+- 状态：未开始。在 T16、T17、T18 之前做。
+
+## T16 Coordinator Brief / T16 协调员备忘
+
+- Goal: the coordinator's case page gains the brief block from the prototype. When published content is thin, the agent lists missing facts and waits. The brief stores text only after the coordinator confirms. Client and lawyer do not see it. The agent does not email, publish, or post into the case chat.
+- 目标：协调员的案件页加上原型里的备忘。已发布内容还少时，代理列出缺的事实并等待。备忘只在协调员确认后写入。客户和律师看不到。代理不发邮件、不发布、也不往案件对话里发消息。
+- SPEC references: REQ-BRIEF-01~03; REQ-TR-06.
+- SPEC 引用：REQ-BRIEF-01~03；REQ-TR-06。
+- Dependencies: T15.
+- 依赖：T15。
+- Acceptance criteria: the first failing test is `tests/unit/agent/coordinator-brief.test.ts`. A thin case lists questions and stores nothing until confirm. After confirm, the brief text is readable by the coordinator and is not a case-chat message. A client or lawyer request for the brief is denied.
+- 验收标准：第一份失败测试是 `tests/unit/agent/coordinator-brief.test.ts`。内容还少的案件列出问题，确认之前不写入。确认之后，协调员能读到备忘，它不是案件对话里的消息。客户或律师读取备忘会被拒绝。
+- Status: Not started. After T15.
+- 状态：未开始。在 T15 之后。
+
+## T17 China-and-Vietnam Statute Note / T17 中国法与越南法备忘
+
+- Goal: the agent may show the coordinator public links on Chinese and Vietnamese law. A statute note, including a possible gap in the Vietnamese lawyer's work, is written into the Coordinator Brief only after the coordinator confirms. It is not sent to the client or the lawyer.
+- 目标：代理可以向协调员出示中国法与越南法的公开链接。法条备忘，包括越南律师工作里可能的遗漏，只在协调员确认后写入协调员备忘。不发给客户或律师。
+- SPEC references: REQ-STAT-01~02; REQ-BRIEF-01.
+- SPEC 引用：REQ-STAT-01~02；REQ-BRIEF-01。
+- Dependencies: T16.
+- 依赖：T16。
+- Acceptance criteria: the first failing test is `tests/unit/agent/statute-brief.test.ts`. Links are shown before any statute sentence is stored. Confirming a link stores the note for the coordinator only. Material outside China and Vietnam is not offered as a statute result.
+- 验收标准：第一份失败测试是 `tests/unit/agent/statute-brief.test.ts`。链接先出现，法条句子在此之前不写入。确认链接之后，备忘只给协调员。中国法与越南法以外的材料不作为法条结果提供。
+- Status: Not started. Do not start before T15, and not before T16.
+- 状态：未开始。不要在 T15 之前开始，也不要在 T16 之前开始。
+
+## T18 Target Company Registry Lookup / T18 目标公司工商查询
+
+- Goal: each Case automatically looks up the Target Company, usually the defendant, on the Vietnam Company Registry. Only the coordinator sees what was found. If the name is unknown, the agent asks and does not invent one. Address: https://dangkyquamang.dkkd.gov.vn/auth/Public/LogOn.aspx?ReturnUrl=%2fonline%2fdefault.aspx
+- 目标：每个案件自动到越南公司工商登记查询目标公司，目标公司通常是被告。只有协调员看到查到的资料。名称还不知道时，代理询问，不编造。地址：https://dangkyquamang.dkkd.gov.vn/auth/Public/LogOn.aspx?ReturnUrl=%2fonline%2fdefault.aspx
+- SPEC references: REQ-REG-01~02; REQ-BRIEF-02.
+- SPEC 引用：REQ-REG-01~02；REQ-BRIEF-02。
+- Dependencies: T15. The question when the name is missing reuses the brief confirm path, so finish T16 before relying on that question in the UI.
+- 依赖：T15。名称缺失时的提问复用备忘的确认路径，所以界面上依赖这个提问时要先完成 T16。
+- Acceptance criteria: the first failing test is `tests/unit/agent/target-company-registry.test.ts`. A case with a target-company name records a lookup result that the coordinator can read and a client cannot. A case without a name does not invent a company.
+- 验收标准：第一份失败测试是 `tests/unit/agent/target-company-registry.test.ts`。有目标公司名称的案件记下一条查询结果，协调员能读，客户不能读。没有名称的案件不编造公司。
+- Status: Not started. After T15. The on-screen question waits for T16.
+- 状态：未开始。在 T15 之后。界面上的提问等 T16。
+
 ## Dependency Graph and Execution Order / 依赖图与执行顺序
 
 Dependency graph:
@@ -320,6 +376,7 @@ T01 → T02 → T03 → T04 → T05 → T07 → T08 ─────────�
                     └──────────→ T10 ← T07       │
                     └──────────→ T11 ← T04、T07、T08 ─┘
 （T09 为 P1，依赖 T06 与 T08，不在 MVP 关键路径上）
+第二阶段：F18 → T15 → T16 → T17；T18 在 T15 之后，界面提问等 T16。不要在 T15 之前开始 T16、T17、T18。
 ```
 
 - Parallelizable: T05 and T06; T10 and T11. Suggested order: T01→T02→T03→T04→(T05∥T06)→T07→T08→(T10∥T11)→T12.
@@ -353,10 +410,15 @@ The three roles are in the fictitious case and can see the client's three identi
 | 12 | F11 | Publish ordinary messages and clean files immediately. Hold only a message or file name that explicitly asks about or negotiates the firm's litigation retainer fee. Contact details in a message or file name publish. A display name that contains a contact channel is still rejected on save. Scan failure stays unpublished. | Requested 2026-10-03 after the Shanghai pilot: not every attachment or message waits for review. | Done |
 | 13 | F12 | Case entry is the invited email plus the invitation code that was sent. The first use joins the case. The same pair signs in to that case again from any browser. Case entry does not ask for a 6-digit code. The administrator still uses the email OTP. | Requested 2026-10-03: the client was stopped on the 6-digit code page. | Done |
 | 14 | F13 | Show a timestamp on every conversation record and every upload record the viewer can see (REQ-MSG-11, REQ-FILE-04). Format it with the timezone set on that computer, and print the offset beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7 for the same instant. The role does not choose the offset. The message list and the file list both print that labeled time. | Requested 2026-10-03. The timezone rule was set the same evening: the lawyer's computer is UTC+7, the client's computer is UTC+8, and each computer's own setting is what gets labeled. The screen now does this. | Done |
-| 15 | F14 | A Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels, buttons, placeholders, status text, and automatic-mode messages from other people use that one language. The two languages are not written on the same control. Real Vietnamese wording of Chinese messages stays F07. | Restated 2026-10-03 from the lawyer's phone. The screen now uses one language per control. | Done |
+| 15 | F14 | A Chinese client's default screen is Traditional Chinese. A Vietnamese lawyer's default screen is Vietnamese. A coordinator's default screen is Simplified Chinese. Labels, buttons, placeholders, status text, and automatic-mode messages from other people use that one language. The two languages are not written on the same control. Real Vietnamese wording of Chinese messages stays F07. | Restated 2026-10-03 from the lawyer's phone. The screen now uses one language per control. On 2026-10-09 the user set the client default back to Simplified Chinese; that correction is F18. | Done |
 | 16 | F15 | Administration Console: the administrator has a page to create a Case and to set each Case's Chinese Clients, Vietnamese Lawyers, and Coordinators. Written into SPEC (REQ-ADM-01~05) as task T14. | Requested 2026-10-03. Confirmed 2026-10-04: the next version after this MVP. The current launch creates cases by hand and records them in `LOCAL_DEV_NOTES.md`. | Next version |
 | 17 | F16 | Daily email to the Coordinator only (T13). 00:00 Asia/Ho_Chi_Minh, previous Vietnamese calendar day, published messages and published attachments, subject `{Case name}-{send date}-Record`. Lawyers and Clients are not recipients. | Moved into the MVP on 2026-10-04. Done the same day: generation is idempotent on (case, day), one email per coordinator per ≤20MB part, empty days and archived cases record a skipped run. | Done |
 | 18 | F17 | Translation backfill root fix: move automatic translation out of the message-list request into the in-process worker queue (serialized provider calls, backoff retry, error-category logging). | 2026-10-05 pilot finding (CURSOR_REVIEW 13.2): parallel Kimi calls trip rate limiting. User decision 2026-10-05: interim = fast model `kimi-k2.7-code-highspeed` on the test host (config-only, done, ~2s per call); the worker-queue fix follows 48 hours later (≈2026-10-07). | Scheduled 2026-10-07 |
+| 19 | F18 | Client default screen is Simplified Chinese. Traditional Chinese appears only after that client switches it on the language control. Automatic-mode messages follow the account language. A new client invitation uses Simplified Chinese unless the operator asks for Traditional Chinese. `defaultScreenLang("client")` and the client invite language still return `zh-Hant`. | Decided 2026-10-09 while reviewing the phase-2 prototype. Not built in this session. | Not started |
+| 20 | F19 | Attachment Translation Page (T15, REQ-ATT). HTML page opened by 打开附件翻译. Source text, then one translation. No Markdown download. No separate OCR service. | Specified 2026-10-09. First failing test: `tests/unit/files/attachment-translation-page.test.ts`. | Not started |
+| 21 | F20 | Coordinator Brief (T16, REQ-BRIEF). Coordinator only. Stored after confirm. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/coordinator-brief.test.ts`. | Not started |
+| 22 | F21 | China-and-Vietnam statute note (T17, REQ-STAT). Links first. Confirm before the brief stores it. | Specified 2026-10-09. After T16. First failing test: `tests/unit/agent/statute-brief.test.ts`. | Not started |
+| 23 | F22 | Target Company registry lookup (T18, REQ-REG). Automatic per case. Coordinator sees the result. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/target-company-registry.test.ts`. | Not started |
 
 | 顺序 | ID | 任务 | 与提出的三处修改比较 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -374,10 +436,15 @@ The three roles are in the fictitious case and can see the client's three identi
 | 12 | F11 | 普通消息和扫描通过的文件立即发布。只有消息或文件名显式询问或协商律所诉讼委托费用时才待审。消息或文件名里的联系方式直接发布。显示名含联系渠道时仍拒绝保存。扫描失败不发布。 | 2026-10-03 上海试点之后提出：不是每条消息和每个附件都要等审核。 | 已完成 |
 | 13 | F12 | 进入案件使用受邀邮箱加上已经发出的邀请码。第一次使用即加入该案件。之后同一组邮箱和邀请码可以从任意浏览器再次进入该案件。案件入口不再要 6 位验证码。管理员仍用邮箱验证码。 | 2026-10-03 提出：客户停在 6 位验证码页面。 | 已完成 |
 | 14 | F13 | 观看者能看到的每条对话记录和每条上传记录都显示时间戳（REQ-MSG-11、REQ-FILE-04）。按那台电脑的时区设置换算，并在时间旁边标出时区。设为 UTC+8 的电脑标 UTC+8。同一时刻在设为 UTC+7 的电脑上标 UTC+7。时区不按角色写死。消息列表和文件列表都标出这个时间。 | 2026-10-03 提出。当晚补上时区规则：律师的电脑是 UTC+7，客户的电脑是 UTC+8，各自电脑的设置就是要标出的时区。界面已按此显示。 | 已完成 |
-| 15 | F14 | 中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮、提示、状态文字，以及自动模式下别人发来的消息，都用这一种语言。同一控件上不并列两种语言。中文消息的真实越南语译文仍是 F07。 | 2026-10-03 从律师手机再次确认。界面已改成同一控件只用一种语言。 | 已完成 |
+| 15 | F14 | 中国客户默认看到繁体中文。越南律师默认看到越南语。协调员默认看到简体中文。按钮、提示、状态文字，以及自动模式下别人发来的消息，都用这一种语言。同一控件上不并列两种语言。中文消息的真实越南语译文仍是 F07。 | 2026-10-03 从律师手机再次确认。界面已改成同一控件只用一种语言。2026-10-09 用户把客户默认改回简体中文，这项更正是 F18。 | 已完成 |
 | 16 | F15 | 管理控制台：管理员有一个页面，可以添加案件，并设置每个案件的中国客户、越南律师与协调员。已写入 SPEC（REQ-ADM-01~05），即任务 T14。 | 2026-10-03 提出。2026-10-04 确认：留在本 MVP 之后的下一版本。这次上线由操作者建案，并记入 `LOCAL_DEV_NOTES.md`。 | 下一版本 |
 | 17 | F16 | 只发给协调员的每日邮件（T13）。Asia/Ho_Chi_Minh 00:00，上一越南日历日，已发布消息与已发布附件，标题 `{案件名称}-{发送日}-Record`。律师和客户不是收件人。 | 2026-10-04 纳入 MVP。当天完成：以（案件, 日）幂等生成，每名协调员每 ≤20MB 分卷一封邮件，无内容日与归档案件记为跳过的运行。 | 已完成 |
 | 18 | F17 | 翻译回填根治：把自动翻译从消息列表请求移入进程内 worker 队列（串行调 provider、退避重试、错误类别日志）。 | 2026-10-05 试点发现（CURSOR_REVIEW 13.2）：并发调 Kimi 触发限流。用户 2026-10-05 决定：先用快速模型 `kimi-k2.7-code-highspeed`（纯配置，已完成，单次约 2 秒）；worker 队列方案 48 小时后（≈2026-10-07）实施。 | 已排期 2026-10-07 |
+| 19 | F18 | 客户默认屏幕是简体中文。繁体中文只在该客户用语言开关自己切换后出现。自动模式的消息跟随账号语言。新的客户邀请邮件用简体中文，除非操作者另行指定繁体。`defaultScreenLang("client")` 和客户邀请语言仍返回 `zh-Hant`。 | 2026-10-09 复核第二阶段原型时决定。本次没有改应用代码。 | 未开始 |
+| 20 | F19 | 附件翻译页（T15，REQ-ATT）。用「打开附件翻译」打开 HTML 页面。先源文，再一种译文。不是 Markdown 下载。不另设 OCR 服务。 | 2026-10-09 写入。第一份失败测试：`tests/unit/files/attachment-translation-page.test.ts`。 | 未开始 |
+| 21 | F20 | 协调员备忘（T16，REQ-BRIEF）。只有协调员。确认后才写入。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/coordinator-brief.test.ts`。 | 未开始 |
+| 22 | F21 | 中国法与越南法备忘（T17，REQ-STAT）。先给链接。确认后才写入备忘。 | 2026-10-09 写入。在 T16 之后。第一份失败测试：`tests/unit/agent/statute-brief.test.ts`。 | 未开始 |
+| 23 | F22 | 目标公司工商查询（T18，REQ-REG）。每个案件自动查询。协调员看到结果。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/target-company-registry.test.ts`。 | 未开始 |
 
 ## Launch scope decided 2026-10-04 / 2026-10-04 确定的上线范围
 

@@ -1176,3 +1176,128 @@ The v1.12 build is live on the Shanghai test host: migration `20261005060001_inv
 Watch the remaining invitees' first logins and backfill `first_login_at`; decide with the user whether to fix the parallel-backfill rate limiting (CURSOR_REVIEW 13.2).<br>关注其余受邀人首登并回填 `first_login_at`；与用户定夺是否根治并发回填限流（CURSOR_REVIEW 13.2）。
 
 ---
+
+## Session 2026-10-08-01 (In progress) / 会话 2026-10-08-01（进行中）
+
+- Date/Timezone: 2026-10-08, UTC+8<br>日期/时区：2026-10-08，UTC+8
+- Goal: grill the second-phase design, then show a case-page prototype for the user to review. No application code.<br>本次目标：追问并定下第二阶段设计，然后给出案件页原型供用户复核。不改应用代码。
+
+### Actual Actions / 实际动作
+
+1. Settled with the user: three slices in order — an Attachment Translation Page for a published attachment, a Coordinator Brief on published progress, then a China-and-Vietnam statute brief. The Case Agent speaks only to the coordinator. Notes are stored only after the coordinator confirms. Web pages are China and Vietnam law, shown as links first. The agent does not email, publish, or message the client or lawyer.<br>与用户定下：三件按顺序做——已发布附件的附件翻译页、关于已发布进展的协调员备忘、然后是中国法与越南法备忘。案件代理只对协调员说话。备忘在协调员确认后才写入。网页限于中国法与越南法，先给出链接。代理不发邮件、不发布、也不给客户或律师发消息。
+2. A published file keeps its original. The translation opens as an HTML page: extracted source text, then one translation, Chinese to Vietnamese or Vietnamese to Traditional Chinese. The same people who can download the original can open that page. Selectable PDF and DOCX text is extracted on the machine; photos go to Kimi. Failed extraction creates no page. Recorded in GLOSSARY.md and docs/adr/0001, 0002.<br>已发布文件保留原件。翻译打开为 HTML 页面：先是抽出的源文，再是一种译文，中文到越南语，或越南语到繁体中文。能下载原件的人就能打开这一页。可选中的 PDF 与 DOCX 在本机抽文字；照片交给 Kimi。抽失败就不生成这一页。已写入 GLOSSARY.md 与 docs/adr/0001、0002。
+3. Prototype for review: `docs/prototypes/phase2-case-agent.html`. Role switch shows the client page, the lawyer page, and the coordinator page.<br>供复核的原型：`docs/prototypes/phase2-case-agent.html`。可切换客户页、律师页、协调员页。
+4. On 2026-10-09 the user corrected the client default. A client sees Simplified Chinese. Traditional Chinese appears only after that client switches it. The prototype's client page now starts in Simplified Chinese and has that switch. Living rows in GLOSSARY, SOW, SPEC, PLAN, and CONTEXT match this. Application code still defaults a client to Traditional Chinese; that change is PLAN F18 and was not built in this session.<br>2026-10-09 用户更正客户默认。客户看到简体中文。繁体中文只在该客户自己切换后出现。原型的客户页现在从简体中文开始，并带有这个开关。GLOSSARY、SOW、SPEC、PLAN、CONTEXT 的现行条目已改成这条。应用代码仍把客户默认成繁体中文；这项改动是 PLAN F18，本次没有改代码。
+5. On 2026-10-09 the user replaced “下载双语 Markdown” with “打开附件翻译”. The translation is a separate HTML page, `docs/prototypes/phase2-attachment-translation.html`, because HTML is easier for the client and the lawyer to read. The original file stays downloadable. GLOSSARY now calls this an Attachment Translation Page. docs/adr/0002 records the change.<br>2026-10-09 用户把「下载双语 Markdown」改成「打开附件翻译」。译文是单独的 HTML 页面 `docs/prototypes/phase2-attachment-translation.html`，因为客户和律师读 HTML 更自然。原件仍可下载。GLOSSARY 现称其为附件翻译页。docs/adr/0002 记下了这次更改。
+6. On 2026-10-09 the user recorded the Vietnam Company Registry as the public site for a Vietnamese company's business-registration record: https://dangkyquamang.dkkd.gov.vn/auth/Public/LogOn.aspx?ReturnUrl=%2fonline%2fdefault.aspx . Written into GLOSSARY.md and CONTEXT.md.<br>2026-10-09 用户记下越南公司工商登记查询的公开网站：https://dangkyquamang.dkkd.gov.vn/auth/Public/LogOn.aspx?ReturnUrl=%2fonline%2fdefault.aspx 。已写入 GLOSSARY.md 与 CONTEXT.md。
+7. On 2026-10-09 each Case automatically looks up the Target Company, usually the defendant, on that registry. Only the coordinator sees what was found. The coordinator prototype shows a sample block. Client and lawyer pages do not.<br>2026-10-09 每个案件自动到该网站查询目标公司，目标公司通常是被告。只有协调员看到查到的资料。协调员原型上有一块示例。客户页和律师页没有。
+8. The user asked whether anything else needed confirmation. Nothing remained open. SOW v1.13, SPEC v0.13, and PLAN v0.13 now record the second phase. Next code is F18, then T15. T16, T18, and T17 follow. Do not start T16, T17, or T18 before T15. No application code in this step.<br>用户问还有没有需要确认的。没有留下未决点。SOW v1.13、SPEC v0.13、PLAN v0.13 已写入第二阶段。下一件代码是 F18，然后 T15。T16、T18、T17 排在后面。T15 完成之前不要开始 T16、T17、T18。这一步没有改应用代码。
+
+### First Step Next Time / 下次第一步
+
+If coding starts, do F18 first, then T15. The first failing test for T15 is `tests/unit/files/attachment-translation-page.test.ts`. Do not start T16, T17, or T18 before T15.<br>如果开始写代码，先做 F18，再做 T15。T15 的第一份失败测试是 `tests/unit/files/attachment-translation-page.test.ts`。T15 完成之前不要开始 T16、T17、T18。
+
+---
+
+## Session 2026-10-09-01 (Ended) / 会话 2026-10-09-01（已结束）
+
+- Date/Timezone: 2026-10-09, UTC+8<br>日期/时区：2026-10-09，UTC+8
+- Goal: prepare the dedicated Linux cloud test computer as the target for later test deployments, without placing application code or design documents on it, and without moving the pilot already running on the Shanghai host.<br>本次目标：把专用 Linux 云测试机准备成后续测试部署的目标。不把应用代码或设计文档放到该机上，也不搬迁上海主机上已在运行的试点。
+
+### Actual Actions / 实际动作
+
+1. Confirmed the cloud computer can run containers. PostgreSQL 16 and MinIO are up on that computer's loopback interface. The computer has no systemd, so the Docker daemon was started by hand and uses the vfs storage driver after overlay setup failed. A reboot stops that daemon until it is started again.<br>确认云电脑可以启动容器。PostgreSQL 16 与 MinIO 已在该机回环地址运行。该机没有 systemd，Docker 守护进程为手动启动；overlay 失败后使用 vfs 存储驱动。机器重启后守护进程会停，需再启动。
+2. Backed up the development-machine `.env` into `backups/` (gitignored, mode 600) and wrote a separate gitignored env file for the cloud test computer. The development-machine `.env` itself was left unchanged. The new file is not installed on the cloud computer. No secret values were written into committable documents.<br>把研发机 `.env` 备份到 `backups/`（不入库，权限 600），并另写一份给云测试机的、不入库的环境文件。研发机自己的 `.env` 未改。新文件尚未装到云电脑上。可提交文档未写入任何密钥值。
+3. Recorded the decision in README, PROGRESS, CONTEXT, and `docs/deployment.md`. Hostname, ports, and the env filename are only in `LOCAL_DEV_NOTES.md`.<br>决定已写入 README、PROGRESS、CONTEXT 与 `docs/deployment.md`。主机名、端口和环境文件名只写在 `LOCAL_DEV_NOTES.md`。
+
+### Changed Files / 变更文件
+
+- Modified: README.md, PROGRESS.md, CONTEXT.md, docs/deployment.md, SESSIONS.md, .gitignore, LOCAL_DEV_NOTES.md (gitignored).<br>修改：README.md、PROGRESS.md、CONTEXT.md、docs/deployment.md、SESSIONS.md、.gitignore、LOCAL_DEV_NOTES.md（不入库）。
+- Added, gitignored: the cloud-test env file and the original-env backup under `backups/`.<br>新增且不入库：云测试机环境文件，以及 `backups/` 下的原环境文件备份。
+
+### Verification Results / 验证结果
+
+- Documentation update only. No application tests were run, and nothing was deployed to either host.<br>仅更新文档。未跑应用测试，也未向任一主机部署。
+
+### Unfinished Items / 未完成项
+
+- The cloud computer has no public HTTP entry, and the application is not deployed there. The prepared env file is still only on the development machine.<br>云电脑还没有公网 HTTP 入口，应用也还没部署上去。备好的环境文件仍只在研发机上。
+
+### First Step Next Time / 下次第一步
+
+When a version is ready to deploy, install the prepared env file on the cloud computer as `.env`, then deploy that version's runtime there. Do not copy design documents onto that computer, and do not move the Shanghai pilot unless the user asks.<br>某个版本要部署时，把备好的环境文件以 `.env` 装到云电脑上，再部署该版本的运行产物。不要把设计文档拷到那台电脑上。用户未要求前不要搬迁上海试点。
+
+---
+
+## Session 2026-10-09-02 (Ended) / 会话 2026-10-09-02（已结束）
+
+- Date/Timezone: 2026-10-09, UTC+8<br>日期/时区：2026-10-09，UTC+8
+- Goal: after the user filled `APP_DATA_KEY`, make the cloud-test env file the project-root `.env`, and keep the previous env file as `.env.lighthouse-test`.<br>本次目标：用户填入 `APP_DATA_KEY` 后，把云测试机环境文件改为项目根目录 `.env`，原先的环境文件改名为 `.env.lighthouse-test`。
+
+### Actual Actions / 实际动作
+
+1. The user renamed the files. Verified without reading values: project-root `.env` is the cloud-test file (`APP_DATA_KEY` present; no Lighthouse SSH entry); `.env.lighthouse-test` is the previous file (Lighthouse SSH entry present; no `APP_DATA_KEY`); `.env.cloud-test` is gone. Both files are mode 600 and gitignored. The earlier snapshot `backups/env-20261009-original` remains.<br>用户完成了更名。未读取具体值，只核对了键名：项目根目录 `.env` 是云测试机文件（有 `APP_DATA_KEY`，无 Lighthouse SSH 条目）；`.env.lighthouse-test` 是原先那份（有 Lighthouse SSH 条目，无 `APP_DATA_KEY`）；`.env.cloud-test` 已不存在。两份权限均为 600 且不入库。更早的快照 `backups/env-20261009-original` 仍在。
+2. Updated PROGRESS, CONTEXT, `docs/deployment.md`, `LOCAL_DEV_NOTES.md`, and `.gitignore`. Neither env file was copied to the cloud computer.<br>已更新 PROGRESS、CONTEXT、`docs/deployment.md`、`LOCAL_DEV_NOTES.md` 与 `.gitignore`。两份环境文件都没有拷到云电脑上。
+
+### Changed Files / 变更文件
+
+- Renamed, gitignored: `.env.cloud-test` → `.env`; previous `.env` → `.env.lighthouse-test`.<br>更名且不入库：`.env.cloud-test` → `.env`；原先的 `.env` → `.env.lighthouse-test`。
+- Modified: PROGRESS.md, CONTEXT.md, docs/deployment.md, SESSIONS.md, .gitignore, LOCAL_DEV_NOTES.md (gitignored).<br>修改：PROGRESS.md、CONTEXT.md、docs/deployment.md、SESSIONS.md、.gitignore、LOCAL_DEV_NOTES.md（不入库）。
+
+### Unfinished Items / 未完成项
+
+- The cloud computer still has no application deploy and no public HTTP entry. `.env` on the development machine is not yet the file on that computer. Commands on the development machine that load `.env` now see the cloud-test settings, whose `127.0.0.1` is the development machine itself.<br>云电脑仍未部署应用，也没有公网 HTTP 入口。研发机上的 `.env` 还不是那台电脑上的文件。研发机上读取 `.env` 的命令现在看到的是云测试机配置，其中的 `127.0.0.1` 指研发机自己。
+
+### First Step Next Time / 下次第一步
+
+When deploying, copy only `.env` onto the cloud computer. Leave `.env.lighthouse-test` on the development machine.<br>部署时只把 `.env` 拷到云电脑。`.env.lighthouse-test` 留在研发机。
+
+---
+
+## Session 2026-10-09-03 (Ended) / 会话 2026-10-09-03（已结束）
+
+- Date/Timezone: 2026-10-09, UTC+8<br>日期/时区：2026-10-09，UTC+8
+- Goal: close the day. No application code. Tomorrow, code and test on the development Linux from the markdown plan.<br>本次目标：为今天收工。不改应用代码。明天在开发用的 Linux 上按 markdown 计划编码和测试。
+
+### Actual Actions / 实际动作
+
+1. Stopped after the cloud-test computer runtime and the env-file rename. The computer has PostgreSQL 16 and MinIO on loopback, no application tree, and no public entry. The Shanghai pilot was not moved.<br>停在云测试机的运行环境和环境文件更名。该机回环地址上有 PostgreSQL 16 和 MinIO，没有应用代码树，也没有公网入口。上海试点未搬迁。
+2. Recorded the resume point: next code is F18, then T15. T16, T17, and T18 wait until T15 is done. Coding and `npm run test` stay on the development Linux.<br>记下恢复点：下一件代码是 F18，然后 T15。T16、T17、T18 等 T15 完成后再开始。编码和 `npm run test` 留在开发用的 Linux 上。
+
+### Changed Files / 变更文件
+
+- Modified: PROGRESS.md, SESSIONS.md, LOCAL_DEV_NOTES.md (gitignored).<br>修改：PROGRESS.md、SESSIONS.md、LOCAL_DEV_NOTES.md（不入库）。
+
+### Verification Results / 验证结果
+
+- No application tests were run. No code was deployed.<br>未跑应用测试，也未部署代码。
+
+### Unfinished Items / 未完成项
+
+- F18 is not started. `defaultScreenLang("client")` still returns `zh-Hant` (`tests/unit/i18n/screen-and-time.test.ts`). The cloud computer still has no application deploy.<br>F18 未开始。`defaultScreenLang("client")` 仍返回 `zh-Hant`（`tests/unit/i18n/screen-and-time.test.ts`）。云测试机仍未部署应用。
+
+### First Step Next Time / 下次第一步
+
+On the development Linux: read this entry, then PROGRESS, then PLAN F18. Bring up local Docker (`clc-postgres`, `clc-minio`) and get `npm run test` green. Then F18, test first. Do not start T16, T17, or T18 before T15. Do not code on the cloud test computer.<br>在开发用的 Linux 上：先读本条，再读 PROGRESS，再读 PLAN F18。启动本机 Docker（`clc-postgres`、`clc-minio`），让 `npm run test` 通过。然后做 F18，先写失败测试。T15 完成之前不要开始 T16、T17、T18。不要在云测试机上写代码。
+
+---
+
+## Session 2026-10-09-04 (Ended) / 会话 2026-10-09-04（已结束）
+
+- Date/Timezone: 2026-10-09, UTC+8<br>日期/时区：2026-10-09，UTC+8
+- Goal: name the machines and close the day. No application code.<br>本次目标：给两台测试机定名并收工。不改应用代码。
+
+### Actual Actions / 实际动作
+
+1. The user named the new test machine the US test machine. The Shanghai machine keeps the name Shanghai test machine. The place is recorded only in `LOCAL_DEV_NOTES.md`.<br>用户把新测试机定名为美国测试机。上海那台继续称为上海测试机。所在地只写入 `LOCAL_DEV_NOTES.md`。
+2. Living status files now use those two names. Tomorrow's coding stays on the development Linux: F18, then T15.<br>现行状态文件已改用这两个名字。明天的编码仍在开发用的 Linux 上：先 F18，再 T15。
+
+### Changed Files / 变更文件
+
+- Modified: README.md, PROGRESS.md, CONTEXT.md, docs/deployment.md, SESSIONS.md, LOCAL_DEV_NOTES.md (gitignored).<br>修改：README.md、PROGRESS.md、CONTEXT.md、docs/deployment.md、SESSIONS.md、LOCAL_DEV_NOTES.md（不入库）。
+
+### First Step Next Time / 下次第一步
+
+On the development Linux: read this entry, then PROGRESS, then PLAN F18. Bring up local Docker (`clc-postgres`, `clc-minio`) and get `npm run test` green. Then F18, test first. Do not start T16, T17, or T18 before T15. Do not write application code on the US test machine, and do not move the case on the Shanghai test machine.<br>在开发用的 Linux 上：先读本条，再读 PROGRESS，再读 PLAN F18。启动本机 Docker（`clc-postgres`、`clc-minio`），让 `npm run test` 通过。然后做 F18，先写失败测试。T15 完成之前不要开始 T16、T17、T18。不要在美国测试机上写应用代码，也不要搬动上海测试机上的案件。
+
+---

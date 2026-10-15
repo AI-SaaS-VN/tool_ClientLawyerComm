@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>附件翻译</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font: 16px/1.6 "Noto Sans", "Noto Sans SC", "Noto Sans TC", sans-serif; background: #f6f6f4; color: #1c1c1c; }
+    header { background: #fff; border-bottom: 1px solid #ddd; padding: 16px 24px; }
+    header a { color: inherit; }
+    h1 { margin: 8px 0 0; font-size: 18px; font-weight: 600; }
+    main { max-width: 40rem; margin: 0 auto; padding: 32px 24px 64px; }
+    .file { color: #666; font-size: 13px; margin: 0; }
+    article { background: #fff; border: 1px solid #ccc; padding: 20px 24px; margin: 16px 0; }
+    h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+    p { margin: 0 0 12px; }
+    p:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <a id="back" href="phase2-case-agent.html">返回案件</a>
+    <h1 id="title">附件翻译</h1>
+  </header>
+  <main>
+    <p class="file" id="file"></p>
+    <article>
+      <h2 id="source-label">源文</h2>
+      <p id="source"></p>
+    </article>
+    <article>
+      <h2 id="translation-label">译文</h2>
+      <p id="translation"></p>
+    </article>
+  </main>
+  <script>
+    const pages = {
+      clientHans: {
+        htmlLang: "zh-Hans",
+        title: "附件翻译",
+        back: "返回案件",
+        file: "合同扫描.pdf · 已发布",
+        sourceLabel: "源文",
+        translationLabel: "译文（越南语）",
+        source: "甲方与乙方于见面时在合同末页签字。交货地为胡志明市。",
+        translation: "Bên A và bên B ký vào trang cuối hợp đồng khi gặp mặt. Nơi giao hàng là Thành phố Hồ Chí Minh."
+      },
+      clientHant: {
+        htmlLang: "zh-Hant",
+        title: "附件翻譯",
+        back: "返回案件",
+        file: "合同掃描.pdf · 已發布",
+        sourceLabel: "源文",
+        translationLabel: "譯文（越南語）",
+        source: "甲方與乙方於見面時在合同末頁簽字。交貨地為胡志明市。",
+        translation: "Bên A và bên B ký vào trang cuối hợp đồng khi gặp mặt. Nơi giao hàng là Thành phố Hồ Chí Minh."
+      },
+      lawyer: {
+        htmlLang: "vi",
+        title: "Bản dịch tệp",
+        back: "Quay lại vụ án",
+        file: "合同扫描.pdf · Đã phát hành",
+        sourceLabel: "Văn gốc",
+        translationLabel: "Bản dịch (tiếng Việt)",
+        source: "甲方与乙方于见面时在合同末页签字。交货地为胡志明市。",
+        translation: "Bên A và bên B ký vào trang cuối hợp đồng khi gặp mặt. Nơi giao hàng là Thành phố Hồ Chí Minh."
+      },
+      coordinator: {
+        htmlLang: "zh-Hans",
+        title: "附件翻译",
+        back: "返回案件",
+        file: "合同扫描.pdf · 已发布",
+        sourceLabel: "源文",
+        translationLabel: "译文（越南语）",
+        source: "甲方与乙方于见面时在合同末页签字。交货地为胡志明市。",
+        translation: "Bên A và bên B ký vào trang cuối hợp đồng khi gặp mặt. Nơi giao hàng là Thành phố Hồ Chí Minh."
+      }
+    };
+
+    const view = new URLSearchParams(location.search).get("view");
+    const page = pages[view] || pages.coordinator;
+    document.documentElement.lang = page.htmlLang;
+    document.title = page.title;
+    document.getElementById("title").textContent = page.title;
+    document.getElementById("back").textContent = page.back;
+    document.getElementById("back").href = "phase2-case-agent.html?view=" + encodeURIComponent(pages[view] ? view : "coordinator");
+    document.getElementById("file").textContent = page.file;
+    document.getElementById("source-label").textContent = page.sourceLabel;
+    document.getElementById("translation-label").textContent = page.translationLabel;
+    document.getElementById("source").textContent = page.source;
+    document.getElementById("translation").textContent = page.translation;
+  </script>
+</body>
+</html>

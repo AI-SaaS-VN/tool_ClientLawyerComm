@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>第二阶段原型 · 案件页</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font: 15px/1.5 "Noto Sans", "Noto Sans SC", "Noto Sans TC", sans-serif; background: #f6f6f4; color: #1c1c1c; }
+    header { background: #fff; border-bottom: 1px solid #ddd; padding: 16px 24px; }
+    header h1 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+    .roles { display: flex; gap: 8px; }
+    .roles button { border: 1px solid #bbb; background: #fff; padding: 4px 12px; cursor: pointer; }
+    .roles button[aria-pressed="true"] { background: #1c1c1c; color: #fff; border-color: #1c1c1c; }
+    main { max-width: 40rem; margin: 0 auto; padding: 32px 24px 64px; }
+    h2 { margin: 28px 0 8px; font-size: 16px; font-weight: 600; }
+    .meta, .muted { color: #666; font-size: 13px; }
+    .card { border: 1px solid #ccc; background: #fff; padding: 12px; margin: 8px 0; }
+    a, button.linkish { color: inherit; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+    .actions a, .btn { border: 1px solid #888; background: #fff; padding: 4px 10px; text-decoration: none; cursor: pointer; font: inherit; }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    label.ask { display: block; margin: 8px 0; }
+    textarea, input[type="text"] { width: 100%; box-sizing: border-box; font: inherit; padding: 6px; border: 1px solid #bbb; }
+    ul.flat { margin: 8px 0; padding-left: 18px; }
+    .banner { font-size: 13px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>原型 · 虚构合同纠纷</h1>
+    <div class="roles" role="group" aria-label="查看角色">
+      <button type="button" id="role-client" aria-pressed="false">客户 · 简体中文</button>
+      <button type="button" id="role-lawyer" aria-pressed="false">律师 · Tiếng Việt</button>
+      <button type="button" id="role-coordinator" aria-pressed="true">协调员 · 简体中文</button>
+    </div>
+    <div class="roles" id="client-lang" hidden style="margin-top: 8px">
+      <span class="muted">客户自己切换</span>
+      <button type="button" id="lang-hans" aria-pressed="true">简体中文</button>
+      <button type="button" id="lang-hant" aria-pressed="false">繁體中文</button>
+    </div>
+  </header>
+  <main>
+    <p class="banner" id="banner"></p>
+    <p class="meta" id="case-meta"></p>
+    <h2 id="members-title"></h2>
+    <ul class="flat" id="members"></ul>
+    <h2 id="messages-title"></h2>
+    <div class="card" id="message"></div>
+    <h2 id="files-title"></h2>
+    <div id="files"></div>
+    <section id="registry" hidden>
+      <h2 id="registry-title"></h2>
+      <div class="card">
+        <p id="registry-lead" class="muted"></p>
+        <ul class="flat" id="registry-lines"></ul>
+      </div>
+    </section>
+    <section id="brief" hidden>
+      <h2 id="brief-title"></h2>
+      <div class="card">
+        <p id="brief-lead"></p>
+        <label class="ask">1. <span id="q1"></span><input id="a1" type="text" /></label>
+        <label class="ask">2. <span id="q2"></span><input id="a2" type="text" /></label>
+        <p id="links-label" class="muted"></p>
+        <ul class="flat">
+          <li><label><input type="checkbox" id="link1" /> 越南民法典 · 合同成立（示例链接，非正式检索结果）</label></li>
+          <li><label><input type="checkbox" id="link2" /> 中华人民共和国民法典 · 合同编（示例链接，非正式检索结果）</label></li>
+        </ul>
+        <button type="button" class="btn" id="confirm">确认并写入备忘</button>
+        <div id="saved" hidden>
+          <h3 id="saved-title"></h3>
+          <div id="saved-body"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const copy = {
+      clientHans: {
+        banner: "你正在看客户的案件页。默认是简体中文。没有协调员备忘。",
+        meta: "虚构贸易公司 · 进行中 · 2026-10-08 23:40 UTC+8",
+        membersTitle: "成员",
+        members: ["陈客户 — 客户", "Nguyễn Văn Luật — 律师", "周协调 — 协调员（可管理，可审核）"],
+        messagesTitle: "对话",
+        message: "律师 · 2026-10-08 23:10 UTC+8\n我们已收到合同扫描件，正核对签字页。",
+        filesTitle: "文件",
+        download: "下载原件",
+        bilingual: "打开附件翻译",
+        noText: "未能抽出文字，没有附件翻译",
+        published: "已发布",
+        file1: "合同扫描.pdf · 已发布 · 陈客户 · 2026-10-08 18:20 UTC+8",
+        file2: "现场照片.jpg · 已发布 · 陈客户 · 2026-10-08 18:24 UTC+8"
+      },
+      clientHant: {
+        banner: "你正在看客戶的案件頁。這是你自己切換後的繁體中文。沒有協調員備忘。",
+        meta: "虛構貿易公司 · 進行中 · 2026-10-08 23:40 UTC+8",
+        membersTitle: "成員",
+        members: ["陳客戶 — 客戶", "Nguyễn Văn Luật — 律師", "周協調 — 協調員（可管理，可審核）"],
+        messagesTitle: "對話",
+        message: "律師 · 2026-10-08 23:10 UTC+8\n我們已收到合同掃描件，正核對簽字頁。",
+        filesTitle: "文件",
+        download: "下載原件",
+        bilingual: "打開附件翻譯",
+        noText: "未能抽出文字，沒有附件翻譯",
+        published: "已發布",
+        file1: "合同掃描.pdf · 已發布 · 陳客戶 · 2026-10-08 18:20 UTC+8",
+        file2: "現場照片.jpg · 已發布 · 陳客戶 · 2026-10-08 18:24 UTC+8"
+      },
+      lawyer: {
+        banner: "Bạn đang xem trang vụ án của luật sư. Không có ghi chú điều phối.",
+        meta: "Công ty thương mại giả định · Đang xử lý · 2026-10-08 22:40 UTC+7",
+        membersTitle: "Thành viên",
+        members: ["Trần Khách — Khách hàng", "Nguyễn Văn Luật — Luật sư", "Chu Điều phối — Điều phối (quản lý, xét duyệt)"],
+        messagesTitle: "Trao đổi",
+        message: "Khách hàng · 2026-10-08 22:05 UTC+7\nĐã gửi bản scan hợp đồng.",
+        filesTitle: "Tệp",
+        download: "Tải bản gốc",
+        bilingual: "Mở bản dịch tệp",
+        noText: "Không trích được chữ, không có trang dịch",
+        published: "Đã phát hành",
+        file1: "合同掃描.pdf · Đã phát hành · Trần Khách · 2026-10-08 17:20 UTC+7",
+        file2: "現場照片.jpg · Đã phát hành · Trần Khách · 2026-10-08 17:24 UTC+7"
+      },
+      coordinator: {
+        banner: "你正在看协调员的案件页。多出来的一块只有你看得到。",
+        meta: "虚构贸易公司 · 进行中 · 2026-10-08 23:40 UTC+8",
+        membersTitle: "成员",
+        members: ["陈客户 — 客户", "Nguyễn Văn Luật — 律师", "周协调 — 协调员（可管理，可审核）"],
+        messagesTitle: "对话",
+        message: "客户 · 2026-10-08 23:05 UTC+8\n合同扫描件已上传。",
+        filesTitle: "文件",
+        download: "下载原件",
+        bilingual: "打开附件翻译",
+        noText: "未能抽出文字，没有附件翻译",
+        published: "已发布",
+        file1: "合同扫描.pdf · 已发布 · 陈客户 · 2026-10-08 18:20 UTC+8",
+        file2: "现场照片.jpg · 已发布 · 陈客户 · 2026-10-08 18:24 UTC+8",
+        briefTitle: "协调员备忘",
+        briefLead: "案件刚开始，已发布内容还少。请补上下面两项。勾选要采纳的网页，确认之后才写入备忘。不会发给客户或律师。",
+        q1: "对方公司的越南语法定名称是什么？",
+        q2: "合同签订地在中国还是越南？",
+        links: "检索到的公开页面（示例，不是正式结果）",
+        confirm: "确认并写入备忘",
+        savedTitle: "已写入的备忘",
+        needAnswer: "请先填写两项，并至少勾选一条链接。",
+        registryTitle: "目标公司工商信息",
+        registryLead: "每个案件自动查询越南公司工商登记。下面是示例，不是正式查询结果。只有协调员看得到。",
+        registryLines: [
+          "目标公司（通常是被告）：虚构对方有限公司",
+          "企业状态：存续（示例）",
+          "地址：胡志明市（示例）"
+        ]
+      }
+    };
+
+    let role = "coordinator";
+    let clientScript = "hans";
+
+    const initialView = new URLSearchParams(location.search).get("view");
+    if (initialView === "clientHant") {
+      role = "client";
+      clientScript = "hant";
+    } else if (initialView === "clientHans") {
+      role = "client";
+      clientScript = "hans";
+    } else if (initialView === "lawyer" || initialView === "coordinator") {
+      role = initialView;
+    }
+
+    function viewKey() {
+      if (role === "client") return clientScript === "hant" ? "clientHant" : "clientHans";
+      return role;
+    }
+
+    function fileCard(text, withMd) {
+      const c = currentCopy();
+      const card = document.createElement("div");
+      card.className = "card";
+      const p = document.createElement("div");
+      p.textContent = text;
+      card.appendChild(p);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const original = document.createElement("button");
+      original.type = "button";
+      original.className = "btn";
+      original.textContent = c.download;
+      original.addEventListener("click", () => alert(c.download + " · " + text.split(" · ")[0]));
+      actions.appendChild(original);
+      if (withMd) {
+        const bi = document.createElement("button");
+        bi.type = "button";
+        bi.className = "btn";
+        bi.textContent = c.bilingual;
+        bi.addEventListener("click", () => {
+          location.href = "phase2-attachment-translation.html?view=" + encodeURIComponent(viewKey());
+        });
+        actions.appendChild(bi);
+      } else {
+        const note = document.createElement("span");
+        note.className = "muted";
+        note.textContent = c.noText;
+        actions.appendChild(note);
+      }
+      card.appendChild(actions);
+      return card;
+    }
+
+    function currentCopy() {
+      if (role === "client") return copy[clientScript === "hant" ? "clientHant" : "clientHans"];
+      return copy[role];
+    }
+
+    function render() {
+      const c = currentCopy();
+      document.getElementById("banner").textContent = c.banner;
+      document.getElementById("case-meta").textContent = c.meta;
+      document.getElementById("members-title").textContent = c.membersTitle;
+      document.getElementById("members").replaceChildren(...c.members.map((name) => {
+        const li = document.createElement("li");
+        li.textContent = name;
+        return li;
+      }));
+      document.getElementById("messages-title").textContent = c.messagesTitle;
+      document.getElementById("message").textContent = c.message;
+      document.getElementById("files-title").textContent = c.filesTitle;
+      const files = document.getElementById("files");
+      files.replaceChildren(fileCard(c.file1, true), fileCard(c.file2, false));
+      const brief = document.getElementById("brief");
+      brief.hidden = role !== "coordinator";
+      document.getElementById("registry").hidden = role !== "coordinator";
+      for (const id of ["role-client", "role-lawyer", "role-coordinator"]) {
+        document.getElementById(id).setAttribute("aria-pressed", String(id === "role-" + role));
+      }
+      document.getElementById("role-client").textContent = clientScript === "hant" ? "客户 · 繁体中文" : "客户 · 简体中文";
+      document.getElementById("client-lang").hidden = role !== "client";
+      document.getElementById("lang-hans").setAttribute("aria-pressed", String(clientScript === "hans"));
+      document.getElementById("lang-hant").setAttribute("aria-pressed", String(clientScript === "hant"));
+      if (role === "coordinator") {
+        document.getElementById("brief-title").textContent = c.briefTitle;
+        document.getElementById("brief-lead").textContent = c.briefLead;
+        document.getElementById("q1").textContent = c.q1;
+        document.getElementById("q2").textContent = c.q2;
+        document.getElementById("links-label").textContent = c.links;
+        document.getElementById("confirm").textContent = c.confirm;
+        document.getElementById("registry-title").textContent = c.registryTitle;
+        document.getElementById("registry-lead").textContent = c.registryLead;
+        document.getElementById("registry-lines").replaceChildren(...c.registryLines.map((line) => {
+          const li = document.createElement("li");
+          li.textContent = line;
+          return li;
+        }));
+      }
+    }
+
+    document.getElementById("role-client").onclick = () => { role = "client"; render(); };
+    document.getElementById("lang-hans").onclick = () => { clientScript = "hans"; role = "client"; render(); };
+    document.getElementById("lang-hant").onclick = () => { clientScript = "hant"; role = "client"; render(); };
+    document.getElementById("role-lawyer").onclick = () => { role = "lawyer"; render(); };
+    document.getElementById("role-coordinator").onclick = () => { role = "coordinator"; render(); };
+
+    document.getElementById("confirm").onclick = () => {
+      const c = copy.coordinator;
+      const a1 = document.getElementById("a1").value.trim();
+      const a2 = document.getElementById("a2").value.trim();
+      const links = [];
+      if (document.getElementById("link1").checked) links.push("越南民法典 · 合同成立（示例）");
+      if (document.getElementById("link2").checked) links.push("中华人民共和国民法典 · 合同编（示例）");
+      if (!a1 || !a2 || links.length === 0) {
+        alert(c.needAnswer);
+        return;
+      }
+      const saved = document.getElementById("saved");
+      saved.hidden = false;
+      document.getElementById("saved-title").textContent = c.savedTitle;
+      document.getElementById("saved-body").textContent =
+        "对方公司越南语名称：" + a1 + "\n签订地：" + a2 + "\n已确认的页面：\n- " + links.join("\n- ") +
+        "\n\n这份备忘只留在协调员面板，没有发到案件对话。";
+    };
+
+    render();
+  </script>
+</body>
+</html>

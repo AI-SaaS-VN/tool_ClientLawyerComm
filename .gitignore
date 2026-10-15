@@ -1,5 +1,6 @@
 .env
 .env.local
+.env.lighthouse-test
 node_modules/
 .next/
 dist/

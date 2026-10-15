@@ -1,0 +1,3 @@
+# The Case Agent speaks only to the Coordinator
+
+The second phase adds a Case Agent that prepares attachment translation pages and case notes. On 2026-10-08 the user decided it speaks only with the Case Coordinator, on that person's case page. It does not post into the case chat, send email, or publish a file by itself. A note is stored only after the coordinator confirms it. On 2026-10-09 each case automatically looks up the target company, usually the defendant, on the Vietnam Company Registry, and only the coordinator sees what was found. Putting the agent in the shared chat was the alternative, and it was rejected because the client and the lawyer must not see gap notes or unconfirmed web material.

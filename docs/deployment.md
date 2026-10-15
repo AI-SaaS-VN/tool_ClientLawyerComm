@@ -76,6 +76,12 @@ Per SOW O02 (decided 2026-10-01): after a deploy, and until ICP filing completes
 
 Concrete host addresses and topology live only in the operations side's private notes, never in this repository.
 
+### 美国测试机 / US test machine (2026-10-09)
+
+2026-10-09 起，后续测试部署改到美国测试机。上海那台继续称为上海测试机。美国测试机上的 PostgreSQL 16 与 MinIO 已在本机回环地址运行。应用代码、设计文档和主机环境文件都还没有放上去，因此还不能对外提供页面。这台机器没有 systemd，Docker 守护进程是手动启动的，重启后需要再启动。上海测试机继续服务已经在跑的试点，这次不把那个案件迁走。所在地、主机名和端口只记在 `LOCAL_DEV_NOTES.md`。研发机上，项目根目录的 `.env` 现为美国测试机配置，原先的文件改名为 `.env.lighthouse-test`。部署时仍排除 `.env`、`.env.lighthouse-test`、`LOCAL_DEV_NOTES.md` 与文档工作副本；装到美国测试机时只放 `.env`，不写入仓库。
+
+From 2026-10-09, later test deployments go to the US test machine. The Shanghai machine keeps the name Shanghai test machine. PostgreSQL 16 and MinIO are already running on the US test machine's loopback address. Application code, design documents, and the host env file are not on it yet, so it does not serve pages. The machine has no systemd, so the Docker daemon was started by hand and must be started again after a reboot. The Shanghai test machine keeps the pilot already running there; this decision does not move that case. Place, hostname, and ports stay in `LOCAL_DEV_NOTES.md`. On the development machine, the project-root `.env` is now the US test machine configuration, and the previous file is `.env.lighthouse-test`. A deploy still excludes `.env`, `.env.lighthouse-test`, `LOCAL_DEV_NOTES.md`, and the documentation working copy. Only `.env` is installed on the US test machine, and it is never committed.
+
 ## 6. 端到端测试 / End-to-end tests
 
 `npm run test:e2e`:Playwright 在独立端口(3100)与独立数据库(`clc_e2e`,每次运行重建)上起专用 dev server;邮件走 fake outbox,经 `GET /api/test/outbox` 断言钩子读取激活码/验证码(仅非生产 + fake provider 时存在);通知队列经 `POST /api/test/worker` 显式驱动。无固定 sleep,全部等待走 Playwright 自动等待/轮询。
