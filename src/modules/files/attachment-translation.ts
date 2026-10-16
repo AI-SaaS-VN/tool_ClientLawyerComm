@@ -157,9 +157,14 @@ async function finishTerminal(
 async function failOrRetry(
   row: AttachmentPage,
   kind: string,
+  error?: unknown,
 ): Promise<AttachmentPage> {
   const attempts = row.attempts + 1;
-  console.error("attachment_page_failed", { kind, attempts });
+  console.error("attachment_page_failed", {
+    kind,
+    attempts,
+    message: error instanceof Error ? error.message : String(error ?? ""),
+  });
   if (attempts >= MAX_ATTACHMENT_PAGE_ATTEMPTS) {
     return finishTerminal(row, "failed", { attempts });
   }
@@ -208,7 +213,7 @@ export async function runAttachmentPageStep(row: AttachmentPage): Promise<Attach
             })).text.trim();
     } catch (error) {
       const failureKind = error instanceof LlmFailure ? error.kind : "unknown";
-      return failOrRetry(current, `extract:${failureKind}`);
+      return failOrRetry(current, `extract:${failureKind}`, error);
     }
     const direction = text ? planAttachmentDirection(text) : null;
     if (!direction) {
@@ -238,6 +243,6 @@ export async function runAttachmentPageStep(row: AttachmentPage): Promise<Attach
     return finishTerminal(current, "ready", { translatedText: result.text });
   } catch (error) {
     const failureKind = error instanceof LlmFailure ? error.kind : "unknown";
-    return failOrRetry(current, `translate:${failureKind}`);
+    return failOrRetry(current, `translate:${failureKind}`, error);
   }
 }

@@ -545,14 +545,23 @@ async function submitDigestTask(
 
 // Dev-runtime driver: first attempt well inside the 30-second internal
 // target (REQ-NTF-07). Tests drive runNotificationWorkerOnce directly with a
-// simulated clock instead.
+// simulated clock instead. Passes never overlap: a slow provider call (the
+// Kimi account allows one concurrent request) must not let the next tick
+// start a second pass while the first is still waiting on the API.
+let passInFlight = false;
 export function startNotificationWorker(intervalMs = 10_000): () => void {
   const tick = () => {
+    if (passInFlight) return;
+    passInFlight = true;
     // digest: the in-process worker also generates the daily case digest
     // (REQ-DIG-01); idempotent, so 10s ticks and restarts are safe.
-    runNotificationWorkerOnce({ digest: true }).catch(() => {
-      // The next tick replays the persistent queue; nothing is lost.
-    });
+    runNotificationWorkerOnce({ digest: true })
+      .catch(() => {
+        // The next tick replays the persistent queue; nothing is lost.
+      })
+      .finally(() => {
+        passInFlight = false;
+      });
   };
   tick();
   const timer = setInterval(tick, intervalMs);

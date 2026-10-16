@@ -163,7 +163,10 @@ export class KimiVisionProvider implements LlmVisionProvider {
     }
     if (response.status === 429) throw new LlmFailure("rate_limited");
     if (response.status >= 500) throw new LlmFailure("server");
-    if (!response.ok) throw new Error(`llm http_${response.status}`);
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`llm http_${response.status}: ${body.slice(0, 300)}`);
+    }
     let payload: { choices?: Array<{ message?: { content?: unknown } }> };
     try {
       payload = (await response.json()) as typeof payload;
