@@ -1,5 +1,8 @@
 import { LlmFailure } from "./interface";
 import type {
+  BriefQuestionsInput,
+  BriefQuestionsResult,
+  LlmBriefProvider,
   LlmTranslationProvider,
   LlmVisionProvider,
   ReadImageTextInput,
@@ -170,6 +173,93 @@ export class KimiVisionProvider implements LlmVisionProvider {
     if (!response.ok) {
       const body = await response.text().catch(() => "");
       throw new Error(`llm http_${response.status}: ${body.slice(0, 300)}`);
+    }
+    let payload: { choices?: Array<{ message?: { content?: unknown } }> };
+    try {
+      payload = (await response.json()) as typeof payload;
+    } catch {
+      throw new LlmFailure("format");
+    }
+    const text = payload.choices?.[0]?.message?.content;
+    if (typeof text !== "string" || text.trim().length === 0) {
+      throw new LlmFailure("format");
+    }
+    return { text, model };
+  }
+}
+
+// REQ-BRIEF-02: the Case Agent lists missing facts as short numbered
+// questions for the coordinator. The payload is only this case's published
+// content (REQ-TR-06 v0.13 exception); the same typed faults apply.
+export class KimiBriefProvider implements LlmBriefProvider {
+  readonly id = "kimi";
+
+  private readonly baseUrl: string;
+  private readonly model: string | undefined;
+
+  constructor(private readonly apiKey: string | undefined) {
+    const base = (process.env.KIMI_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+    this.baseUrl = base.endsWith("/v1") ? base : `${base}/v1`;
+    this.model = process.env.KIMI_MODEL;
+  }
+
+  async suggestQuestions(input: BriefQuestionsInput): Promise<BriefQuestionsResult> {
+    if (!this.apiKey) {
+      throw new Error("kimi provider is not configured (KIMI_API_KEY missing)");
+    }
+    const model = this.model;
+    if (!model) {
+      throw new Error("kimi provider is not configured (KIMI_MODEL missing)");
+    }
+    const sections: string[] = [];
+    if (input.messageTexts.length > 0) {
+      sections.push(`Published messages:\n${input.messageTexts.join("\n---\n")}`);
+    }
+    if (input.fileNames.length > 0) {
+      sections.push(`Published file names:\n${input.fileNames.join("\n")}`);
+    }
+    if (input.attachmentTexts.length > 0) {
+      sections.push(`Extracted attachment texts:\n${input.attachmentTexts.join("\n---\n")}`);
+    }
+    const body = sections.length > 0 ? sections.join("\n\n") : "(no published content yet)";
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${this.apiKey}`,
+        },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You help the coordinator of a China–Vietnam legal case. From the published " +
+                "case content below, list up to 3 missing facts the coordinator should supply, " +
+                "as short numbered questions. Write the questions in the requested language. " +
+                "Reply with the numbered questions only — no commentary.",
+            },
+            { role: "user", content: `Language: ${input.lang}\n${body}` },
+          ],
+        }),
+      });
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === "TimeoutError" || error.name === "AbortError")
+      ) {
+        throw new LlmFailure("timeout");
+      }
+      throw error;
+    }
+    if (response.status === 429) throw new LlmFailure("rate_limited");
+    if (response.status >= 500) throw new LlmFailure("server");
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`llm http_${response.status}: ${text.slice(0, 300)}`);
     }
     let payload: { choices?: Array<{ message?: { content?: unknown } }> };
     try {

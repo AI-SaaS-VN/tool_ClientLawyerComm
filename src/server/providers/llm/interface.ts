@@ -60,3 +60,25 @@ export interface LlmVisionProvider {
   readonly id: string;
   readImageText(input: ReadImageTextInput): Promise<ReadImageTextResult>;
 }
+
+// REQ-BRIEF-02/03 with the REQ-TR-06 v0.13 exception: the Case Agent receives
+// only this case's published message texts, published file names, and
+// extracted attachment texts — nothing pending, nothing from other cases,
+// no contact channels.
+export interface BriefQuestionsInput {
+  messageTexts: string[];
+  fileNames: string[];
+  attachmentTexts: string[];
+  // Screen language the questions are written in (the coordinator's).
+  lang: string;
+}
+
+export interface BriefQuestionsResult {
+  text: string;
+  model: string;
+}
+
+export interface LlmBriefProvider {
+  readonly id: string;
+  suggestQuestions(input: BriefQuestionsInput): Promise<BriefQuestionsResult>;
+}

@@ -1,7 +1,17 @@
 import { standInProvidersAllowed } from "../stand-in";
-import { fakeLlmModerationProvider, fakeLlmTranslationProvider, fakeLlmVisionProvider } from "./fake";
-import type { LlmModerationProvider, LlmTranslationProvider, LlmVisionProvider } from "./interface";
-import { KimiTranslationProvider, KimiVisionProvider } from "./kimi-adapter";
+import {
+  fakeLlmBriefProvider,
+  fakeLlmModerationProvider,
+  fakeLlmTranslationProvider,
+  fakeLlmVisionProvider,
+} from "./fake";
+import type {
+  LlmBriefProvider,
+  LlmModerationProvider,
+  LlmTranslationProvider,
+  LlmVisionProvider,
+} from "./interface";
+import { KimiBriefProvider, KimiTranslationProvider, KimiVisionProvider } from "./kimi-adapter";
 
 // T05 ships only the fake provider; the real Kimi adapter is T06.
 export function getLlmModerationProvider(): LlmModerationProvider {
@@ -44,6 +54,21 @@ export function getLlmVisionProvider(): LlmVisionProvider {
   }
   if (kind === "kimi") {
     return new KimiVisionProvider(process.env.KIMI_API_KEY);
+  }
+  throw new Error(`unsupported TRANSLATION_PROVIDER: ${kind}`);
+}
+
+// The Case Agent (REQ-BRIEF) shares the same seam and provider allow-list.
+export function getLlmBriefProvider(): LlmBriefProvider {
+  const kind = process.env.TRANSLATION_PROVIDER ?? "fake";
+  if (kind === "fake") {
+    if (!standInProvidersAllowed()) {
+      throw new Error("fake brief provider is not allowed in production");
+    }
+    return fakeLlmBriefProvider;
+  }
+  if (kind === "kimi") {
+    return new KimiBriefProvider(process.env.KIMI_API_KEY);
   }
   throw new Error(`unsupported TRANSLATION_PROVIDER: ${kind}`);
 }

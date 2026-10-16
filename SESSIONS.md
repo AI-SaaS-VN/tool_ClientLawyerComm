@@ -1365,3 +1365,31 @@ T15 per PLAN (first failing test `tests/unit/files/attachment-translation-page.t
 Watch the attachment-page backlog drain on the Shanghai host (Kimi congestion; reset any terminally failed rows once credit/concurrency recovers); rerun the full E2E suite in a quiet window; then T16 per PLAN (first failing test `tests/unit/agent/coordinator-brief.test.ts`).<br>观察上海机附件页积压排空（Kimi 拥塞；余额/并发恢复后重置失败的行）；安静窗口复跑 E2E 全量；然后按 PLAN 做 T16（第一份失败测试 `tests/unit/agent/coordinator-brief.test.ts`）。
 
 ---
+
+## Session 2026-10-16-02 (In progress) / 会话 2026-10-16-02（进行中）
+
+- Date/Timezone: 2026-10-16, UTC (Kimi Code on the dev Linux)<br>日期/时区：2026-10-16，UTC（研发 Linux 上的 Kimi Code）
+- Goal (user request): continue — watch the T15 backlog drain, rerun E2E in a quiet window, then T16 Coordinator Brief.<br>本次目标（用户要求）：继续——观察 T15 积压排空、安静窗口复跑 E2E，然后做 T16 协调员备忘。
+
+### Actual Actions / 实际动作
+
+1. T15 backlog watch: the Shanghai queue drains slowly through Kimi congestion (3 RPM + org concurrency 1 + credit-low warning); rate-limit retries every 2 minutes no longer spend attempts. 9 ready / 17 pending / 3 no_text at last check.<br>T15 积压观察：上海机队列在 Kimi 拥塞下缓慢排空；限流每 2 分钟重试不耗尝试次数。最近状态 9 ready / 17 pending / 3 no_text。
+2. E2E: several more full runs (loads 0.2–10) — the two long multi-context journeys (dual-user, files) keep dying with Chromium renderer crashes; a clean HEAD worktree failed the same specs, confirming environment. admin-test-case, review-alert, both smoke specs and dual-user #2 passed in the latest runs.<br>E2E：又跑了多轮全量——两条多上下文长旅程在渲染进程崩溃中反复失败；干净 HEAD 对照同样失败，确认环境性。其余规格在最近几轮均通过。
+3. T16 Coordinator Brief implemented (SPEC v0.16 / PLAN v0.16): `case_briefs` table + migration `20261016155851_t16_case_briefs`; `LlmBriefProvider` seam (fake/Kimi, same 3 RPM paced worker budget); thin-case trigger (fewer than five published messages; new content re-prompts until confirmed); coordinator-only `/api/cases/[id]/brief` (404 for client/lawyer); `BriefPanel` on the case page in four languages; confirm composes question/answer blocks into `brief_text`, never a chat message, never emailed.<br>T16 协调员备忘已实现（SPEC v0.16 / PLAN v0.16）：case_briefs 表＋迁移；LlmBriefProvider 接缝；少内容触发与新内容重问；仅协调员的 API（其余 404）；案件页 BriefPanel 四语言；确认后才写入，不进对话不发邮件。
+
+### Verification / 验证
+
+- `npm run test` 375/375 (52 files; +11 unit + 6 integration for T16), tsc clean, lint clean (one pre-existing warning), `npm run build` rc=0 with `/api/cases/[id]/brief` in the route table.<br>`npm run test` 375/375（52 个文件；T16 新增 11 单测 + 6 集成）；tsc/lint/build 无错误，构建含新路由。
+
+### Unfinished Items / 未完成项
+
+- Deploy T16 to the Shanghai test host.<br>把 T16 部署到上海测试机。
+- E2E full suite 7/7 still pending a genuinely quiet window on this shared box.<br>E2E 全量 7/7 仍待这台共享机的安静窗口。
+- Kimi account credit is low (provider warning); the user should top up.<br>Kimi 账户余额不足（provider 警告），需要用户充值。
+- Next: T18 Target Company registry, then T17 statute note.<br>下一件：T18 目标公司工商查询，然后 T17 法条备忘。
+
+### First Step Next Time / 下次第一步
+
+Deploy T16 to the Shanghai host; then T18 per PLAN (first failing test `tests/unit/agent/target-company-registry.test.ts`).<br>部署 T16 到上海机；然后按 PLAN 做 T18（第一份失败测试 `tests/unit/agent/target-company-registry.test.ts`）。
+
+---

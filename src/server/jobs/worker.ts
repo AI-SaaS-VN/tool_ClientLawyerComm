@@ -23,6 +23,7 @@ import {
   findDueAttachmentPages,
   runAttachmentPageStep,
 } from "@/modules/files/attachment-translation";
+import { findDueBriefRows, queueBriefPrompts, runBriefQuestionsStep } from "@/modules/agent/coordinator-brief";
 import { prisma } from "@/lib/db";
 import { recordAudit } from "@/server/audit/log";
 import { getEmailProvider } from "@/server/providers/email";
@@ -60,6 +61,9 @@ export interface WorkerRunSummary {
   translationFailed: number;
   attachmentPages: number;
   attachmentPagesFailed: number;
+  briefsQueued: number;
+  briefsGenerated: number;
+  briefsFailed: number;
 }
 
 const BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
@@ -82,7 +86,7 @@ export async function runNotificationWorkerOnce(
 ): Promise<WorkerRunSummary> {
   const clock = deps.clock ?? systemClock;
   const emailProvider = deps.emailProvider ?? getEmailProvider();
-  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0 };
+  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0, briefsQueued: 0, briefsGenerated: 0, briefsFailed: 0 };
 
   if (deps.digest) {
     // Idempotent via the unique (case_id, digest_date): a failure here is
@@ -101,6 +105,10 @@ export async function runNotificationWorkerOnce(
     summary,
   );
   await runAttachmentPagePass(
+    deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
+    summary,
+  );
+  await runBriefPass(
     deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
     summary,
   );
@@ -163,6 +171,24 @@ async function runAttachmentPagePass(
     const finished = await runAttachmentPageStep(row);
     if (finished.status === "failed") summary.attachmentPagesFailed += 1;
     else summary.attachmentPages += 1;
+  }
+}
+
+// T16 (REQ-BRIEF): the eligibility scan costs no LLM call; question
+// generation does, so it shares the same paced budget. One generation per
+// pass tick keeps the single-concurrency account free for messages and pages.
+async function runBriefPass(
+  minIntervalMs: number,
+  summary: WorkerRunSummary,
+): Promise<void> {
+  summary.briefsQueued += await queueBriefPrompts();
+  const due = await findDueBriefRows(new Date());
+  for (const row of due) {
+    if (Date.now() - lastLlmTranslationCallAt < minIntervalMs) break;
+    lastLlmTranslationCallAt = Date.now();
+    const finished = await runBriefQuestionsStep(row);
+    if (finished.questionsStatus === "ready") summary.briefsGenerated += 1;
+    else if (finished.questionsStatus === "failed") summary.briefsFailed += 1;
   }
 }
 

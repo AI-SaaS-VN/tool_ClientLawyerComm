@@ -1,8 +1,11 @@
 import { normalizeForCheck } from "@/modules/moderation/rules";
 
 import type {
+  BriefQuestionsInput,
+  BriefQuestionsResult,
   FeeIntentInput,
   FeeIntentVerdict,
+  LlmBriefProvider,
   LlmFailureKind,
   LlmModerationProvider,
   LlmTranslationProvider,
@@ -146,3 +149,41 @@ class FakeLlmVisionProvider implements LlmVisionProvider {
 }
 
 export const fakeLlmVisionProvider = new FakeLlmVisionProvider();
+
+// Fake brief provider (REQ-BRIEF): deterministic questions; tests pin a fixed
+// reply, force a typed failure, and inspect the exact payload (REQ-TR-06).
+class FakeLlmBriefProvider implements LlmBriefProvider {
+  readonly id = "fake";
+  readonly calls: BriefQuestionsInput[] = [];
+  private fixed: string | null = null;
+  private failure: LlmFailureKind | null = null;
+
+  async suggestQuestions(input: BriefQuestionsInput): Promise<BriefQuestionsResult> {
+    this.calls.push({ ...input });
+    if (this.failure) {
+      const kind = this.failure;
+      this.failure = null;
+      throw new LlmFailure(kind);
+    }
+    return {
+      text: this.fixed ?? "1. 对方公司的越南语法定名称是什么？\n2. 合同签订地在中国还是越南？",
+      model: "fake-brief",
+    };
+  }
+
+  setFixedResponse(text: string): void {
+    this.fixed = text;
+  }
+
+  failNext(kind: LlmFailureKind): void {
+    this.failure = kind;
+  }
+
+  reset(): void {
+    this.calls.length = 0;
+    this.fixed = null;
+    this.failure = null;
+  }
+}
+
+export const fakeLlmBriefProvider = new FakeLlmBriefProvider();

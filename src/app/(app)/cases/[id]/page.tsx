@@ -9,6 +9,7 @@ import { screenLangForUser } from "@/modules/i18n/screen-lang";
 import { LanguageSwitch } from "../../language-switch";
 import { MessagesPanel } from "./messages-panel";
 import { FilesPanel } from "./files-panel";
+import { BriefPanel } from "./brief-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
       </ul>
       <MessagesPanel caseId={caseId} lang={lang} />
       <FilesPanel caseId={caseId} lang={lang} />
+      {membership.memberRole === "coordinator" ? <BriefPanel caseId={caseId} lang={lang} /> : null}
     </main>
   );
 }
