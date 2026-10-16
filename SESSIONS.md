@@ -1381,9 +1381,9 @@ Watch the attachment-page backlog drain on the Shanghai host (Kimi congestion; r
 
 - `npm run test` 375/375 (52 files; +11 unit + 6 integration for T16), tsc clean, lint clean (one pre-existing warning), `npm run build` rc=0 with `/api/cases/[id]/brief` in the route table.<br>`npm run test` 375/375（52 个文件；T16 新增 11 单测 + 6 集成）；tsc/lint/build 无错误，构建含新路由。
 
-### Unfinished Items / 未完成项
+4. Deployed T16 to the Shanghai test host (migrate deploy + generate + build rc=0 + restart; health 200). The real pilot case has 52 published messages — not thin — so no brief prompts fire there, as specified.<br>T16 已部署上海测试机（迁移＋构建＋重启，健康检查 200）。真实试点案件已有 52 条已发布消息，不属「内容还少」，按规格不会触发备忘提问。
 
-- Deploy T16 to the Shanghai test host.<br>把 T16 部署到上海测试机。
+### Unfinished Items / 未完成项
 - E2E full suite 7/7 still pending a genuinely quiet window on this shared box.<br>E2E 全量 7/7 仍待这台共享机的安静窗口。
 - Kimi account credit is low (provider warning); the user should top up.<br>Kimi 账户余额不足（provider 警告），需要用户充值。
 - Next: T18 Target Company registry, then T17 statute note.<br>下一件：T18 目标公司工商查询，然后 T17 法条备忘。
