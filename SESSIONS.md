@@ -1350,14 +1350,18 @@ T15 per PLAN (first failing test `tests/unit/files/attachment-translation-page.t
 - `npm run test` 356/356 (50 files; +16 new: 5 direction/row-state unit, 4 extraction unit, 7 integration covering both directions, vision path with exact-payload assertion, no-text row note, retry→failed, authorization/revocation, unpublished 404, review-approve path). tsc clean, lint clean (one pre-existing warning), `npm run build` rc=0 with `/files/[id]/translation` in the route table.<br>`npm run test` 356/356（50 个文件，新增 16 条）；tsc/lint/build 无错误，构建产物含新路由。
 - E2E: first full run failed 7/7 with connection refused — a leftover `next-server` on port 3100 was the cause. Later full runs crashed Chromium renderers mid-suite (Target/Page crashed) as the run itself pushed host load past 10 on this 3.8GB box; a baseline comparison in a clean HEAD worktree failed the same specs the same way, so the failures are environmental, not from T15. files.spec passed standalone at low load; a full 7/7 run awaits a low-load window.<br>E2E：首轮 7/7 全挂是 3100 端口残留 next-server 所致；其后的全量运行在套件中途压垮 Chromium 渲染进程（本机 3.8GB，跑测试时负载冲过 10）；用干净 HEAD worktree 对照，基线同样挂同样规格——属环境问题而非 T15 回归。低负载时 files.spec 单独全过；全量 7/7 待低负载窗口复跑。
 
+7. Deployed to the Shanghai test host and backfilled `attachment_pages` for the 29 already-published pilot files; set `KIMI_VISION_MODEL=kimi-k3` on the host (live-probed image-capable; the account lists only kimi-k3 / kimi-k2.6 / kimi-k2.7-code[-highspeed]).<br>部署上海测试机；为 29 个已发布试点文件回填页面行；主机设 KIMI_VISION_MODEL=kimi-k3（实测支持图片）。
+8. Drain-time fixes (each verified on the host, then committed): `serverExternalPackages` for pdf-parse/pdfjs-dist/mammoth (bundled build broke extraction); serialized worker passes (Kimi org concurrency is 1 — overlapping ticks drew 429s); deterministic local parse errors → straight to `no_text` (two pilot "DOCX" files lack word/document.xml); vision timeout 240s (aborted calls keep processing server-side and hold the single slot); 429 rate-limit retries every 2 min without spending attempts. Vision path proven live: a scanned Traditional-Chinese letterhead was read and translated to Vietnamese.<br>排空期修复（机上验证后提交）：serverExternalPackages；worker 趟次串行化（账号并发 1）；本机解析确定性错误直接 no_text；视觉超时 240 秒；429 每 2 分钟重试不耗尝试次数。视觉链路已实测打通（繁中扫描信头→越南语译文）。
+9. Kimi account live findings: 3 RPM org cap, org concurrency 1, "credit balance is running low" warning. The 29-file backlog drains slowly over the 2-minute rate-limit retry cadence.<br>账号实测：3 RPM、并发 1、余额不足警告；积压队列按 2 分钟限流重试节奏缓慢排空。
+
 ### Unfinished Items / 未完成项
 
-- Deploy T15 to the Shanghai test host (migration + generate + build + restart per docs/deployment.md).<br>把 T15 部署到上海测试机（migrate deploy + generate + build + restart）。
+- E2E full suite not green in this session: Chromium renderer crashes/timeouts whenever host load spikes (3.8GB box shared with other agents). A clean HEAD worktree failed the same specs the same way — environmental, not T15. Every spec has passed individually today; a 7/7 full run awaits a quiet window.<br>本次会话 E2E 全量未全绿：宿主机负载尖峰时 Chromium 渲染进程崩溃/超时（3.8GB 与其他代理共享）。干净 HEAD 对照同样失败——属环境问题。每个规格今日都曾单独通过；7/7 全量待安静窗口。
 - The six needs_review pilot translations still have no coordinator approval path (carried from 2026-10-15).<br>6 条 needs_review 试点译文仍无放行界面（10-15 遗留）。
 - T16 Coordinator Brief is next; T18 after it, then T17.<br>下一件是 T16 协调员备忘，然后 T18，再 T17。
 
 ### First Step Next Time / 下次第一步
 
-Deploy to the Shanghai test host; then T16 per PLAN (first failing test `tests/unit/agent/coordinator-brief.test.ts`).<br>部署上海测试机；然后按 PLAN 做 T16（第一份失败测试 `tests/unit/agent/coordinator-brief.test.ts`）。
+Watch the attachment-page backlog drain on the Shanghai host (Kimi congestion; reset any terminally failed rows once credit/concurrency recovers); rerun the full E2E suite in a quiet window; then T16 per PLAN (first failing test `tests/unit/agent/coordinator-brief.test.ts`).<br>观察上海机附件页积压排空（Kimi 拥塞；余额/并发恢复后重置失败的行）；安静窗口复跑 E2E 全量；然后按 PLAN 做 T16（第一份失败测试 `tests/unit/agent/coordinator-brief.test.ts`）。
 
 ---

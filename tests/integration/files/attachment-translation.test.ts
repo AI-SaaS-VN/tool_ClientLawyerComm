@@ -174,6 +174,28 @@ describe("attachment translation page (REQ-ATT-01~04)", () => {
     expect(await attachmentStateOf(kase.id, clientCookie, fileId)).toBe("unavailable");
   });
 
+  it("rate limiting is congestion, not a row failure: retried without spending attempts", async () => {
+    const { kase, clientCookie } = await seedMembers();
+    fakeLlmVisionProvider.failNext("rate_limited");
+    const fileId = await uploadPublished(kase.id, clientCookie, "scan.jpg", jpgSample());
+
+    await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
+    const page = await prisma.attachmentPage.findUniqueOrThrow({ where: { fileId } });
+    expect(page.status).toBe("pending");
+    expect(page.attempts).toBe(0);
+    expect(page.nextRetryAt).not.toBeNull();
+
+    // The next attempt succeeds; the page completes.
+    fakeLlmVisionProvider.setFixedResponse(VI_TEXT);
+    await prisma.attachmentPage.update({
+      where: { fileId },
+      data: { nextRetryAt: new Date(Date.now() - 1000) },
+    });
+    await driveWorker(2);
+    const done = await prisma.attachmentPage.findUniqueOrThrow({ where: { fileId } });
+    expect(done.status).toBe("ready");
+  });
+
   it("a vision failure retries with backoff, then stays failed after the attempt budget", async () => {
     const { kase, clientCookie } = await seedMembers();
     fakeLlmVisionProvider.failNext("server");

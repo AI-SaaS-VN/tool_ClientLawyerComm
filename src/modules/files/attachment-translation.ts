@@ -159,12 +159,20 @@ async function failOrRetry(
   kind: string,
   error?: unknown,
 ): Promise<AttachmentPage> {
-  const attempts = row.attempts + 1;
   console.error("attachment_page_failed", {
     kind,
-    attempts,
+    attempts: row.attempts + 1,
     message: error instanceof Error ? error.message : String(error ?? ""),
   });
+  // Rate limiting is external congestion, not a failure of this row: wait two
+  // minutes and retry without spending the attempt budget.
+  if (kind.endsWith("rate_limited")) {
+    return prisma.attachmentPage.update({
+      where: { id: row.id },
+      data: { status: "pending", nextRetryAt: new Date(Date.now() + 2 * 60_000) },
+    });
+  }
+  const attempts = row.attempts + 1;
   if (attempts >= MAX_ATTACHMENT_PAGE_ATTEMPTS) {
     return finishTerminal(row, "failed", { attempts });
   }
