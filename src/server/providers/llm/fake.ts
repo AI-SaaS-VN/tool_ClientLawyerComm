@@ -6,6 +6,9 @@ import type {
   LlmFailureKind,
   LlmModerationProvider,
   LlmTranslationProvider,
+  LlmVisionProvider,
+  ReadImageTextInput,
+  ReadImageTextResult,
   TranslateInput,
   TranslateResult,
 } from "./interface";
@@ -108,3 +111,38 @@ class FakeLlmTranslationProvider implements LlmTranslationProvider {
 }
 
 export const fakeLlmTranslationProvider = new FakeLlmTranslationProvider();
+
+// Fake vision provider for attachment text reading (REQ-ATT-04). Tests pin a
+// fixed transcription, force a typed failure, and inspect received payloads.
+class FakeLlmVisionProvider implements LlmVisionProvider {
+  readonly id = "fake";
+  readonly calls: ReadImageTextInput[] = [];
+  private fixed: string | null = null;
+  private failure: LlmFailureKind | null = null;
+
+  async readImageText(input: ReadImageTextInput): Promise<ReadImageTextResult> {
+    this.calls.push({ ...input });
+    if (this.failure) {
+      const kind = this.failure;
+      this.failure = null;
+      throw new LlmFailure(kind);
+    }
+    return { text: this.fixed ?? "", model: "fake-vision" };
+  }
+
+  setFixedResponse(text: string): void {
+    this.fixed = text;
+  }
+
+  failNext(kind: LlmFailureKind): void {
+    this.failure = kind;
+  }
+
+  reset(): void {
+    this.calls.length = 0;
+    this.fixed = null;
+    this.failure = null;
+  }
+}
+
+export const fakeLlmVisionProvider = new FakeLlmVisionProvider();

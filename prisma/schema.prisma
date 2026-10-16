@@ -373,6 +373,7 @@ model File {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   variants     FileVariant[]
+  attachmentPage AttachmentPage?
 
   @@index([caseId, status])
   @@map("files")
@@ -394,4 +395,26 @@ model FileVariant {
 
   @@unique([fileId, kind, version])
   @@map("file_variants")
+}
+
+// T15 (REQ-ATT-01~04): one row per published file's attachment translation
+// page. Status CHECK is hand-added in the migration
+// ('pending'/'processing'/'ready'/'no_text'/'failed'). Extraction and the
+// single translation run in the worker queue; source/target language and both
+// texts are stored here, never storage keys.
+model AttachmentPage {
+  id             String    @id @default(uuid()) @db.Uuid
+  fileId         String    @unique @map("file_id") @db.Uuid
+  file           File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  status         String    @default("pending")
+  sourceLang     String?   @map("source_lang")
+  sourceText     String?   @map("source_text")
+  targetLang     String?   @map("target_lang")
+  translatedText String?   @map("translated_text")
+  attempts       Int       @default(0)
+  nextRetryAt    DateTime? @map("next_retry_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("attachment_pages")
 }

@@ -1330,3 +1330,34 @@ On the development Linux: read this entry, then PROGRESS, then PLAN F18. Bring u
 T15 per PLAN (first failing test `tests/unit/files/attachment-translation-page.test.ts`).<br>按 PLAN 做 T15（第一份失败测试 `tests/unit/files/attachment-translation-page.test.ts`）。
 
 ---
+
+## Session 2026-10-16-01 (In progress) / 会话 2026-10-16-01（进行中）
+
+- Date/Timezone: 2026-10-16, UTC (Kimi Code on the dev Linux)<br>日期/时区：2026-10-16，UTC（研发 Linux 上的 Kimi Code）
+- Goal (user request): read SESSIONS/PROGRESS/PLAN/SOW/SPEC and continue the next development phase — T15 Attachment Translation Page.<br>本次目标（用户要求）：读取各进度文档，继续下一阶段研发——T15 附件翻译页。
+
+### Actual Actions / 实际动作
+
+1. Read the design baseline (SOW v1.13 / SPEC v0.14 / PLAN v0.14), PLAN T15, SPEC REQ-ATT-01~05, ADR 0002, the accepted prototype; confirmed git clean at 64af7ed with no new Cursor changes.<br>读取设计基线与 T15 规格、ADR 0002、原型；确认 git 停在 64af7ed 且无另一代理新改动。
+2. TDD: first failing test `tests/unit/files/attachment-translation-page.test.ts` (direction planning + file-row state), then implemented. New dependencies `pdf-parse` v2 and `mammoth` (local selectable-text extraction, REQ-ATT-04); `src/types/mammoth.d.ts` declares mammoth's untyped API.<br>TDD：先红后绿。新增依赖 pdf-parse v2 与 mammoth（本机抽取可选中文字）；mammoth 无类型，加了本地声明。
+3. DB: migration `20261016052642_t15_attachment_pages` — `attachment_pages` (one row per file, status pending/processing/ready/no_text/failed with a hand-added CHECK, source/target lang + texts, attempts/next_retry_at).<br>数据库：迁移 20261016052642_t15_attachment_pages，状态机 CHECK 手写加入。
+4. Pipeline: both publish paths (clean auto-publish, review-console approve) enqueue the page row in the publish transaction. Worker `runAttachmentPagePass` shares the F17 paced LLM budget (3 RPM): local extraction unpaced; JPG/PNG go through the new `LlmVisionProvider` seam (`KimiVisionProvider`, `KIMI_VISION_MODEL` ?? `KIMI_MODEL`; fake provider for tests). Failures retry with backoff (≤3 attempts) then stay `failed`; stale `processing` rows are re-taken after 10 min.<br>流水线：两条发布路径在发布事务内排队；worker 与消息翻译共用 3 RPM 定速；JPG/PNG 走新的 vision provider 接缝；退避重试 ≤3 次后定格 failed；processing 卡死 10 分钟回收。
+5. Page + UI: `/files/[id]/translation` (source text, then the one translation; wording follows the viewer's screen language; unauthorized/unpublished → plain 404). File rows show 打开附件翻译 / 打開附件翻譯 / Mở bản dịch tệp when ready, a preparing note while pending, and the no-text note on failure. i18n copy added in four languages (Vietnamese written via python and byte-verified).<br>页面与界面：/files/[id]/translation 先源文后译文，用语跟随观看者屏幕语言；文件行三态入口。四语言文案（越南语用 python 写入并校验字节）。
+6. Docs: SPEC v0.15 (REQ-ATT marked built; clarifications — non-Chinese/non-Vietnamese text yields no page; scanned PDFs without selectable text are not rasterized this version, scans go as JPG/PNG). PLAN v0.15 (T15 done; F19 row done). PROGRESS T15 section.<br>文档：SPEC v0.15、PLAN v0.15、PROGRESS 的 T15 段落。
+
+### Verification / 验证
+
+- `npm run test` 356/356 (50 files; +16 new: 5 direction/row-state unit, 4 extraction unit, 7 integration covering both directions, vision path with exact-payload assertion, no-text row note, retry→failed, authorization/revocation, unpublished 404, review-approve path). tsc clean, lint clean (one pre-existing warning), `npm run build` rc=0 with `/files/[id]/translation` in the route table.<br>`npm run test` 356/356（50 个文件，新增 16 条）；tsc/lint/build 无错误，构建产物含新路由。
+- E2E: first full run failed 7/7 with connection refused — a leftover `next-server` on port 3100 was the cause. Later full runs crashed Chromium renderers mid-suite (Target/Page crashed) as the run itself pushed host load past 10 on this 3.8GB box; a baseline comparison in a clean HEAD worktree failed the same specs the same way, so the failures are environmental, not from T15. files.spec passed standalone at low load; a full 7/7 run awaits a low-load window.<br>E2E：首轮 7/7 全挂是 3100 端口残留 next-server 所致；其后的全量运行在套件中途压垮 Chromium 渲染进程（本机 3.8GB，跑测试时负载冲过 10）；用干净 HEAD worktree 对照，基线同样挂同样规格——属环境问题而非 T15 回归。低负载时 files.spec 单独全过；全量 7/7 待低负载窗口复跑。
+
+### Unfinished Items / 未完成项
+
+- Deploy T15 to the Shanghai test host (migration + generate + build + restart per docs/deployment.md).<br>把 T15 部署到上海测试机（migrate deploy + generate + build + restart）。
+- The six needs_review pilot translations still have no coordinator approval path (carried from 2026-10-15).<br>6 条 needs_review 试点译文仍无放行界面（10-15 遗留）。
+- T16 Coordinator Brief is next; T18 after it, then T17.<br>下一件是 T16 协调员备忘，然后 T18，再 T17。
+
+### First Step Next Time / 下次第一步
+
+Deploy to the Shanghai test host; then T16 per PLAN (first failing test `tests/unit/agent/coordinator-brief.test.ts`).<br>部署上海测试机；然后按 PLAN 做 T16（第一份失败测试 `tests/unit/agent/coordinator-brief.test.ts`）。
+
+---

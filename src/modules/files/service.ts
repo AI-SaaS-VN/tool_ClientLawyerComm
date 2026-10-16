@@ -16,13 +16,15 @@ import { getFileScanner } from "@/server/providers/scanner";
 import { getStorageProvider } from "@/server/providers/storage";
 
 import { MAX_FILE_BYTES, detectFileType } from "./file-type";
+import { attachmentRowState, enqueueAttachmentPage } from "./attachment-translation";
 
 const MAX_NAME_CHARS = 200;
 
-type FileWithUploader = FileRow & { uploader: User };
+type FileWithUploader = FileRow & { uploader: User; attachmentPage?: { status: string } | null };
 
 // Never include storage keys (REQ-FILE-02 — no object addresses through any
-// API) or registered contact channels (REQ-PM-09).
+// API) or registered contact channels (REQ-PM-09). attachmentState drives the
+// 打开附件翻译 control and the extraction-failure note on the row (REQ-ATT-01/04).
 export function toFileView(file: FileWithUploader) {
   return {
     id: file.id,
@@ -35,6 +37,7 @@ export function toFileView(file: FileWithUploader) {
     sizeBytes: file.sizeBytes,
     publishedAt: file.publishedAt,
     createdAt: file.createdAt,
+    attachmentState: attachmentRowState(file.attachmentPage?.status),
   };
 }
 
@@ -173,6 +176,8 @@ async function publishCleanFile(file: FileWithUploader): Promise<FileWithUploade
           sourceVersion: 1,
         },
       });
+      // T15 (REQ-ATT): queue the attachment translation page with the publish.
+      await enqueueAttachmentPage(tx, file.id);
       return published;
     });
   } catch {
@@ -218,7 +223,7 @@ export async function listCaseFiles(
           : []),
       ],
     },
-    include: { uploader: true },
+    include: { uploader: true, attachmentPage: true },
     orderBy: { createdAt: "asc" },
   });
   return files.map(toFileView);

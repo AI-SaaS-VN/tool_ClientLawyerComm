@@ -3,6 +3,7 @@ import type { ReviewTask, User } from "@prisma/client";
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { copySharedVersion } from "@/modules/files/service";
+import { enqueueAttachmentPage } from "@/modules/files/attachment-translation";
 import { toMessageView } from "@/modules/messages/service";
 import { recordAudit } from "@/server/audit/log";
 import { requireCaseMember } from "@/server/guards/case-guards";
@@ -228,6 +229,8 @@ export async function decideReviewTask(
             sourceVersion: 1,
           },
         });
+        // T15 (REQ-ATT): queue the attachment translation page with the publish.
+        await enqueueAttachmentPage(tx, task.targetId);
       }
     }
     await cancelQueuedAlertsForReviewTask(tx, task.id, now);

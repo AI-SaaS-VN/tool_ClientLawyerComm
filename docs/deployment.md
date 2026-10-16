@@ -24,7 +24,7 @@ See `.env.example` for the full list (placeholders only, never real values). Key
 - `DATABASE_URL` — 应用库连接串。
 - `MINIO_*` / `STORAGE_PROVIDER=minio` — 私有对象存储。
 - `APP_DATA_KEY` — 32 字节 hex 的 AES-256-GCM 密钥,加密联系方式与 MFA secret;`openssl rand -hex 32` 生成;**轮换即失效**,丢失则已加密数据不可读。
-- `EMAIL_PROVIDER` / `TRANSLATION_PROVIDER` / `LLM_PROVIDER` / `FILE_SCANNER` — 真实实现已落地两个:`EMAIL_PROVIDER=smtp`(F06,2026-10-03;`SmtpEmailProvider` 经 `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_AUTH_CODE`/`EMAIL_FROM` 走运营方邮箱,587/STARTTLS 或 465 隐式 TLS)与 `TRANSLATION_PROVIDER=kimi`(F07;读 `KIMI_BASE_URL`/`KIMI_MODEL`,2026-10-03 经用户批准 O05)。`LLM_PROVIDER`(审核语义判断)与 `FILE_SCANNER` 仍只有替身,**生产环境会拒绝替身**;指定的虚构数据测试机是替身的唯一例外:设 `CLC_FICTITIOUS_TEST_HOST=1`(见下)。该开关不得用于存放真实案情的主机。
+- `EMAIL_PROVIDER` / `TRANSLATION_PROVIDER` / `LLM_PROVIDER` / `FILE_SCANNER` — 真实实现已落地两个:`EMAIL_PROVIDER=smtp`(F06,2026-10-03;`SmtpEmailProvider` 经 `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_AUTH_CODE`/`EMAIL_FROM` 走运营方邮箱,587/STARTTLS 或 465 隐式 TLS)与 `TRANSLATION_PROVIDER=kimi`(F07;读 `KIMI_BASE_URL`/`KIMI_MODEL`,2026-10-03 经用户批准 O05)。T15(2026-10-16)起同一 provider 接缝还承担附件图片读字:JPG/PNG 经 Kimi 视觉模型转写,模型取 `KIMI_VISION_MODEL`,缺省回落 `KIMI_MODEL`;与消息翻译共用进程内 worker 的定速预算(账号上限 3 RPM)。`LLM_PROVIDER`(审核语义判断)与 `FILE_SCANNER` 仍只有替身,**生产环境会拒绝替身**;指定的虚构数据测试机是替身的唯一例外:设 `CLC_FICTITIOUS_TEST_HOST=1`(见下)。该开关不得用于存放真实案情的主机。
 - `SESSION_COOKIE_SECURE` — 默认 `true`。**仅**在备案前的 HTTP-IP 测试入口(虚构数据)可设 `false`;接入任何真实数据前必须恢复 `true`(REQ-AUTH-06)。
 - `APP_BASE_URL` — 提醒邮件中的登录链接前缀(不含路径)。
 - `NOTIFICATION_WORKER` — 默认 `on`,见上表。

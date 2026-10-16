@@ -1,7 +1,7 @@
 import { standInProvidersAllowed } from "../stand-in";
-import { fakeLlmModerationProvider, fakeLlmTranslationProvider } from "./fake";
-import type { LlmModerationProvider, LlmTranslationProvider } from "./interface";
-import { KimiTranslationProvider } from "./kimi-adapter";
+import { fakeLlmModerationProvider, fakeLlmTranslationProvider, fakeLlmVisionProvider } from "./fake";
+import type { LlmModerationProvider, LlmTranslationProvider, LlmVisionProvider } from "./interface";
+import { KimiTranslationProvider, KimiVisionProvider } from "./kimi-adapter";
 
 // T05 ships only the fake provider; the real Kimi adapter is T06.
 export function getLlmModerationProvider(): LlmModerationProvider {
@@ -28,6 +28,22 @@ export function getLlmTranslationProvider(): LlmTranslationProvider {
   }
   if (kind === "kimi") {
     return new KimiTranslationProvider(process.env.KIMI_API_KEY);
+  }
+  throw new Error(`unsupported TRANSLATION_PROVIDER: ${kind}`);
+}
+
+// Attachment image reading (REQ-ATT-04) shares the translation provider seam:
+// "fake" in development/tests, Kimi when TRANSLATION_PROVIDER=kimi.
+export function getLlmVisionProvider(): LlmVisionProvider {
+  const kind = process.env.TRANSLATION_PROVIDER ?? "fake";
+  if (kind === "fake") {
+    if (!standInProvidersAllowed()) {
+      throw new Error("fake vision provider is not allowed in production");
+    }
+    return fakeLlmVisionProvider;
+  }
+  if (kind === "kimi") {
+    return new KimiVisionProvider(process.env.KIMI_API_KEY);
   }
   throw new Error(`unsupported TRANSLATION_PROVIDER: ${kind}`);
 }

@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.14 | Date: 2026-10-15
-- 版本：0.14｜日期：2026-10-15
-- Basis: SPEC.md v0.14, SOW.md v1.13. Invitation codes do not expire (v1.12). The second phase is specified and not built: T15 Attachment Translation Page, then T16 Coordinator Brief, then T18 Target Company registry, then T17 statute note. Do not start T16, T17, or T18 before T15. F18 (client default Simplified Chinese) and F17 (worker-queue translation) are implemented as of 2026-10-15. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
-- 依据：SPEC.md v0.14、SOW.md v1.13。邀请码长期有效（v1.12）。第二阶段已写入、尚未实现：T15 附件翻译页，然后 T16 协调员备忘，然后 T18 目标公司工商查询，然后 T17 法条备忘。T15 完成之前不要开始 T16、T17、T18。F18（客户默认简体中文）与 F17（翻译入 worker 队列）已于 2026-10-15 实现。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
+- Version: 0.15 | Date: 2026-10-16
+- 版本：0.15｜日期：2026-10-16
+- Basis: SPEC.md v0.15, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 (client default Simplified Chinese) and F17 (worker-queue translation) were implemented 2026-10-15; T15 Attachment Translation Page was implemented 2026-10-16. Remaining second phase: T16 Coordinator Brief, then T18 Target Company registry, then T17 statute note. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
+- 依据：SPEC.md v0.15、SOW.md v1.13。邀请码长期有效（v1.12）。F18（客户默认简体中文）与 F17（翻译入 worker 队列）已于 2026-10-15 实现；T15 附件翻译页已于 2026-10-16 实现。第二阶段剩余：T16 协调员备忘，然后 T18 目标公司工商查询，然后 T17 法条备忘。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -323,8 +323,8 @@
 - 依赖：T08、T06。
 - Acceptance criteria: the first failing test is `tests/unit/files/attachment-translation-page.test.ts`. A published file with extracted Chinese text produces a page whose body is the source text, then Vietnamese. A published file with extracted Vietnamese text produces Traditional Chinese after the source. A file that yields no text has no page, and the file row says so. A member who cannot download the original cannot open the page. An unpublished file has no page for the other members.
 - 验收标准：第一份失败测试是 `tests/unit/files/attachment-translation-page.test.ts`。已发布且抽出中文的文件，页面正文先是源文，然后是越南语。已发布且抽出越南语的文件，源文之后是繁体中文。抽不出文字的文件没有这一页，文件行上写明。不能下载原件的成员不能打开这一页。未发布的文件不给其他成员这一页。
-- Status: Not started. Do this before T16, T17, and T18.
-- 状态：未开始。在 T16、T17、T18 之前做。
+- Status: Done 2026-10-16. `attachment_pages` row queued inside both publish transactions; the worker extracts (local pdf-parse/mammoth for selectable PDF/DOCX, Kimi vision for JPG/PNG) then translates, paced with the same 3 RPM budget as message translation; `/files/[id]/translation` renders source then the one translation; authorization re-validates membership and publish state per request. Clarifications recorded in SPEC v0.15 (REQ-ATT-02/04).
+- 状态：2026-10-16 完成。两条发布路径的事务里都会排入 `attachment_pages` 行；worker 先抽取（可选中 PDF/DOCX 用本机 pdf-parse/mammoth，JPG/PNG 用 Kimi 视觉）再翻译，与消息翻译共用 3 RPM 定速；`/files/[id]/translation` 先源文后译文；每次请求都重新校验成员与发布状态。澄清已写入 SPEC v0.15（REQ-ATT-02/04）。
 
 ## T16 Coordinator Brief / T16 协调员备忘
 
@@ -415,7 +415,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 17 | F16 | Daily email to the Coordinator only (T13). 00:00 Asia/Ho_Chi_Minh, previous Vietnamese calendar day, published messages and published attachments, subject `{Case name}-{send date}-Record`. Lawyers and Clients are not recipients. | Moved into the MVP on 2026-10-04. Done the same day: generation is idempotent on (case, day), one email per coordinator per ≤20MB part, empty days and archived cases record a skipped run. | Done |
 | 18 | F17 | Translation backfill root fix: move automatic translation out of the message-list request into the in-process worker queue (serialized provider calls, backoff retry, error-category logging). | 2026-10-05 pilot finding (CURSOR_REVIEW 13.2): parallel Kimi calls trip rate limiting. User decision 2026-10-05: interim = fast model `kimi-k2.7-code-highspeed` on the test host (config-only, done, ~2s per call); the worker-queue fix follows 48 hours later (≈2026-10-07). Built 2026-10-15: auto mode only queues; the worker drains serially at one provider call per 21s (Kimi org cap 3 RPM), failed attempts get a bounded backoff retry (max 3), failures log the typed category; migration adds attempts/next_retry_at. | Done 2026-10-15 |
 | 19 | F18 | Client default screen is Simplified Chinese. Traditional Chinese appears only after that client switches it on the language control. Automatic-mode messages follow the account language. A new client invitation uses Simplified Chinese unless the operator asks for Traditional Chinese. `defaultScreenLang("client")` and the client invite language still return `zh-Hant`. | Decided 2026-10-09 while reviewing the phase-2 prototype. Built 2026-10-15: client default Simplified, Traditional only via the client's own switch; new client invite emails default to Simplified. | Done |
-| 20 | F19 | Attachment Translation Page (T15, REQ-ATT). HTML page opened by 打开附件翻译. Source text, then one translation. No Markdown download. No separate OCR service. | Specified 2026-10-09. First failing test: `tests/unit/files/attachment-translation-page.test.ts`. | Not started |
+| 20 | F19 | Attachment Translation Page (T15, REQ-ATT). HTML page opened by 打开附件翻译. Source text, then one translation. No Markdown download. No separate OCR service. | Specified 2026-10-09. First failing test: `tests/unit/files/attachment-translation-page.test.ts`. | Done 2026-10-16 |
 | 21 | F20 | Coordinator Brief (T16, REQ-BRIEF). Coordinator only. Stored after confirm. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/coordinator-brief.test.ts`. | Not started |
 | 22 | F21 | China-and-Vietnam statute note (T17, REQ-STAT). Links first. Confirm before the brief stores it. | Specified 2026-10-09. After T16. First failing test: `tests/unit/agent/statute-brief.test.ts`. | Not started |
 | 23 | F22 | Target Company registry lookup (T18, REQ-REG). Automatic per case. Coordinator sees the result. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/target-company-registry.test.ts`. | Not started |
@@ -441,7 +441,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 17 | F16 | 只发给协调员的每日邮件（T13）。Asia/Ho_Chi_Minh 00:00，上一越南日历日，已发布消息与已发布附件，标题 `{案件名称}-{发送日}-Record`。律师和客户不是收件人。 | 2026-10-04 纳入 MVP。当天完成：以（案件, 日）幂等生成，每名协调员每 ≤20MB 分卷一封邮件，无内容日与归档案件记为跳过的运行。 | 已完成 |
 | 18 | F17 | 翻译回填根治：把自动翻译从消息列表请求移入进程内 worker 队列（串行调 provider、退避重试、错误类别日志）。 | 2026-10-05 试点发现（CURSOR_REVIEW 13.2）：并发调 Kimi 触发限流。用户 2026-10-05 决定：先用快速模型 `kimi-k2.7-code-highspeed`（纯配置，已完成，单次约 2 秒）；worker 队列方案 48 小时后（≈2026-10-07）实施。2026-10-15 已实现：自动模式只入队；worker 按每 21 秒一次串行调用（Kimi 账号上限 3 RPM），失败按退避有限重试（最多 3 次）并记录类型化日志；迁移新增 attempts/next_retry_at。 | Done 2026-10-15 |
 | 19 | F18 | 客户默认屏幕是简体中文。繁体中文只在该客户用语言开关自己切换后出现。自动模式的消息跟随账号语言。新的客户邀请邮件用简体中文，除非操作者另行指定繁体。`defaultScreenLang("client")` 和客户邀请语言仍返回 `zh-Hant`。 | 2026-10-09 复核第二阶段原型时决定。2026-10-15 已实现：客户默认简体，繁体仅由客户自行切换；新客户邀请邮件默认简体。 | 已完成 |
-| 20 | F19 | 附件翻译页（T15，REQ-ATT）。用「打开附件翻译」打开 HTML 页面。先源文，再一种译文。不是 Markdown 下载。不另设 OCR 服务。 | 2026-10-09 写入。第一份失败测试：`tests/unit/files/attachment-translation-page.test.ts`。 | 未开始 |
+| 20 | F19 | 附件翻译页（T15，REQ-ATT）。用「打开附件翻译」打开 HTML 页面。先源文，再一种译文。不是 Markdown 下载。不另设 OCR 服务。 | 2026-10-09 写入。第一份失败测试：`tests/unit/files/attachment-translation-page.test.ts`。 | 2026-10-16 完成 |
 | 21 | F20 | 协调员备忘（T16，REQ-BRIEF）。只有协调员。确认后才写入。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/coordinator-brief.test.ts`。 | 未开始 |
 | 22 | F21 | 中国法与越南法备忘（T17，REQ-STAT）。先给链接。确认后才写入备忘。 | 2026-10-09 写入。在 T16 之后。第一份失败测试：`tests/unit/agent/statute-brief.test.ts`。 | 未开始 |
 | 23 | F22 | 目标公司工商查询（T18，REQ-REG）。每个案件自动查询。协调员看到结果。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/target-company-registry.test.ts`。 | 未开始 |

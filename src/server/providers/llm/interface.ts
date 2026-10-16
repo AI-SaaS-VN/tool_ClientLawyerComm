@@ -43,3 +43,20 @@ export interface LlmTranslationProvider {
   readonly id: string;
   translate(input: TranslateInput): Promise<TranslateResult>;
 }
+
+// REQ-ATT-04: photos and scanned pages (JPG/PNG) are read by the existing
+// Kimi — the image bytes and nothing else cross the provider boundary.
+export interface ReadImageTextInput {
+  dataBase64: string;
+  mime: string;
+}
+
+export interface ReadImageTextResult {
+  text: string;
+  model: string;
+}
+
+export interface LlmVisionProvider {
+  readonly id: string;
+  readImageText(input: ReadImageTextInput): Promise<ReadImageTextResult>;
+}

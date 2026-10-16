@@ -18,6 +18,11 @@ import {
 } from "@/modules/notifications/templates";
 import { queueTranslation, runTranslationVersion } from "@/modules/translation/service";
 import { isZhConversionPair } from "@/modules/translation/langs";
+import {
+  attachmentPageNextStepUsesLlm,
+  findDueAttachmentPages,
+  runAttachmentPageStep,
+} from "@/modules/files/attachment-translation";
 import { prisma } from "@/lib/db";
 import { recordAudit } from "@/server/audit/log";
 import { getEmailProvider } from "@/server/providers/email";
@@ -53,6 +58,8 @@ export interface WorkerRunSummary {
   failed: number;
   translated: number;
   translationFailed: number;
+  attachmentPages: number;
+  attachmentPagesFailed: number;
 }
 
 const BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
@@ -75,7 +82,7 @@ export async function runNotificationWorkerOnce(
 ): Promise<WorkerRunSummary> {
   const clock = deps.clock ?? systemClock;
   const emailProvider = deps.emailProvider ?? getEmailProvider();
-  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0 };
+  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0 };
 
   if (deps.digest) {
     // Idempotent via the unique (case_id, digest_date): a failure here is
@@ -90,6 +97,10 @@ export async function runNotificationWorkerOnce(
   summary.escalated += await advanceEscalations(clock.now());
   await sendDueAlerts(clock, emailProvider, summary);
   await runTranslationQueuePass(
+    deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
+    summary,
+  );
+  await runAttachmentPagePass(
     deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
     summary,
   );
@@ -132,6 +143,26 @@ async function runTranslationQueuePass(
     } else {
       summary.translated += 1;
     }
+  }
+}
+
+// T15 (REQ-ATT): attachment pages are processed one step per row — local
+// PDF/DOCX extraction is unpaced; image reading and the translation itself
+// share the same paced LLM budget as message translations (3 RPM cap).
+// Retries and terminal failure are handled inside runAttachmentPageStep.
+async function runAttachmentPagePass(
+  minIntervalMs: number,
+  summary: WorkerRunSummary,
+): Promise<void> {
+  const due = await findDueAttachmentPages(new Date());
+  for (const row of due) {
+    if (await attachmentPageNextStepUsesLlm(row)) {
+      if (Date.now() - lastLlmTranslationCallAt < minIntervalMs) break;
+      lastLlmTranslationCallAt = Date.now();
+    }
+    const finished = await runAttachmentPageStep(row);
+    if (finished.status === "failed") summary.attachmentPagesFailed += 1;
+    else summary.attachmentPages += 1;
   }
 }
 

@@ -1,6 +1,9 @@
 import { LlmFailure } from "./interface";
 import type {
   LlmTranslationProvider,
+  LlmVisionProvider,
+  ReadImageTextInput,
+  ReadImageTextResult,
   TranslateInput,
   TranslateResult,
 } from "./interface";
@@ -92,5 +95,85 @@ export class KimiTranslationProvider implements LlmTranslationProvider {
       promptVersion: PROMPT_VERSION,
       glossaryVersion: GLOSSARY_VERSION,
     };
+  }
+}
+
+// REQ-ATT-04: image attachments are read by Kimi's vision endpoint. The model
+// comes from KIMI_VISION_MODEL (falling back to KIMI_MODEL) so a
+// vision-capable deployment can be configured without code changes; the same
+// typed faults apply (REQ-MSG-10).
+export class KimiVisionProvider implements LlmVisionProvider {
+  readonly id = "kimi";
+
+  private readonly baseUrl: string;
+  private readonly model: string | undefined;
+
+  constructor(private readonly apiKey: string | undefined) {
+    const base = (process.env.KIMI_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+    this.baseUrl = base.endsWith("/v1") ? base : `${base}/v1`;
+    this.model = process.env.KIMI_VISION_MODEL ?? process.env.KIMI_MODEL;
+  }
+
+  async readImageText(input: ReadImageTextInput): Promise<ReadImageTextResult> {
+    if (!this.apiKey) {
+      throw new Error("kimi provider is not configured (KIMI_API_KEY missing)");
+    }
+    const model = this.model;
+    if (!model) {
+      throw new Error("kimi provider is not configured (KIMI_MODEL missing)");
+    }
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${this.apiKey}`,
+        },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Transcribe every word visible in this document image, in reading order. " +
+                    "Reply with the transcribed text only — no commentary, no translation.",
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: `data:${input.mime};base64,${input.dataBase64}` },
+                },
+              ],
+            },
+          ],
+        }),
+      });
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === "TimeoutError" || error.name === "AbortError")
+      ) {
+        throw new LlmFailure("timeout");
+      }
+      throw error;
+    }
+    if (response.status === 429) throw new LlmFailure("rate_limited");
+    if (response.status >= 500) throw new LlmFailure("server");
+    if (!response.ok) throw new Error(`llm http_${response.status}`);
+    let payload: { choices?: Array<{ message?: { content?: unknown } }> };
+    try {
+      payload = (await response.json()) as typeof payload;
+    } catch {
+      throw new LlmFailure("format");
+    }
+    const text = payload.choices?.[0]?.message?.content;
+    if (typeof text !== "string" || text.trim().length === 0) {
+      throw new LlmFailure("format");
+    }
+    return { text, model };
   }
 }

@@ -12,6 +12,7 @@ interface FileItem {
   originalName: string;
   sizeBytes: number;
   createdAt: string;
+  attachmentState?: "none" | "pending" | "ready" | "unavailable";
 }
 
 export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
@@ -103,6 +104,25 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
               >
                 {uiText(lang, "download")}
               </a>
+            ) : null}
+            {file.status === "published" && file.attachmentState === "ready" ? (
+              <a
+                className="ml-3 underline"
+                data-testid="attachment-translation-link"
+                href={`/files/${file.id}/translation`}
+              >
+                {uiText(lang, "openAttachmentTranslation")}
+              </a>
+            ) : null}
+            {file.status === "published" && file.attachmentState === "pending" ? (
+              <span className="ml-3 opacity-60" data-testid="attachment-preparing">
+                {uiText(lang, "attachmentPreparing")}
+              </span>
+            ) : null}
+            {file.status === "published" && file.attachmentState === "unavailable" ? (
+              <span className="ml-3 opacity-60" data-testid="attachment-unavailable">
+                {uiText(lang, "attachmentNoText")}
+              </span>
             ) : null}
           </li>
         ))}

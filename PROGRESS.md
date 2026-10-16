@@ -1,7 +1,7 @@
 # PROGRESS.md — Current Progress / 当前进度
 
-- Updated: 2026-10-09 (UTC+8) | Maintenance: update upon completion of each task or phase
-- 更新日期：2026-10-09（UTC+8）｜维护方式：每完成一个任务或阶段即更新
+- Updated: 2026-10-16 (UTC+8) | Maintenance: update upon completion of each task or phase
+- 更新日期：2026-10-16（UTC+8）｜维护方式：每完成一个任务或阶段即更新
 - Re-verified 2026-10-03 after F13/F14: `npm run test` 286/286 (42 files), `npm run test:e2e` 7/7, `npx tsc --noEmit` clean. The T01–T12 records below describe the earlier build.<br>2026-10-03 在 F13/F14 之后复核：`npm run test` 286/286（42 个文件）、`npm run test:e2e` 7/7、`npx tsc --noEmit` 无错误。下面 T01–T12 的记录描述的是更早的那次构建。
 
 Client default corrected 2026-10-09: a client sees Simplified Chinese. Traditional Chinese appears only after that client switches it. Application code still defaults a client to Traditional Chinese (PLAN F18).<br>2026-10-09 更正客户默认：客户看到简体中文。繁体中文只在该客户自己切换后出现。应用代码仍把客户默认成繁体中文（PLAN F18）。
@@ -19,6 +19,14 @@ Test runtime (2026-10-09): subsequent test deployments use the US test machine. 
 - Deployed to the Shanghai test host: migration applied, build rc=0, service active, health 200.
 
 第二阶段开工（2026-10-15）：F18 客户默认简体中文（繁体仅自行切换）；F17 自动翻译移入 worker 队列串行定速执行（Kimi 账号上限实测 3 RPM），失败退避重试最多 3 次并记录类型化日志；关键字段校验排除「非常/是否/được không」误报。E2E 顺手修了 10-04 起坏掉的邀请邮件匹配。`npm run test` 340/340、E2E 7/7、tsc/lint/build 无错误，已部署上海测试机。
+
+## T15 Attachment Translation Page (2026-10-16) / T15 附件翻译页（2026-10-16）
+
+- Implemented per SPEC v0.15 / PLAN v0.15. A published PDF/DOCX/JPG/PNG now gets an `attachment_pages` row inside the same transaction that publishes it (both paths: clean auto-publish and review-console approve). The in-process worker processes it in paced steps — selectable PDF/DOCX text is extracted on the machine (`pdf-parse` v2 / `mammoth`, new dependencies; no LLM call), JPG/PNG photos and scans are read by Kimi vision (`KimiVisionProvider`, model from `KIMI_VISION_MODEL` falling back to `KIMI_MODEL`), then one translation runs through the existing provider. All LLM steps share the F17 pacing budget (one call per 21s; the Kimi org cap is 3 RPM). Retry with backoff (max 3 attempts), then terminal `failed`; crash recovery re-takes stale `processing` rows after 10 minutes.
+- The page is `/files/[id]/translation`: extracted source text first, then the single translation (Chinese → Vietnamese, Vietnamese → Traditional Chinese; other languages produce no page — SPEC v0.15 clarification). Page wording follows the viewer's screen language (zh-Hans/zh-Hant/vi/en copy added). The file row gains 打开附件翻译 / 打開附件翻譯 / Mở bản dịch tệp when ready, 「翻译页准备中…」 while pending, and the no-text note when extraction failed (REQ-ATT-04). Authorization mirrors the download: active member + published file, re-validated on every request; unpublished files and revoked members get a plain 404/403. Scanned PDFs without selectable text are not rasterized in this version (SPEC v0.15 clarification — upload scans as JPG/PNG).
+- Tests: first failing test `tests/unit/files/attachment-translation-page.test.ts` (direction + row-state), `tests/unit/files/extract-text.test.ts` (real PDF/DOCX fixtures with extractable text, incl. Chinese and Vietnamese DOCX), `tests/integration/files/attachment-translation.test.ts` (7 tests: both directions, vision path with exact-payload assertion, no-text row note, retry-then-failed, authorization/revocation, unpublished-file 404, review-approve publish path). `npm run test` 356/356 (50 files), tsc/lint/build clean.
+
+T15 附件翻译页（2026-10-16）：按 SPEC v0.15 / PLAN v0.15 实现。文件发布（自动发布与审核批准两条路径）同事务排入 `attachment_pages` 行；worker 定速分步处理——可选中 PDF/DOCX 本机抽文字（新增依赖 pdf-parse v2 / mammoth，不走 LLM），JPG/PNG 照片与扫描件由 Kimi 视觉读取（`KimiVisionProvider`，模型取 `KIMI_VISION_MODEL`，缺省回落 `KIMI_MODEL`），随后跑一次翻译；所有 LLM 步骤与消息翻译共用 F17 的 3 RPM 定速。失败退避重试最多 3 次后定格 `failed`；`processing` 卡死行 10 分钟后回收。页面 `/files/[id]/translation` 先源文后译文（中→越、越→繁中；其他语言不生成页面——SPEC v0.15 澄清），页面用语跟随观看者屏幕语言。文件行在就绪时显示「打开附件翻译」，处理中显示「翻译页准备中…」，抽不出文字时写明（REQ-ATT-04）。权限与下载一致：每次请求重新校验成员与发布状态。无可选中文字的扫描版 PDF 本版本不做栅格化（SPEC v0.15 澄清——扫描件请用 JPG/PNG 上传）。测试：`npm run test` 356/356（50 个文件），tsc/lint/build 干净。
 
 ## Real-case pilot / 真实案件试点状态（2026-10-05）
 

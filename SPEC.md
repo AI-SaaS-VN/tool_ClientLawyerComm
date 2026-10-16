@@ -1,9 +1,9 @@
 # SPEC.md — Requirements Specification: China–Vietnam Multilingual Case Communication System / 中越多语言案件沟通系统 需求规格
 
-- Version: 0.14 | Date: 2026-10-15
-- 版本：0.14｜日期：2026-10-15
-- Basis: SOW.md v1.13. v0.12 removes the invitation-code expiry (SOW v1.12): the code is single-use but long-lived, because it is also the return sign-in credential. v0.13 adds the second phase (REQ-ATT, REQ-BRIEF, REQ-STAT, REQ-REG). Those requirements are specified and not implemented.
-- 依据：SOW.md v1.13。v0.12 取消邀请码有效期（SOW v1.12）：激活码单次使用但长期有效，因为它同时是再次登录的凭证。v0.13 增加第二阶段（REQ-ATT、REQ-BRIEF、REQ-STAT、REQ-REG）。这些需求已写入，尚未实现。
+- Version: 0.15 | Date: 2026-10-16
+- 版本：0.15｜日期：2026-10-16
+- Basis: SOW.md v1.13. v0.12 removes the invitation-code expiry (SOW v1.12): the code is single-use but long-lived, because it is also the return sign-in credential. v0.13 adds the second phase (REQ-ATT, REQ-BRIEF, REQ-STAT, REQ-REG). v0.15 implements REQ-ATT (T15) with two clarifications: extracted text that is neither Chinese nor Vietnamese produces no page, and a scanned PDF without selectable text is not rasterized in this version — scans should be uploaded as JPG/PNG photos for Kimi to read.
+- 依据：SOW.md v1.13。v0.12 取消邀请码有效期（SOW v1.12）：激活码单次使用但长期有效，因为它同时是再次登录的凭证。v0.13 增加第二阶段（REQ-ATT、REQ-BRIEF、REQ-STAT、REQ-REG）。v0.15 实现 REQ-ATT（T15），并作两点澄清：抽出的文字既非中文也非越南语时不生成页面；无可选中文字的扫描版 PDF 在本版本不做栅格化——扫描件请以 JPG/PNG 照片上传，交给 Kimi 读取。
 - Status conventions: "MVP" = P0 acceptance scope; "P1/P2" = later versions, recorded only, not implemented.
 - 状态约定：「MVP」= P0 验收范围；「P1/P2」= 后续版本，仅记录不实现。
 - Numbering conventions: REQ-<domain>-NN denotes behavioral requirements; see Section 13 for the data model, Section 14 for the API, and Section 16 for pending parameters.
@@ -410,12 +410,12 @@ Invariants: no response may contain unpublished content or another party's Regis
 | AC11 Backup and Restore / logs<br>AC11 备份恢复/日志 | REQ-OPS-01~06 | T11、T12 |
 | AC12 Coordinator automatic alerts (email; SMS P1)<br>AC12 协调员自动提醒（邮件；短信 P1） | REQ-NTF-07~13、REQ-REV-01~05 | T07、T12 (real email)<br>T07、T12（真实邮件） |
 | — (P1, no AC) Administration Console<br>——（P1，无 AC）管理控制台 | REQ-ADM-01~05 | T14 (P1)<br>T14（P1） |
-| — (v0.13, not built) Attachment Translation Page<br>——（v0.13，未实现）附件翻译页 | REQ-ATT-01~05 | T15 |
+| — (v0.15, built) Attachment Translation Page<br>——（v0.15，已实现）附件翻译页 | REQ-ATT-01~05 | T15 |
 | — (v0.13, not built) Coordinator Brief<br>——（v0.13，未实现）协调员备忘 | REQ-BRIEF-01~03 | T16 |
 | — (v0.13, not built) Statute note<br>——（v0.13，未实现）法条备忘 | REQ-STAT-01~02 | T17, after T15<br>T17，在 T15 之后 |
 | — (v0.13, not built) Target Company registry<br>——（v0.13，未实现）目标公司工商查询 | REQ-REG-01~02 | T18, after T15<br>T18，在 T15 之后 |
 
-## 18. Second Phase (v0.13, not implemented) / 第二阶段（v0.13，未实现）
+## 18. Second Phase (v0.13; REQ-ATT implemented in v0.15) / 第二阶段（v0.13；REQ-ATT 已于 v0.15 实现）
 
 Corresponds to SOW 4.4. The prototype is the screen the user accepted on 2026-10-09. Build T15 before T16, T17, and T18.
 
@@ -424,9 +424,9 @@ Corresponds to SOW 4.4. The prototype is the screen the user accepted on 2026-10
 | ID / 编号 | Requirement / 需求 |
 | --- | --- |
 | REQ-ATT-01 | A published PDF, DOCX, JPG, or PNG opens an HTML Attachment Translation Page. The control is 打开附件翻译 in Simplified Chinese, 打開附件翻譯 in Traditional Chinese, and Mở bản dịch tệp in Vietnamese. It is not a Markdown download.<br>已发布的 PDF、DOCX、JPG 或 PNG 打开 HTML 附件翻译页。简体入口是「打开附件翻译」，繁体是「打開附件翻譯」，越南语是「Mở bản dịch tệp」。这不是 Markdown 下载。 |
-| REQ-ATT-02 | The page shows the extracted source text, then one translation. Chinese source text becomes Vietnamese. Vietnamese source text becomes Traditional Chinese. The direction follows the extracted text. Page wording follows the viewer's screen language.<br>页面先给出抽出的源文，再给出一种译文。中文源文译成越南语。越南语源文译成繁体中文。方向按抽出的文字决定。页面用语跟随观看者的屏幕语言。 |
+| REQ-ATT-02 | The page shows the extracted source text, then one translation. Chinese source text becomes Vietnamese. Vietnamese source text becomes Traditional Chinese. The direction follows the extracted text. Page wording follows the viewer's screen language. (v0.15 clarification: extracted text that is neither Chinese nor Vietnamese produces no page.)<br>页面先给出抽出的源文，再给出一种译文。中文源文译成越南语。越南语源文译成繁体中文。方向按抽出的文字决定。页面用语跟随观看者的屏幕语言。（v0.15 澄清：抽出的文字既非中文也非越南语时不生成页面。） |
 | REQ-ATT-03 | The original file stays downloadable. Anyone who can download the published original can open the page. A file that is not published has no page for the other members.<br>原件仍可下载。能下载已发布原件的人就能打开这一页。未发布的文件不给其他成员这一页。 |
-| REQ-ATT-04 | Selectable PDF and DOCX text is extracted on the machine. Photos and scanned pages are read by the existing Kimi. There is no separate OCR service. If extraction fails, the page is not created and the file row says so.<br>可选中的 PDF 与 DOCX 在本机抽文字。照片和扫描页交给现有的 Kimi。不另设 OCR 服务。抽不出文字时不生成这一页，文件行上写明。 |
+| REQ-ATT-04 | Selectable PDF and DOCX text is extracted on the machine. Photos and scanned pages are read by the existing Kimi. There is no separate OCR service. If extraction fails, the page is not created and the file row says so. (v0.15 clarification: a scanned PDF without selectable text is not rasterized in this version — only JPG/PNG go to Kimi; an unreadable file ends as no page after the retry budget, and the row says so.)<br>可选中的 PDF 与 DOCX 在本机抽文字。照片和扫描页交给现有的 Kimi。不另设 OCR 服务。抽不出文字时不生成这一页，文件行上写明。（v0.15 澄清：无可选中文字的扫描版 PDF 在本版本不做栅格化——只有 JPG/PNG 交给 Kimi；重试次数用尽仍读不出的文件不生成页面，文件行上写明。） |
 | REQ-ATT-05 | This page is not the paragraph-numbered DOCX in REQ-DOC. REQ-DOC stays P1.<br>这一页不是 REQ-DOC 的段落编号 DOCX。REQ-DOC 仍是 P1。 |
 | REQ-BRIEF-01 | The Coordinator Brief is on the coordinator's case page only. A client or a lawyer does not receive it.<br>协调员备忘只在协调员的案件页上。客户和律师看不到。 |
 | REQ-BRIEF-02 | When published content is thin, the agent lists the missing facts and waits. The brief stores an answer only after the coordinator confirms it. The answer is not posted to the case chat and is not emailed.<br>已发布内容还少时，代理列出缺的事实并等待。备忘只在协调员确认后写入回答。回答不发到案件对话，也不发邮件。 |
