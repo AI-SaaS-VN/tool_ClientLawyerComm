@@ -201,19 +201,34 @@ export async function runAttachmentPageStep(row: AttachmentPage): Promise<Attach
   if (!kind) return finishTerminal(current, "failed");
 
   if (!current.sourceText) {
-    let text: string;
+    let data: Buffer;
     try {
-      const data = await sharedCopyBytes(file.id);
-      text =
-        kind === "pdf" || kind === "docx"
-          ? await extractLocalText(kind, data)
-          : (await getLlmVisionProvider().readImageText({
-              dataBase64: data.toString("base64"),
-              mime: file.mime,
-            })).text.trim();
+      data = await sharedCopyBytes(file.id);
     } catch (error) {
-      const failureKind = error instanceof LlmFailure ? error.kind : "unknown";
-      return failOrRetry(current, `extract:${failureKind}`, error);
+      return failOrRetry(current, "extract:storage", error);
+    }
+    let text: string;
+    if (kind === "pdf" || kind === "docx") {
+      // Local extraction is deterministic over the same bytes: a parse error
+      // means this file has no extractable text — no retry, straight to
+      // no_text (REQ-ATT-04: extraction failure creates no page).
+      try {
+        text = await extractLocalText(kind, data);
+      } catch {
+        return finishTerminal(current, "no_text");
+      }
+    } else {
+      try {
+        text = (
+          await getLlmVisionProvider().readImageText({
+            dataBase64: data.toString("base64"),
+            mime: file.mime,
+          })
+        ).text.trim();
+      } catch (error) {
+        const failureKind = error instanceof LlmFailure ? error.kind : "unknown";
+        return failOrRetry(current, `extract:${failureKind}`, error);
+      }
     }
     const direction = text ? planAttachmentDirection(text) : null;
     if (!direction) {

@@ -162,10 +162,22 @@ describe("attachment translation page (REQ-ATT-01~04)", () => {
     });
   });
 
-  it("an unparseable file retries with backoff, then stays failed after the attempt budget", async () => {
+  it("an unparseable PDF is deterministic: no page, no retries, and the row says so (REQ-ATT-04)", async () => {
     const { kase, clientCookie } = await seedMembers();
     // pdfSample() is a magic-byte stub that pdf.js cannot parse.
     const fileId = await uploadPublished(kase.id, clientCookie, "broken.pdf", pdfSample());
+
+    await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
+    const page = await prisma.attachmentPage.findUniqueOrThrow({ where: { fileId } });
+    expect(page.status).toBe("no_text");
+    expect(page.attempts).toBe(0);
+    expect(await attachmentStateOf(kase.id, clientCookie, fileId)).toBe("unavailable");
+  });
+
+  it("a vision failure retries with backoff, then stays failed after the attempt budget", async () => {
+    const { kase, clientCookie } = await seedMembers();
+    fakeLlmVisionProvider.failNext("server");
+    const fileId = await uploadPublished(kase.id, clientCookie, "scan.jpg", jpgSample());
 
     await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
     let page = await prisma.attachmentPage.findUniqueOrThrow({ where: { fileId } });
@@ -178,6 +190,7 @@ describe("attachment translation page (REQ-ATT-01~04)", () => {
       where: { fileId },
       data: { attempts: 2, nextRetryAt: new Date(Date.now() - 1000) },
     });
+    fakeLlmVisionProvider.failNext("server");
     await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
     page = await prisma.attachmentPage.findUniqueOrThrow({ where: { fileId } });
     expect(page.status).toBe("failed");

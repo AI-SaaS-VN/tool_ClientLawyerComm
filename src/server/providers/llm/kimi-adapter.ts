@@ -13,6 +13,10 @@ const DEFAULT_BASE_URL = "https://api.moonshot.cn";
 // development VPS and >30s from the Shanghai host, so the abort budget must
 // stay well above that.
 const REQUEST_TIMEOUT_MS = 90_000;
+// Vision transcription of a dense scan can run minutes server-side; aborting
+// early wastes the call (the account allows one concurrent request, and the
+// server keeps processing after a client abort), so the budget is generous.
+const VISION_TIMEOUT_MS = 240_000;
 const PROMPT_VERSION = "clc-translate-v1";
 const GLOSSARY_VERSION = "clc-glossary-v1";
 
@@ -130,7 +134,7 @@ export class KimiVisionProvider implements LlmVisionProvider {
           "content-type": "application/json",
           authorization: `Bearer ${this.apiKey}`,
         },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(VISION_TIMEOUT_MS),
         body: JSON.stringify({
           model,
           messages: [
