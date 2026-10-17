@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.16 | Date: 2026-10-16
-- 版本：0.16｜日期：2026-10-16
-- Basis: SPEC.md v0.16, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16. Remaining second phase: T18 Target Company registry, then T17 statute note. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
-- 依据：SPEC.md v0.16、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现。第二阶段剩余：T18 目标公司工商查询，然后 T17 法条备忘。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
+- Version: 0.17 | Date: 2026-10-17
+- 版本：0.17｜日期：2026-10-17
+- Basis: SPEC.md v0.17, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. Remaining second phase: T17 statute note. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
+- 依据：SPEC.md v0.17、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。第二阶段剩余：T17 法条备忘。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -362,8 +362,10 @@
 - 依赖：T15。名称缺失时的提问复用备忘的确认路径，所以界面上依赖这个提问时要先完成 T16。
 - Acceptance criteria: the first failing test is `tests/unit/agent/target-company-registry.test.ts`. A case with a target-company name records a lookup result that the coordinator can read and a client cannot. A case without a name does not invent a company.
 - 验收标准：第一份失败测试是 `tests/unit/agent/target-company-registry.test.ts`。有目标公司名称的案件记下一条查询结果，协调员能读，客户不能读。没有名称的案件不编造公司。
-- Status: Not started. After T15. The on-screen question waits for T16.
-- 状态：未开始。在 T15 之后。界面上的提问等 T16。
+- Data source (verified 2026-10-17): the official registry (dangkyquamang.dkkd.gov.vn) sits behind a login/captcha wall; `masothue.com` is a public mirror of the same tax-registration data and worked without credentials — tax code, Vietnamese/English names, status, address, legal representative, and industry all came back for the pilot defendant (CÔNG TY TNHH ĐIỆN TỬ AOMAGA (VIỆT NAM), MST 0901053180, active, Bắc Ninh). The lookup provider parses masothue pages and always stores the source URL; the official address above stays the reference of record.
+- 数据源（2026-10-17 实测）：官方工商登记站（dangkyquamang.dkkd.gov.vn）有登录/验证码门槛；`masothue.com` 是同一套税务登记数据的公开镜像，无需凭据即可查询——试点被告 CÔNG TY TNHH ĐIỆN TỬ AOMAGA (VIỆT NAM)（税号 0901053180，正常经营，北宁省）的税号、越/英名称、状态、地址、法定代表人、行业均成功取回。查询提供方解析 masothue 页面并始终保存来源链接；上方官方地址仍是登记依据。
+- Status: Implemented 2026-10-17. `case_registry_lookups` (migration `20261017153604_t18_case_registry_lookups`); the coordinator enters the name or tax code on the case-page registry block (`RegistryPanel`, four languages; `GET/POST /api/cases/[id]/registry` answer 404 to non-coordinators); the worker fetches masothue through the `RegistryProvider` seam (fake in tests) inside the shared paced budget. Tests: `tests/unit/agent/target-company-registry.test.ts` (16) + `tests/integration/agent/target-company-registry.test.ts` (6). `npm run test` 397/397 (54 files).
+- 状态：2026-10-17 已实现。`case_registry_lookups` 表（迁移 `20261017153604_t18_case_registry_lookups`）；协调员在案件页查询块输入名称或税号（`RegistryPanel`，四语言；非协调员请求 `GET/POST /api/cases/[id]/registry` 一律 404）；worker 经 `RegistryProvider` 接缝抓取 masothue（测试中 fake），共享定速额度。测试：`tests/unit/agent/target-company-registry.test.ts`（16 项）+ `tests/integration/agent/target-company-registry.test.ts`（6 项）。`npm run test` 397/397（54 个文件）。
 
 ## Dependency Graph and Execution Order / 依赖图与执行顺序
 
@@ -418,7 +420,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 20 | F19 | Attachment Translation Page (T15, REQ-ATT). HTML page opened by 打开附件翻译. Source text, then one translation. No Markdown download. No separate OCR service. | Specified 2026-10-09. First failing test: `tests/unit/files/attachment-translation-page.test.ts`. | Done 2026-10-16 |
 | 21 | F20 | Coordinator Brief (T16, REQ-BRIEF). Coordinator only. Stored after confirm. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/coordinator-brief.test.ts`. | Done 2026-10-16 |
 | 22 | F21 | China-and-Vietnam statute note (T17, REQ-STAT). Links first. Confirm before the brief stores it. | Specified 2026-10-09. After T16. First failing test: `tests/unit/agent/statute-brief.test.ts`. | Not started |
-| 23 | F22 | Target Company registry lookup (T18, REQ-REG). Automatic per case. Coordinator sees the result. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/target-company-registry.test.ts`. | Not started |
+| 23 | F22 | Target Company registry lookup (T18, REQ-REG). Automatic per case. Coordinator sees the result. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/target-company-registry.test.ts`. | Implemented 2026-10-17 |
 
 | 顺序 | ID | 任务 | 与提出的三处修改比较 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -444,7 +446,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 20 | F19 | 附件翻译页（T15，REQ-ATT）。用「打开附件翻译」打开 HTML 页面。先源文，再一种译文。不是 Markdown 下载。不另设 OCR 服务。 | 2026-10-09 写入。第一份失败测试：`tests/unit/files/attachment-translation-page.test.ts`。 | 2026-10-16 完成 |
 | 21 | F20 | 协调员备忘（T16，REQ-BRIEF）。只有协调员。确认后才写入。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/coordinator-brief.test.ts`。 | 2026-10-16 完成 |
 | 22 | F21 | 中国法与越南法备忘（T17，REQ-STAT）。先给链接。确认后才写入备忘。 | 2026-10-09 写入。在 T16 之后。第一份失败测试：`tests/unit/agent/statute-brief.test.ts`。 | 未开始 |
-| 23 | F22 | 目标公司工商查询（T18，REQ-REG）。每个案件自动查询。协调员看到结果。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/target-company-registry.test.ts`。 | 未开始 |
+| 23 | F22 | 目标公司工商查询（T18，REQ-REG）。每个案件自动查询。协调员看到结果。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/target-company-registry.test.ts`。 | 2026-10-17 已实现 |
 
 ## Launch scope decided 2026-10-04 / 2026-10-04 确定的上线范围
 

@@ -1,7 +1,7 @@
 # PROGRESS.md — Current Progress / 当前进度
 
-- Updated: 2026-10-16 (UTC+8) | Maintenance: update upon completion of each task or phase
-- 更新日期：2026-10-16（UTC+8）｜维护方式：每完成一个任务或阶段即更新
+- Updated: 2026-10-17 (UTC+8) | Maintenance: update upon completion of each task or phase
+- 更新日期：2026-10-17（UTC+8）｜维护方式：每完成一个任务或阶段即更新
 - Re-verified 2026-10-03 after F13/F14: `npm run test` 286/286 (42 files), `npm run test:e2e` 7/7, `npx tsc --noEmit` clean. The T01–T12 records below describe the earlier build.<br>2026-10-03 在 F13/F14 之后复核：`npm run test` 286/286（42 个文件）、`npm run test:e2e` 7/7、`npx tsc --noEmit` 无错误。下面 T01–T12 的记录描述的是更早的那次构建。
 
 Client default corrected 2026-10-09: a client sees Simplified Chinese. Traditional Chinese appears only after that client switches it. Application code still defaults a client to Traditional Chinese (PLAN F18).<br>2026-10-09 更正客户默认：客户看到简体中文。繁体中文只在该客户自己切换后出现。应用代码仍把客户默认成繁体中文（PLAN F18）。
@@ -19,6 +19,14 @@ Test runtime (2026-10-09): subsequent test deployments use the US test machine. 
 - Deployed to the Shanghai test host: migration applied, build rc=0, service active, health 200.
 
 第二阶段开工（2026-10-15）：F18 客户默认简体中文（繁体仅自行切换）；F17 自动翻译移入 worker 队列串行定速执行（Kimi 账号上限实测 3 RPM），失败退避重试最多 3 次并记录类型化日志；关键字段校验排除「非常/是否/được không」误报。E2E 顺手修了 10-04 起坏掉的邀请邮件匹配。`npm run test` 340/340、E2E 7/7、tsc/lint/build 无错误，已部署上海测试机。
+
+## T18 Target Company Registry Lookup (2026-10-17) / T18 目标公司工商查询（2026-10-17）
+
+- Implemented per SPEC v0.17 / PLAN v0.17. Data source decision (verified live 2026-10-17): the official Vietnam registry (dangkyquamang.dkkd.gov.vn) sits behind a login/captcha wall; `masothue.com` is a public mirror of the same tax-registration data and returned the pilot defendant's full record (tax code, Vietnamese/English names, status, address, legal representative, industry) without credentials. The official address stays the reference of record and every stored result carries its masothue source URL.
+- Each case has one `case_registry_lookups` row (migration `20261017153604_t18_case_registry_lookups`, status state machine none → queued → processing → ready/no_match/failed with a hand-added CHECK). The coordinator enters the target company's Vietnamese name or a bare tax code on the case-page registry block (`RegistryPanel`, four languages); setting or changing the name queues the lookup, and the worker runs it through the new `RegistryProvider` seam (fake in tests, masothue fetch+parse in production) inside the shared paced budget. A bare 10/13-digit tax code skips the search step. `(NỘP THAY)` tax-filing agent rows are excluded from selection; a search with no usable candidate ends as `no_match` — the agent never invents a company (REQ-REG-02). The composed Chinese note lists all registry fields plus other candidates; `GET/POST /api/cases/[id]/registry` answer 404 to clients and lawyers, and the result never becomes a case-chat message or an email (asserted in tests).
+- Tests: first failing test `tests/unit/agent/target-company-registry.test.ts` (16 tests against trimmed real-page fixtures fetched 2026-10-17: search parsing, detail parsing incl. the warning status text, tax-code detection, candidate picking, note composition, queue gating) + `tests/integration/agent/target-company-registry.test.ts` (6 tests: set→worker→ready flow with audit, 404 for client/lawyer, no-name never looked up, no_match, bare tax code, re-query). `npm run test` 397/397 (54 files), tsc/lint clean.
+
+T18 目标公司工商查询（2026-10-17）：按 SPEC v0.17 / PLAN v0.17 实现。数据源经实测确定：官方登记站有登录/验证码门槛，公开镜像 masothue.com 无凭据可取回同一套税务登记数据（试点被告的完整记录已验证）；官方地址仍是登记依据，每条结果都存来源链接。协调员在案件页查询块输入越南语公司名或税号后排队，worker 经新的 RegistryProvider 接缝（测试用 fake，生产抓取并解析 masothue）在共享定速额度内执行；纯税号跳过搜索；「(NỘP THAY)」报税代理行不参与选取；无可用候选定格 no_match，绝不编造公司。结果只对协调员可见，不进对话、不发邮件（测试已断言）。测试 397/397（54 个文件），tsc/lint 干净。
 
 ## T16 Coordinator Brief (2026-10-16) / T16 协调员备忘（2026-10-16）
 

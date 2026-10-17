@@ -1,9 +1,9 @@
 # SPEC.md — Requirements Specification: China–Vietnam Multilingual Case Communication System / 中越多语言案件沟通系统 需求规格
 
-- Version: 0.16 | Date: 2026-10-16
-- 版本：0.16｜日期：2026-10-16
-- Basis: SOW.md v1.13. v0.12 removes the invitation-code expiry (SOW v1.12): the code is single-use but long-lived, because it is also the return sign-in credential. v0.13 adds the second phase (REQ-ATT, REQ-BRIEF, REQ-STAT, REQ-REG). v0.15 implements REQ-ATT (T15) with two clarifications: extracted text that is neither Chinese nor Vietnamese produces no page, and a scanned PDF without selectable text is not rasterized in this version — scans should be uploaded as JPG/PNG photos for Kimi to read. v0.16 implements REQ-BRIEF (T16) with clarifications: "thin" means fewer than five published messages; the brief endpoint answers 404 to non-coordinators; questions regenerate when new published content arrives until the brief is confirmed; the statute links in the prototype belong to REQ-STAT (T17) and are not part of the brief confirm.
-- 依据：SOW.md v1.13。v0.12 取消邀请码有效期（SOW v1.12）：激活码单次使用但长期有效，因为它同时是再次登录的凭证。v0.13 增加第二阶段（REQ-ATT、REQ-BRIEF、REQ-STAT、REQ-REG）。v0.15 实现 REQ-ATT（T15），并作两点澄清：抽出的文字既非中文也非越南语时不生成页面；无可选中文字的扫描版 PDF 在本版本不做栅格化——扫描件请以 JPG/PNG 照片上传，交给 Kimi 读取。v0.16 实现 REQ-BRIEF（T16），并作如下澄清：「内容还少」指已发布消息少于五条；非协调员请求备忘接口一律 404；确认前有新的已发布内容则重新生成问题；原型中的法条链接属于 REQ-STAT（T17），不在备忘确认范围内。
+- Version: 0.17 | Date: 2026-10-17
+- 版本：0.17｜日期：2026-10-17
+- Basis: SOW.md v1.13. v0.12 removes the invitation-code expiry (SOW v1.12): the code is single-use but long-lived, because it is also the return sign-in credential. v0.13 adds the second phase (REQ-ATT, REQ-BRIEF, REQ-STAT, REQ-REG). v0.15 implements REQ-ATT (T15) with two clarifications: extracted text that is neither Chinese nor Vietnamese produces no page, and a scanned PDF without selectable text is not rasterized in this version — scans should be uploaded as JPG/PNG photos for Kimi to read. v0.16 implements REQ-BRIEF (T16) with clarifications: "thin" means fewer than five published messages; the brief endpoint answers 404 to non-coordinators; questions regenerate when new published content arrives until the brief is confirmed; the statute links in the prototype belong to REQ-STAT (T17) and are not part of the brief confirm. v0.17 implements REQ-REG (T18) with clarifications: the working data source is the public masothue.com mirror of the Vietnam tax registration — the official registry address in REQ-REG-01 sits behind a login/captcha wall and stays the reference of record; the target-company name is supplied by the coordinator on the case-page registry block, and a bare tax code skips the search step; a search with no usable candidate ends as no_match, never an invented company; "(NỘP THAY)" tax-filing agent rows are not the company.
+- 依据：SOW.md v1.13。v0.12 取消邀请码有效期（SOW v1.12）：激活码单次使用但长期有效，因为它同时是再次登录的凭证。v0.13 增加第二阶段（REQ-ATT、REQ-BRIEF、REQ-STAT、REQ-REG）。v0.15 实现 REQ-ATT（T15），并作两点澄清：抽出的文字既非中文也非越南语时不生成页面；无可选中文字的扫描版 PDF 在本版本不做栅格化——扫描件请以 JPG/PNG 照片上传，交给 Kimi 读取。v0.16 实现 REQ-BRIEF（T16），并作如下澄清：「内容还少」指已发布消息少于五条；非协调员请求备忘接口一律 404；确认前有新的已发布内容则重新生成问题；原型中的法条链接属于 REQ-STAT（T17），不在备忘确认范围内。v0.17 实现 REQ-REG（T18），并作如下澄清：工作数据源是越南税务登记的公开镜像 masothue.com——REQ-REG-01 中的官方登记地址有登录/验证码门槛，仍是登记依据；目标公司名称由协调员在案件页的查询块中提供，直接输入税号则跳过搜索步骤；搜索没有可用候选时定格为 no_match，绝不编造公司；「(NỘP THAY)」报税代理行不是公司本体。
 - Status conventions: "MVP" = P0 acceptance scope; "P1/P2" = later versions, recorded only, not implemented.
 - 状态约定：「MVP」= P0 验收范围；「P1/P2」= 后续版本，仅记录不实现。
 - Numbering conventions: REQ-<domain>-NN denotes behavioral requirements; see Section 13 for the data model, Section 14 for the API, and Section 16 for pending parameters.
@@ -413,9 +413,9 @@ Invariants: no response may contain unpublished content or another party's Regis
 | — (v0.15, built) Attachment Translation Page<br>——（v0.15，已实现）附件翻译页 | REQ-ATT-01~05 | T15 |
 | — (v0.16, built) Coordinator Brief<br>——（v0.16，已实现）协调员备忘 | REQ-BRIEF-01~03 | T16 |
 | — (v0.13, not built) Statute note<br>——（v0.13，未实现）法条备忘 | REQ-STAT-01~02 | T17, after T15<br>T17，在 T15 之后 |
-| — (v0.13, not built) Target Company registry<br>——（v0.13，未实现）目标公司工商查询 | REQ-REG-01~02 | T18, after T15<br>T18，在 T15 之后 |
+| — (v0.17, built) Target Company registry<br>——（v0.17，已实现）目标公司工商查询 | REQ-REG-01~02 | T18 |
 
-## 18. Second Phase (v0.13; REQ-ATT implemented in v0.15, REQ-BRIEF in v0.16) / 第二阶段（v0.13；REQ-ATT 已于 v0.15 实现，REQ-BRIEF 已于 v0.16 实现）
+## 18. Second Phase (v0.13; REQ-ATT implemented in v0.15, REQ-BRIEF in v0.16, REQ-REG in v0.17) / 第二阶段（v0.13；REQ-ATT 已于 v0.15 实现，REQ-BRIEF 已于 v0.16 实现，REQ-REG 已于 v0.17 实现）
 
 Corresponds to SOW 4.4. The prototype is the screen the user accepted on 2026-10-09. Build T15 before T16, T17, and T18.
 

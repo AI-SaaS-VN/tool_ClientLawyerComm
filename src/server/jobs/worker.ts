@@ -24,6 +24,11 @@ import {
   runAttachmentPageStep,
 } from "@/modules/files/attachment-translation";
 import { findDueBriefRows, queueBriefPrompts, runBriefQuestionsStep } from "@/modules/agent/coordinator-brief";
+import {
+  findDueRegistryRows,
+  queueRegistryLookups,
+  runRegistryLookupStep,
+} from "@/modules/agent/target-company-registry";
 import { prisma } from "@/lib/db";
 import { recordAudit } from "@/server/audit/log";
 import { getEmailProvider } from "@/server/providers/email";
@@ -64,6 +69,9 @@ export interface WorkerRunSummary {
   briefsQueued: number;
   briefsGenerated: number;
   briefsFailed: number;
+  registriesQueued: number;
+  registriesDone: number;
+  registriesFailed: number;
 }
 
 const BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
@@ -86,7 +94,7 @@ export async function runNotificationWorkerOnce(
 ): Promise<WorkerRunSummary> {
   const clock = deps.clock ?? systemClock;
   const emailProvider = deps.emailProvider ?? getEmailProvider();
-  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0, briefsQueued: 0, briefsGenerated: 0, briefsFailed: 0 };
+  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0, briefsQueued: 0, briefsGenerated: 0, briefsFailed: 0, registriesQueued: 0, registriesDone: 0, registriesFailed: 0 };
 
   if (deps.digest) {
     // Idempotent via the unique (case_id, digest_date): a failure here is
@@ -109,6 +117,10 @@ export async function runNotificationWorkerOnce(
     summary,
   );
   await runBriefPass(
+    deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
+    summary,
+  );
+  await runRegistryLookupPass(
     deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
     summary,
   );
@@ -189,6 +201,27 @@ async function runBriefPass(
     const finished = await runBriefQuestionsStep(row);
     if (finished.questionsStatus === "ready") summary.briefsGenerated += 1;
     else if (finished.questionsStatus === "failed") summary.briefsFailed += 1;
+  }
+}
+
+// T18 (REQ-REG): the eligibility scan costs no external call; each lookup
+// fetches from the masothue mirror, so it shares the same paced budget — one
+// lookup per gap keeps us polite to the public site.
+async function runRegistryLookupPass(
+  minIntervalMs: number,
+  summary: WorkerRunSummary,
+): Promise<void> {
+  summary.registriesQueued += await queueRegistryLookups();
+  const due = await findDueRegistryRows(new Date());
+  for (const row of due) {
+    if (Date.now() - lastLlmTranslationCallAt < minIntervalMs) break;
+    lastLlmTranslationCallAt = Date.now();
+    const finished = await runRegistryLookupStep(row);
+    if (finished.status === "ready" || finished.status === "no_match") {
+      summary.registriesDone += 1;
+    } else if (finished.status === "failed") {
+      summary.registriesFailed += 1;
+    }
   }
 }
 

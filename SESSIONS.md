@@ -1393,3 +1393,30 @@ Watch the attachment-page backlog drain on the Shanghai host (Kimi congestion; r
 Deploy T16 to the Shanghai host; then T18 per PLAN (first failing test `tests/unit/agent/target-company-registry.test.ts`).<br>部署 T16 到上海机；然后按 PLAN 做 T18（第一份失败测试 `tests/unit/agent/target-company-registry.test.ts`）。
 
 ---
+
+## Session 2026-10-17-01 (In progress) / 会话 2026-10-17-01（进行中）
+
+- Date/Timezone: 2026-10-17, UTC (Kimi Code on the dev Linux)<br>日期/时区：2026-10-17，UTC（研发 Linux 上的 Kimi Code）
+- Goal (user request): check Aomaga Vietnam's business registration; record the data-source conclusion in PLAN; then implement T18 Target Company registry lookup.<br>本次目标（用户要求）：查询 Aomaga 越南公司工商信息；把数据源结论写入 PLAN；然后实现 T18 目标公司工商查询。
+
+### Actual Actions / 实际动作
+
+1. Live lookup (web): the pilot defendant is CÔNG TY TNHH ĐIỆN TỬ AOMAGA (VIỆT NAM), tax code 0901053180, active since 2019-03-19, Bắc Ninh (Tiên Sơn industrial zone), legal representative HUNG, KUO-YI, main industry cable/optical-fibre manufacturing; a Sandmartin-group company. Customs data shows the plaintiff supplying it, matching the case.<br>实时查询（网络）：试点被告为 CÔNG TY TNHH ĐIỆN TỬ AOMAGA (VIỆT NAM)，税号 0901053180，2019-03-19 起经营，北宁省仙山工业区，法定代表人 HUNG, KUO-YI，主营电线电缆及光纤电缆制造；圣马丁集团旗下。海关数据显示原告向其供货，与案件吻合。
+2. Data-source decision recorded in PLAN T18: the official registry (dangkyquamang.dkkd.gov.vn) is behind login/captcha; masothue.com is a public mirror that works without credentials (verified by fetching and parsing the real pages).<br>数据源结论已写入 PLAN T18：官方登记站有登录/验证码门槛；masothue.com 公开镜像无需凭据（已抓取真实页面验证解析）。
+3. T18 implemented (SPEC v0.17 / PLAN v0.17): trimmed real-page fixtures under `tests/fixtures/masothue/`; parser + candidate picking + note composition in `src/modules/agent/target-company-registry.ts`; `case_registry_lookups` table (migration `20261017153604_t18_case_registry_lookups`, hand-added status CHECK); `RegistryProvider` seam (fake + masothue, `REGISTRY_PROVIDER` env); worker `runRegistryLookupPass` in the shared paced budget; coordinator-only `GET/POST /api/cases/[id]/registry` (404 otherwise); `RegistryPanel` on the case page in four languages. Name comes only from the coordinator; bare tax code skips search; "(NỘP THAY)" rows excluded; no candidate → no_match, never invented.<br>T18 已实现（SPEC v0.17 / PLAN v0.17）：真实页面裁剪夹具；解析/候选选取/备忘组稿模块；case_registry_lookups 表（含手写 CHECK）；RegistryProvider 接缝；worker 定速趟次；仅协调员 API；案件页 RegistryPanel 四语言。名称仅由协调员提供；纯税号跳过搜索；排除报税代理行；无候选定格 no_match，绝不编造。
+
+### Verification / 验证
+
+- `npm run test` 397/397 (54 files; +16 unit + 6 integration for T18), tsc clean, eslint clean on touched files. Vietnamese literals in tests/providers byte-verified against the fetched fixtures.<br>`npm run test` 397/397（54 个文件；T18 新增 16 单测 + 6 集成）；tsc/eslint 干净。测试与 provider 中的越南语字面值已按字节与抓取夹具核对。
+
+### Unfinished Items / 未完成项
+
+- Production build + deploy to the Shanghai host (with `REGISTRY_PROVIDER=masothue` env) pending at session end.<br>生产构建与部署上海机（含 `REGISTRY_PROVIDER=masothue` 环境变量）在会话结束时待办。
+- E2E full suite 7/7 still pending a quiet window; Kimi credit still low.<br>E2E 全量 7/7 仍待安静窗口；Kimi 余额仍不足。
+- Next: T17 statute note.<br>下一件：T17 法条备忘。
+
+### First Step Next Time / 下次第一步
+
+Deploy T18 to the Shanghai host (add `REGISTRY_PROVIDER=masothue` to its `.env`); then T17 per PLAN (first failing test `tests/unit/agent/statute-brief.test.ts`).<br>把 T18 部署到上海机（`.env` 加 `REGISTRY_PROVIDER=masothue`）；然后按 PLAN 做 T17（第一份失败测试 `tests/unit/agent/statute-brief.test.ts`）。
+
+---

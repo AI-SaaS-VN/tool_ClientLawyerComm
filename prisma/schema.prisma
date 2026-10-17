@@ -104,6 +104,7 @@ model Case {
   files         File[]
   digestRuns    DigestRun[]
   brief         CaseBrief?
+  registryLookup CaseRegistryLookup?
 
   @@map("cases")
 }
@@ -442,4 +443,35 @@ model CaseBrief {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@map("case_briefs")
+}
+
+// T18 (REQ-REG): one target-company registry lookup per case. status state
+// machine: none → queued → processing → ready/no_match/failed. query_name is
+// supplied by the coordinator — the agent never invents a company name
+// (REQ-REG-02). candidates is a JSON array of the other search hits. The
+// result is coordinator-only; it is never posted to the case chat. Status
+// CHECK is hand-added in the migration.
+model CaseRegistryLookup {
+  id           String    @id @default(uuid()) @db.Uuid
+  caseId       String    @unique @map("case_id") @db.Uuid
+  case         Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  status       String    @default("none")
+  queryName    String?   @map("query_name")
+  taxCode      String?   @map("tax_code")
+  nameVi       String?   @map("name_vi")
+  nameEn       String?   @map("name_en")
+  statusText   String?   @map("status_text")
+  address      String?
+  legalRep     String?   @map("legal_rep")
+  mainIndustry String?   @map("main_industry")
+  sourceUrl    String?   @map("source_url")
+  candidates   Json?
+  resultText   String?   @map("result_text")
+  attempts     Int       @default(0)
+  nextRetryAt  DateTime? @map("next_retry_at")
+  lookedUpAt   DateTime? @map("looked_up_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("case_registry_lookups")
 }
