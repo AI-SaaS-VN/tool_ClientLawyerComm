@@ -1411,7 +1411,7 @@ Deploy T16 to the Shanghai host; then T18 per PLAN (first failing test `tests/un
 
 ### Unfinished Items / 未完成项
 
-- Production build + deploy to the Shanghai host (with `REGISTRY_PROVIDER=masothue` env) pending at session end.<br>生产构建与部署上海机（含 `REGISTRY_PROVIDER=masothue` 环境变量）在会话结束时待办。
+- Deployed to the Shanghai host (migration + `REGISTRY_PROVIDER=masothue` + build rc=0 + restart; health 200). Found limit: masothue.com answers Cloudflare 403 from that host's datacenter IP and the other Vietnamese registry mirrors time out from it — lookups started there end as failed; options recorded in `docs/deployment.md`.<br>已部署上海机（迁移＋环境变量＋构建＋重启；健康检查 200）。发现限制：上海机访问 masothue.com 被 Cloudflare 拦 403，其他越南登记镜像站超时——该机发起的查询会失败；后续选项见 `docs/deployment.md`。
 - E2E full suite 7/7 still pending a quiet window; Kimi credit still low.<br>E2E 全量 7/7 仍待安静窗口；Kimi 余额仍不足。
 - Next: T17 statute note.<br>下一件：T17 法条备忘。
 

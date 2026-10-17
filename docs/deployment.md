@@ -82,6 +82,12 @@ Concrete host addresses and topology live only in the operations side's private 
 
 From 2026-10-09, later test deployments go to the US test machine. The Shanghai machine keeps the name Shanghai test machine. PostgreSQL 16 and MinIO are already running on the US test machine's loopback address. Application code, design documents, and the host env file are not on it yet, so it does not serve pages. The machine has no systemd, so the Docker daemon was started by hand and must be started again after a reboot. The Shanghai test machine keeps the pilot already running there; this decision does not move that case. Place, hostname, and ports stay in `LOCAL_DEV_NOTES.md`. On the development machine, the project-root `.env` is now the US test machine configuration, and the previous file is `.env.lighthouse-test`. A deploy still excludes `.env`, `.env.lighthouse-test`, `LOCAL_DEV_NOTES.md`, and the documentation working copy. Only `.env` is installed on the US test machine, and it is never committed.
 
+### 目标公司工商查询（T18）的网络限制 / Network limit for the registry lookup (T18)
+
+2026-10-17 实测：masothue.com（T18 的工作数据源）从上海测试机访问返回 Cloudflare 403 挑战页（数据中心 IP 被拦），thongtincongty.com / tracuunnt.gdt.gov.vn / dangkyquamang.dkkd.gov.vn 从该机均连接超时。研发机（境外 IP）抓取正常。上海机 `.env` 已设 `REGISTRY_PROVIDER=masothue`；在该机上发起的查询会在重试后定格 failed，界面提示「查询失败，稍后再试」。后续选项：把查询移到境外可达的机器执行，或为协调员提供手工录入/粘贴来源链接的入口。试点期间工商信息可由运维侧在境外机器查询后转交协调员。
+
+Verified 2026-10-17: from the Shanghai test host, masothue.com (the T18 working source) answers with a Cloudflare 403 challenge (datacenter IP), and thongtincongty.com / tracuunnt.gdt.gov.vn / dangkyquamang.dkkd.gov.vn all time out. Fetches work from the development machine (overseas IP). The Shanghai `.env` carries `REGISTRY_PROVIDER=masothue`; lookups started there retry and end as failed with an on-screen note. Options later: run lookups from a host with working access, or give the coordinator a manual-entry/paste-link path. During the pilot, operations can run the lookup on an overseas machine and hand the result to the coordinator.
+
 ## 6. 端到端测试 / End-to-end tests
 
 `npm run test:e2e`:Playwright 在独立端口(3100)与独立数据库(`clc_e2e`,每次运行重建)上起专用 dev server;邮件走 fake outbox,经 `GET /api/test/outbox` 断言钩子读取激活码/验证码(仅非生产 + fake provider 时存在);通知队列经 `POST /api/test/worker` 显式驱动。无固定 sleep,全部等待走 Playwright 自动等待/轮询。
