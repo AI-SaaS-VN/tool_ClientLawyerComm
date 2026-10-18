@@ -1509,3 +1509,34 @@ Tell the operator the console is live at /admin/cases on the Shanghai host (sess
 Tell the user /new/ is live and the first-login steps; on the next code change, deploy both instances (pilot: plain build + restart clc-web; /new: BASE_PATH build + restart clc-web-new).<br>告知用户 /new/ 已上线及首次登录步骤；下次代码变更时两个实例都部署（试点：普通构建＋重启 clc-web；/new：BASE_PATH 构建＋重启 clc-web-new）。
 
 ---
+
+## Session 2026-10-18-04 (completed) / 会话 2026-10-18-04（已完成）
+
+- Date/Timezone: 2026-10-18, UTC+8<br>日期/时区：2026-10-18，UTC+8
+- Goal: review the living documents, record that new tests use the Shanghai host at `http://<IP>/new/`, and design a case-page prototype where each attachment sits with the message that mentions it.<br>本次目标：复核现行文档，记下新测试使用上海测试机的 `http://<IP>/new/`，并设计案件页原型，让每个附件跟在提到它的消息旁边。
+
+### Actual Actions / 实际动作
+
+1. Read PLAN v0.22, SPEC v0.22, PROGRESS, and the case page. F18, F17, T15, T16, T18, T17, T09, and T14 are implemented. The plan has no remaining task. The case page still renders all messages, then a separate file list below them. No message stores a file id.<br>读了 PLAN v0.22、SPEC v0.22、PROGRESS 和案件页。F18、F17、T15、T16、T18、T17、T09、T14 已实现。计划没有剩余任务。案件页仍先列出全部消息，再在下面单独列出文件。消息上没有文件编号。
+2. The user confirmed new tests use the Shanghai host as IP address plus `/new/`. The pilot stays at `/`. README, PROGRESS, CONTEXT, SOW's living status, and docs/deployment.md now say this. The US-machine paragraph in deployment.md stays as the 2026-10-09 record.<br>用户确认新测试是上海测试机的 IP 地址加上 `/new/`。试点仍在 `/`。README、PROGRESS、CONTEXT、SOW 的现行状态和 docs/deployment.md 已写成这样。deployment.md 里美国测试机那一段保留为 2026-10-09 的记录。
+3. Added `docs/prototypes/case-thread-files.html` for review. A file sent with a message appears under that message. A later message that refers to it shows a chip that highlights that file. The composer sends text and a chosen file together. Client, lawyer, and coordinator views are on one page. No application code.<br>新增供复核的 `docs/prototypes/case-thread-files.html`。和消息一起发出的文件出现在该消息下面。后来提到它的消息有一枚标签，点开会标出那个文件。输入区把文字和选中的文件一起发送。客户、律师、协调员在同一页切换。没有改应用代码。
+4. The user tested the prototype and confirmed: a message with no attachment can still be sent on its own. That behavior stays. The rest of the layout is still under review and is not in SPEC.<br>用户测试了原型并确认：没有附件时，可以单独发送消息。这条保留。版面的其余部分仍在复核，还没有写入 SPEC。
+5. The user accepted the rest of the prototype and the implementation plan. T19 is implemented (SPEC v0.23 / PLAN v0.23): a file sent with a message sits under that message, a later message can cite one visible file, and files with no message stay under 此前上传的附件. Integration tests for the link passed. Not deployed.<br>用户接受了原型的其余部分和改法。T19 已实现（SPEC v0.23 / PLAN v0.23）：和消息一起发出的文件在该消息下面，后来的消息可以指向一份可见文件，没有对应消息的文件留在「此前上传的附件」。关联的集成测试已通过。尚未部署。
+6. The user asked to deploy to the Shanghai `/new/` entry, keep the original invite email and code working, show which role sent each message, and show the original messages and files. The message header now shows the author's case role (REQ-THREAD-06). Code was rsynced to `ClientLawyerComm-new` without replacing its `.env`. `clc_dev` was copied into `clc_new`, then the T19 migration was applied. All copied file objects were already in the shared bucket. Only `clc-web-new` was restarted. `clc-web` stayed up from 15:51 CST.<br>用户要求部署到上海 `/new/`，原来的邀请邮箱和邀请码仍可用，能看出每条消息是哪个角色发出的，并且原来的消息和附件在新部署里可见。消息抬头现在显示发送人在本案中的角色（REQ-THREAD-06）。代码 rsync 到 ClientLawyerComm-new，没有覆盖它的 `.env`。`clc_dev` 复制进 `clc_new` 后应用了 T19 迁移。附件对象本来就在共用的存储桶里。只重启了 `clc-web-new`。`clc-web` 从 15:51 CST 起一直在运行。
+7. Closed this session. PLAN records F23 / T19, SPEC adds REQ-THREAD-06, and `docs/deployment.md` records the `clc_dev` copy into `clc_new`. The T19 code and these living docs are committed together. `next-env.d.ts` stayed on the build path and is not part of the commit. Not pushed.<br>结束本会话。PLAN 记下 F23 / T19，SPEC 增加 REQ-THREAD-06，`docs/deployment.md` 记下把 `clc_dev` 复制进 `clc_new`。T19 代码与这些现行文档一起提交。`next-env.d.ts` 保持构建路径，不纳入提交。未推送。
+
+### Verification / 验证
+
+- On the host, `/new/api/health`, `/new/login`, and `/new/invite` returned 200. `/new/api/test/outbox` returned 404. The pilot `/login` and `/api/health` stayed 200. Message, file, invite, user, and case counts matched between `clc_dev` and `clc_new`. Every message author has a case role. All 34 file objects were present. The role integration test passed before the deploy.<br>机上 `/new/api/health`、`/new/login`、`/new/invite` 为 200。`/new/api/test/outbox` 为 404。试点 `/login` 与 `/api/health` 仍为 200。消息、文件、邀请、用户、案件的数量在 `clc_dev` 与 `clc_new` 之间一致。每条消息的作者都有案件角色。34 个附件对象都在。部署前角色相关的集成测试已通过。
+
+### Unfinished Items / 未完成项
+
+- The pilot at `/` still runs the build from before T19. This deploy did not restart `clc-web`. A later routine deploy of the pilot is a separate request.<br>试点 `/` 仍运行 T19 之前的构建。这次部署没有重启 `clc-web`。以后若要把试点升到同一版本，另作一次部署。
+- The administrator created only on `/new` in session 2026-10-18-03 was replaced when `clc_dev` was copied into `clc_new`. Sign-in uses the pilot's emails and codes.<br>会话 2026-10-18-03 里只建在 `/new` 上的管理员，在把 `clc_dev` 复制进 `clc_new` 时被覆盖。登录用试点里的邮箱和邀请码。
+- Playwright `tests/e2e/files.spec.ts` was updated for the thread composer. The full browser run was not completed in this session (the warmup request failed before assertions). Integration tests for the link and the author role passed.<br>Playwright 的 `tests/e2e/files.spec.ts` 已按对话里的发送方式改过。本会话没有跑完浏览器全量（预热请求在断言之前失败）。关联和作者角色的集成测试已通过。
+
+### First Step Next Time / 下次第一步
+
+The user opens `http://<IP>/new/invite` with the same email and code as the pilot. Mail already sent still links to `/invite` on the pilot. Do not restart `clc-web` unless asked. Do not push unless asked.<br>用户用与试点相同的邮箱和邀请码打开 `http://<IP>/new/invite`。已经发出的邮件仍指向试点的 `/invite`。未要求则不重启 `clc-web`，也不推送。
+
+---

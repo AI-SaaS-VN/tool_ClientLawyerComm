@@ -38,12 +38,14 @@ test("case-page attachment: ordinary upload is published and downloaded by the l
 
   try {
     await clientPage.goto(`/cases/${triangle.caseId}`);
+    await clientPage.getByTestId("message-input").fill("委托材料已上传，请查收。");
     await clientPage.getByTestId("file-input").setInputFiles({
       name: fileName,
       mimeType: "image/png",
       buffer: png,
     });
-    await clientPage.getByTestId("file-upload").click();
+    await clientPage.getByTestId("message-send").click();
+    await expect(clientPage.getByTestId("message-item").filter({ hasText: "委托材料已上传" })).toBeVisible();
 
     const ownItem = clientPage.getByTestId("file-item").filter({ hasText: fileName });
     await expect(ownItem).toBeVisible();

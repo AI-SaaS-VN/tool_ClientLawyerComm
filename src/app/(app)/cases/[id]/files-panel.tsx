@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { apiPath } from "@/lib/api-path";
 import { statusText, uiText } from "@/modules/i18n/copy";
 import { formatRecordTime } from "@/modules/i18n/record-time";
 
-interface FileItem {
+export interface FileItem {
   id: string;
   uploaderDisplayName: string;
   status: string;
@@ -14,6 +14,7 @@ interface FileItem {
   mime: string;
   sizeBytes: number;
   createdAt: string;
+  messageId?: string | null;
   attachmentState?: "none" | "pending" | "ready" | "unavailable";
 }
 
@@ -26,18 +27,17 @@ interface BilingualJob {
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [error, setError] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [selected, setSelected] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [jobs, setJobs] = useState<Record<string, BilingualJob | null>>({});
-  const [requesting, setRequesting] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const uploadingRef = useRef(false);
-  // Hydration gate: server-rendered controls have no handlers yet.
+export function FileCard({
+  file,
+  lang,
+  highlighted = false,
+}: {
+  file: FileItem;
+  lang: string;
+  highlighted?: boolean;
+}) {
+  const [job, setJob] = useState<BilingualJob | null>(null);
+  const [requesting, setRequesting] = useState(false);
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -45,66 +45,41 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
   );
 
   useEffect(() => {
+    if (file.mime !== DOCX_MIME) return;
     let cancelled = false;
-    fetch(apiPath(`/api/cases/${caseId}/files`))
-      .then(async (res) => {
-        if (cancelled) return;
-        if (!res.ok) {
-          setError(true);
-          return;
-        }
-        setFiles(((await res.json()) as { files: FileItem[] }).files);
-        setError(false);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [caseId, refreshKey]);
-
-  // No SSE event exists for file publishes, so a slow interval refetches the
-  // authoritative list — a coordinator's approval surfaces without a reload.
-  useEffect(() => {
-    const backstop = setInterval(() => setRefreshKey((key) => key + 1), 10_000);
-    return () => clearInterval(backstop);
-  }, [caseId]);
-
-  // T09 (REQ-DOC): poll the latest conversion job for each DOCX row.
-  useEffect(() => {
-    let cancelled = false;
-    const docxFiles = files.filter((f) => f.mime === DOCX_MIME);
-    for (const file of docxFiles) {
+    const load = () => {
       fetch(apiPath(`/api/files/${file.id}/bilingual`))
         .then(async (res) => {
           if (cancelled || !res.ok) return;
           const data = (await res.json()) as { job: BilingualJob | null };
-          setJobs((prev) => ({ ...prev, [file.id]: data.job }));
+          setJob(data.job);
         })
         .catch(() => {});
-    }
+    };
+    load();
+    const backstop = setInterval(load, 10_000);
     return () => {
       cancelled = true;
+      clearInterval(backstop);
     };
-  }, [files]);
+  }, [file.id, file.mime]);
 
-  async function requestBilingual(fileId: string) {
+  async function requestBilingual() {
     if (requesting) return;
-    setRequesting(fileId);
+    setRequesting(true);
     try {
-      const res = await fetch(apiPath(`/api/files/${fileId}/bilingual`), { method: "POST" });
+      const res = await fetch(apiPath(`/api/files/${file.id}/bilingual`), { method: "POST" });
       if (res.ok) {
         const data = (await res.json()) as { job: BilingualJob };
-        setJobs((prev) => ({ ...prev, [fileId]: data.job }));
+        setJob(data.job);
       }
     } finally {
-      setRequesting(null);
+      setRequesting(false);
     }
   }
 
-  function bilingualStateText(job: BilingualJob): string {
-    switch (job.status) {
+  function bilingualStateText(current: BilingualJob): string {
+    switch (current.status) {
       case "queued":
       case "processing":
         return uiText(lang, "bilingualWorking");
@@ -121,127 +96,124 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
     }
   }
 
-  async function upload() {
-    if (!selected || uploadingRef.current) return;
-    uploadingRef.current = true;
-    setUploading(true);
-    setUploadError(false);
-    try {
-      const form = new FormData();
-      form.append("file", selected);
-      const res = await fetch(apiPath(`/api/cases/${caseId}/files`), { method: "POST", body: form });
-      if (!res.ok) {
-        setUploadError(true);
-        return;
-      }
-      setSelected(null);
-      if (inputRef.current) inputRef.current.value = "";
-      setRefreshKey((key) => key + 1);
-    } catch {
-      setUploadError(true);
-    } finally {
-      uploadingRef.current = false;
-      setUploading(false);
-    }
-  }
+  return (
+    <div
+      id={`file-card-${file.id}`}
+      className={`mt-2 rounded border p-3 text-sm ${highlighted ? "outline outline-2" : ""}`}
+      data-testid="file-item"
+    >
+      <span className="font-medium">{file.originalName}</span>
+      <span className="ml-2 opacity-60">
+        {statusText(lang, file.status)} · {file.uploaderDisplayName} ·{" "}
+        <time dateTime={file.createdAt} data-testid="file-time">
+          {formatRecordTime(file.createdAt)}
+        </time>
+      </span>
+      {file.status === "published" ? (
+        <a
+          className="ml-3 underline"
+          data-testid="file-download"
+          href={apiPath(`/api/files/${file.id}/download`)}
+        >
+          {uiText(lang, "download")}
+        </a>
+      ) : null}
+      {file.status === "published" && file.attachmentState === "ready" ? (
+        <a
+          className="ml-3 underline"
+          data-testid="attachment-translation-link"
+          href={apiPath(`/files/${file.id}/translation`)}
+        >
+          {uiText(lang, "openAttachmentTranslation")}
+        </a>
+      ) : null}
+      {file.status === "published" && file.attachmentState === "pending" ? (
+        <span className="ml-3 opacity-60" data-testid="attachment-preparing">
+          {uiText(lang, "attachmentPreparing")}
+        </span>
+      ) : null}
+      {file.status === "published" && file.attachmentState === "unavailable" ? (
+        <span className="ml-3 opacity-60" data-testid="attachment-unavailable">
+          {uiText(lang, "attachmentNoText")}
+        </span>
+      ) : null}
+      {file.mime === DOCX_MIME ? (
+        <span className="ml-3" data-testid="bilingual-block">
+          {job ? (
+            <span className="opacity-60" data-testid="bilingual-status">
+              {bilingualStateText(job)}
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="underline disabled:opacity-50"
+              title={uiText(lang, "bilingualDisclaimer")}
+              data-testid="bilingual-button"
+              disabled={!mounted || requesting}
+              onClick={() => void requestBilingual()}
+            >
+              {uiText(lang, "bilingualButton")}
+            </button>
+          )}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [error, setError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(apiPath(`/api/cases/${caseId}/files`))
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setError(true);
+          setLoaded(true);
+          return;
+        }
+        setFiles(((await res.json()) as { files: FileItem[] }).files);
+        setError(false);
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError(true);
+          setLoaded(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId, refreshKey]);
+
+  useEffect(() => {
+    const backstop = setInterval(() => setRefreshKey((key) => key + 1), 10_000);
+    return () => clearInterval(backstop);
+  }, [caseId]);
+
+  const prior = files.filter((file) => !file.messageId);
+  if (!loaded || (prior.length === 0 && !error)) return null;
 
   return (
     <section className="mt-8">
-      <h2 className="mb-2 font-medium">{uiText(lang, "files")}</h2>
-      {files.some((f) => f.mime === DOCX_MIME) ? (
+      <h2 className="mb-2 font-medium">{uiText(lang, "priorFiles")}</h2>
+      {prior.some((f) => f.mime === DOCX_MIME) ? (
         <p className="mb-2 text-xs opacity-60">{uiText(lang, "bilingualDisclaimer")}</p>
       ) : null}
       {error ? <p className="text-sm opacity-60">{uiText(lang, "loadFailed")}</p> : null}
-      <ul className="flex flex-col gap-2" data-testid="file-list">
-        {files.map((file) => (
-          <li key={file.id} className="rounded border p-3 text-sm" data-testid="file-item">
-            <span className="font-medium">{file.originalName}</span>
-            <span className="ml-2 opacity-60">
-              {statusText(lang, file.status)} · {file.uploaderDisplayName} ·{" "}
-              <time dateTime={file.createdAt} data-testid="file-time">
-                {formatRecordTime(file.createdAt)}
-              </time>
-            </span>
-            {file.status === "published" ? (
-              <a
-                className="ml-3 underline"
-                data-testid="file-download"
-                href={apiPath(`/api/files/${file.id}/download`)}
-              >
-                {uiText(lang, "download")}
-              </a>
-            ) : null}
-            {file.status === "published" && file.attachmentState === "ready" ? (
-              <a
-                className="ml-3 underline"
-                data-testid="attachment-translation-link"
-                href={apiPath(`/files/${file.id}/translation`)}
-              >
-                {uiText(lang, "openAttachmentTranslation")}
-              </a>
-            ) : null}
-            {file.status === "published" && file.attachmentState === "pending" ? (
-              <span className="ml-3 opacity-60" data-testid="attachment-preparing">
-                {uiText(lang, "attachmentPreparing")}
-              </span>
-            ) : null}
-            {file.status === "published" && file.attachmentState === "unavailable" ? (
-              <span className="ml-3 opacity-60" data-testid="attachment-unavailable">
-                {uiText(lang, "attachmentNoText")}
-              </span>
-            ) : null}
-            {file.mime === DOCX_MIME ? (
-              <span className="ml-3" data-testid="bilingual-block">
-                {jobs[file.id] ? (
-                  <span className="opacity-60" data-testid="bilingual-status">
-                    {bilingualStateText(jobs[file.id]!)}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    className="underline disabled:opacity-50"
-                    title={uiText(lang, "bilingualDisclaimer")}
-                    data-testid="bilingual-button"
-                    disabled={!mounted || requesting === file.id}
-                    onClick={() => void requestBilingual(file.id)}
-                  >
-                    {uiText(lang, "bilingualButton")}
-                  </button>
-                )}
-              </span>
-            ) : null}
+      <ul className="flex flex-col gap-2" data-testid="prior-file-list">
+        {prior.map((file) => (
+          <li key={file.id}>
+            <FileCard file={file} lang={lang} />
           </li>
         ))}
       </ul>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <input
-          id={`file-input-${caseId}`}
-          ref={inputRef}
-          type="file"
-          className="sr-only"
-          data-testid="file-input"
-          onChange={(event) => setSelected(event.target.files?.[0] ?? null)}
-        />
-        <label
-          htmlFor={`file-input-${caseId}`}
-          className="cursor-pointer border px-3 py-1 text-sm"
-        >
-          {uiText(lang, "chooseFile")}
-        </label>
-        {selected ? <span className="text-sm">{selected.name}</span> : null}
-        <button
-          type="button"
-          className="border px-3 py-1 text-sm disabled:opacity-50"
-          data-testid="file-upload"
-          disabled={!mounted || uploading || !selected}
-          onClick={() => void upload()}
-        >
-          {uploading ? uiText(lang, "uploading") : uiText(lang, "upload")}
-        </button>
-      </div>
-      {uploadError ? (
-        <p className="mt-2 text-sm opacity-60">{uiText(lang, "uploadFailed")}</p>
-      ) : null}
     </section>
   );
 }

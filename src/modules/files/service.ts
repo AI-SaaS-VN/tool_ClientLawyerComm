@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import type { File as FileRow, User } from "@prisma/client";
+import { Prisma, type File as FileRow, type User } from "@prisma/client";
 
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
@@ -14,11 +14,26 @@ import {
 import { registerCheckFailedAlerts, registerHoldAlerts } from "@/server/jobs/queue";
 import { getFileScanner } from "@/server/providers/scanner";
 import { getStorageProvider } from "@/server/providers/storage";
+import { publishToCase } from "@/server/sse/hub";
 
 import { MAX_FILE_BYTES, detectFileType } from "./file-type";
 import { attachmentRowState, enqueueAttachmentPage } from "./attachment-translation";
 
 const MAX_NAME_CHARS = 200;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function readMessageLink(caseId: string, user: User, form: FormData): Promise<string | null> {
+  const raw = form.get("messageId");
+  if (raw === null || raw === "") return null;
+  if (typeof raw !== "string" || !UUID_RE.test(raw)) throw new ApiError(400, "invalid_message");
+  const message = await prisma.message.findFirst({ where: { id: raw, caseId } });
+  if (!message || message.authorId !== user.id) throw new ApiError(404, "not_found");
+  if (message.citedFileId) throw new ApiError(409, "message_already_cites_file");
+  const taken = await prisma.file.findFirst({ where: { messageId: message.id } });
+  if (taken) throw new ApiError(409, "message_has_file");
+  return message.id;
+}
 
 type FileWithUploader = FileRow & { uploader: User; attachmentPage?: { status: string } | null };
 
@@ -38,7 +53,25 @@ export function toFileView(file: FileWithUploader) {
     publishedAt: file.publishedAt,
     createdAt: file.createdAt,
     attachmentState: attachmentRowState(file.attachmentPage?.status),
+    messageId: file.messageId,
   };
+}
+
+// Same visibility as listCaseFiles: published files, the uploader's own
+// files, and in-progress files for a reviewing coordinator.
+export function fileVisibleTo(
+  file: { status: string; uploaderId: string },
+  userId: string,
+  isReviewer: boolean,
+): boolean {
+  if (file.status === "published" || file.uploaderId === userId) return true;
+  return (
+    isReviewer &&
+    (file.status === "uploaded" ||
+      file.status === "scanning" ||
+      file.status === "pending_review" ||
+      file.status === "check_failed")
+  );
 }
 
 // REQ-FILE-01/02: type and size are validated before anything is stored;
@@ -62,12 +95,15 @@ export async function uploadFile(
   const type = detectFileType(data);
   if (!type) throw new ApiError(400, "unsupported_file_type");
   const originalName = [...(part.name ?? "").trim()].slice(0, MAX_NAME_CHARS).join("") || "unnamed";
+  const messageId = await readMessageLink(caseId, user, form);
 
   const fileId = randomUUID();
   const storageKey = `quarantine/${caseId}/${fileId}/original`;
   await getStorageProvider().putObject(storageKey, data);
 
-  const file = await prisma.$transaction(async (tx) => {
+  let file: FileWithUploader;
+  try {
+    file = await prisma.$transaction(async (tx) => {
     const created = await tx.file.create({
       data: {
         id: fileId,
@@ -78,6 +114,7 @@ export async function uploadFile(
         mime: type.mime,
         sizeBytes: data.length,
         originalName,
+        messageId,
       },
       include: { uploader: true },
     });
@@ -86,6 +123,12 @@ export async function uploadFile(
     });
     return created;
   });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new ApiError(409, "message_has_file");
+    }
+    throw error;
+  }
   await recordAudit(prisma, {
     actorId: user.id,
     action: "file.upload",
@@ -95,7 +138,11 @@ export async function uploadFile(
     caseId,
     meta: { sizeBytes: file.sizeBytes, mime: file.mime },
   });
-  return toFileView(await runScanPipeline(file));
+  const scanned = await runScanPipeline(file);
+  if (scanned.messageId) {
+    publishToCase(scanned.caseId, "message", JSON.stringify({ fileId: scanned.id }));
+  }
+  return toFileView(scanned);
 }
 
 // Clean files publish at once. A file name that explicitly asks about the

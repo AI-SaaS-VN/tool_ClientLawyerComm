@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { apiPath } from "@/lib/api-path";
-import { machineTag, statusText, uiText } from "@/modules/i18n/copy";
+import { machineTag, roleText, statusText, uiText } from "@/modules/i18n/copy";
 import { formatRecordTime } from "@/modules/i18n/record-time";
+
+import { FileCard, type FileItem } from "./files-panel";
 
 interface TranslationView {
   targetLang: string;
@@ -16,12 +18,15 @@ interface TranslationView {
 interface MessageItem {
   id: string;
   authorDisplayName: string;
+  authorRole: string;
   sourceLang: string;
   sourceText: string;
   status: string;
   publishedAt: string | null;
   createdAt: string;
   translation: TranslationView | null;
+  file: FileItem | null;
+  citedFile: { id: string; originalName: string } | null;
 }
 
 type ReadingMode = "auto" | "manual";
@@ -62,7 +67,14 @@ export function MessagesPanel({
   const [sending, setSending] = useState(false);
   const [reviewByMessage, setReviewByMessage] = useState<Record<string, ReviewView>>({});
   const [releasing, setReleasing] = useState<string | null>(null);
+  const [selected, setSelected] = useState<File | null>(null);
+  const [citedId, setCitedId] = useState("");
+  const [uploadError, setUploadError] = useState(false);
+  const [pendingFile, setPendingFile] = useState<{ messageId: string; file: File } | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [caseFiles, setCaseFiles] = useState<FileItem[]>([]);
   const sendingRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   // Hydration gate: server-rendered controls have no handlers yet.
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -90,6 +102,19 @@ export function MessagesPanel({
     };
   }, [caseId, mode, refreshKey]);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch(apiPath(`/api/cases/${caseId}/files`))
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        setCaseFiles(((await res.json()) as { files: FileItem[] }).files);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId, refreshKey]);
+
   // REQ-MSG-05: live push — a published message (or a review release) bumps
   // the refresh; history itself always comes from the HTTP list. Events that
   // fall into an SSE reconnect gap are lost (the stream never replays), so a
@@ -104,24 +129,63 @@ export function MessagesPanel({
     };
   }, [caseId]);
 
+  async function uploadOnto(messageId: string, file: File): Promise<boolean> {
+    const form = new FormData();
+    form.set("file", file);
+    form.set("messageId", messageId);
+    const res = await fetch(apiPath(`/api/cases/${caseId}/files`), { method: "POST", body: form });
+    return res.ok;
+  }
+
   async function send(event: React.FormEvent) {
     event.preventDefault();
-    const text = draft.trim();
-    if (!text || sendingRef.current) return;
+    if (sendingRef.current) return;
     sendingRef.current = true;
     setSending(true);
     setSendError(false);
+    setUploadError(false);
     try {
+      if (pendingFile) {
+        const ok = await uploadOnto(pendingFile.messageId, pendingFile.file);
+        if (!ok) {
+          setUploadError(true);
+          return;
+        }
+        setPendingFile(null);
+        setSelected(null);
+        if (inputRef.current) inputRef.current.value = "";
+        setRefreshKey((key) => key + 1);
+        return;
+      }
+      const text = draft.trim();
+      if (!text) return;
+      const body: { sourceText: string; citedFileId?: string } = { sourceText: text };
+      if (!selected && citedId) body.citedFileId = citedId;
       const res = await fetch(apiPath(`/api/cases/${caseId}/messages`), {
         method: "POST",
         headers: { "content-type": "application/json", "idempotency-key": newIdempotencyKey() },
-        body: JSON.stringify({ sourceText: text }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         setSendError(true);
         return;
       }
+      const created = (await res.json()) as { message: { id: string } };
+      if (selected) {
+        const ok = await uploadOnto(created.message.id, selected);
+        if (!ok) {
+          setPendingFile({ messageId: created.message.id, file: selected });
+          setUploadError(true);
+          setDraft("");
+          setCitedId("");
+          setRefreshKey((key) => key + 1);
+          return;
+        }
+      }
       setDraft("");
+      setSelected(null);
+      setCitedId("");
+      if (inputRef.current) inputRef.current.value = "";
       setRefreshKey((key) => key + 1);
     } catch {
       setSendError(true);
@@ -129,6 +193,11 @@ export function MessagesPanel({
       sendingRef.current = false;
       setSending(false);
     }
+  }
+
+  function focusCited(fileId: string) {
+    setHighlightedId(fileId);
+    document.getElementById(`file-card-${fileId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   async function translate(messageId: string) {
@@ -307,7 +376,7 @@ export function MessagesPanel({
         {messages.map((message) => (
           <li key={message.id} className="rounded border p-3" data-testid="message-item">
             <p className="mb-1 text-xs opacity-60">
-              {message.authorDisplayName} · {message.sourceLang} ·{" "}
+              {message.authorDisplayName} · {roleText(lang, message.authorRole)} ·{" "}
               <time dateTime={message.publishedAt ?? message.createdAt} data-testid="message-time">
                 {formatRecordTime(
                   message.status === "published" && message.publishedAt
@@ -317,6 +386,19 @@ export function MessagesPanel({
               </time>
             </p>
             {body(message)}
+            {message.file ? (
+              <FileCard file={message.file} lang={lang} highlighted={highlightedId === message.file.id} />
+            ) : null}
+            {message.citedFile ? (
+              <button
+                type="button"
+                className="mt-2 rounded border px-2 py-0.5 text-xs"
+                data-testid="cite-chip"
+                onClick={() => focusCited(message.citedFile!.id)}
+              >
+                {uiText(lang, "citeFile")}：{message.citedFile.originalName}
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -330,16 +412,66 @@ export function MessagesPanel({
           className="border px-3 py-2 text-sm"
           data-testid="message-input"
         />
-        <button
-          type="submit"
-          className="self-start border px-3 py-1 text-sm disabled:opacity-50"
-          data-testid="message-send"
-          disabled={!mounted || sending}
-        >
-          {sending ? uiText(lang, "sending") : uiText(lang, "send")}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            id={`file-input-${caseId}`}
+            ref={inputRef}
+            type="file"
+            className="sr-only"
+            data-testid="file-input"
+            disabled={!mounted || Boolean(citedId)}
+            onChange={(event) => {
+              const next = event.target.files?.[0] ?? null;
+              setSelected(next);
+              if (next) setCitedId("");
+            }}
+          />
+          <label
+            htmlFor={`file-input-${caseId}`}
+            className={`cursor-pointer border px-3 py-1 text-sm ${citedId ? "pointer-events-none opacity-50" : ""}`}
+          >
+            {uiText(lang, "chooseFile")}
+          </label>
+          <span className="text-sm opacity-60">{selected ? selected.name : uiText(lang, "noFileChosen")}</span>
+          {caseFiles.length > 0 ? (
+            <select
+              className="border px-2 py-1 text-sm"
+              data-testid="cite-file"
+              value={citedId}
+              disabled={!mounted || Boolean(selected) || sending}
+              onChange={(event) => {
+                const next = event.target.value;
+                setCitedId(next);
+                if (next) {
+                  setSelected(null);
+                  if (inputRef.current) inputRef.current.value = "";
+                }
+              }}
+            >
+              <option value="">{uiText(lang, "citeNone")}</option>
+              {caseFiles.map((file) => (
+                <option key={file.id} value={file.id}>
+                  {uiText(lang, "citeFile")}：{file.originalName}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <button
+            type="submit"
+            className="border px-3 py-1 text-sm disabled:opacity-50"
+            data-testid="message-send"
+            disabled={!mounted || sending}
+          >
+            {sending ? uiText(lang, "sending") : uiText(lang, "send")}
+          </button>
+        </div>
         {sendError ? (
           <p className="text-sm opacity-60">{uiText(lang, "sendFailed")}</p>
+        ) : null}
+        {uploadError ? (
+          <p className="text-sm opacity-60" data-testid="file-attach-error">
+            {uiText(lang, "uploadFailed")}
+          </p>
         ) : null}
       </form>
     </section>

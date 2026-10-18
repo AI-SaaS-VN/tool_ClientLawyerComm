@@ -8,6 +8,7 @@ import {
   attachTranslations,
   type TranslationView,
 } from "@/modules/translation/service";
+import { fileVisibleTo, toFileView } from "@/modules/files/service";
 import { requireCaseMember, requireWritableCase } from "@/server/guards/case-guards";
 import { recordAudit } from "@/server/audit/log";
 import { listAlertIssueReviewTaskIds, registerCheckFailedAlerts, registerHoldAlerts } from "@/server/jobs/queue";
@@ -15,23 +16,53 @@ import { publishToCase } from "@/server/sse/hub";
 
 export const MESSAGE_MAX_CHARS = 4000;
 const SOURCE_LANGS = new Set(["zh-Hans", "zh-Hant", "vi", "en"]);
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type MessageWithAuthor = Message & { author: User };
 
-// Never include registered contact channels (REQ-PM-09); the author is
-// identified by display name only.
-export function toMessageView(message: MessageWithAuthor) {
+// Never include registered contact channels (REQ-PM-09). The author is the
+// display name plus the case role (client, lawyer, or coordinator).
+export function toMessageView(message: MessageWithAuthor, authorRole: string) {
   return {
     id: message.id,
     caseId: message.caseId,
     authorId: message.authorId,
     authorDisplayName: message.author.displayName,
+    authorRole,
     sourceLang: message.sourceLang,
     sourceText: message.sourceText,
     status: message.status,
     publishedAt: message.publishedAt,
     createdAt: message.createdAt,
   };
+}
+
+async function roleOnCase(caseId: string, userId: string, fallback: string): Promise<string> {
+  const member = await prisma.caseMember.findUnique({
+    where: { caseId_userId: { caseId, userId } },
+    select: { memberRole: true },
+  });
+  return member?.memberRole ?? fallback;
+}
+
+export async function messageViewWithRole(message: MessageWithAuthor) {
+  return toMessageView(
+    message,
+    await roleOnCase(message.caseId, message.authorId, message.author.globalRole),
+  );
+}
+
+async function viewsFor(rows: MessageWithAuthor[]) {
+  const caseId = rows[0]?.caseId;
+  const members = caseId
+    ? await prisma.caseMember.findMany({
+        where: { caseId, userId: { in: rows.map((row) => row.authorId) } },
+        select: { userId: true, memberRole: true },
+      })
+    : [];
+  const roles = new Map(members.map((member) => [member.userId, member.memberRole]));
+  return rows.map((row) => toMessageView(row, roles.get(row.authorId) ?? row.author.globalRole));
 }
 
 function readIdempotencyKey(headers: Headers): string {
@@ -53,6 +84,23 @@ function readSourceText(body: Record<string, unknown>): string {
   return text;
 }
 
+function readCitedFileId(body: Record<string, unknown>): string | null {
+  const raw = body.citedFileId;
+  if (raw === undefined || raw === null || raw === "") return null;
+  if (typeof raw !== "string" || !UUID_RE.test(raw)) throw new ApiError(400, "invalid_cited_file");
+  return raw;
+}
+
+async function assertCiteable(
+  caseId: string,
+  fileId: string,
+  user: User,
+  isReviewer: boolean,
+): Promise<void> {
+  const file = await prisma.file.findFirst({ where: { id: fileId, caseId } });
+  if (!file || !fileVisibleTo(file, user.id, isReviewer)) throw new ApiError(404, "not_found");
+}
+
 function readSourceLang(body: Record<string, unknown>, text: string): string {
   const explicit = body.sourceLang;
   if (explicit === undefined || explicit === null) return detectSourceLang(text);
@@ -71,11 +119,20 @@ export async function sendMessage(
   body: Record<string, unknown>,
   headers: Headers,
 ): Promise<{ view: MessageView; replayed: boolean }> {
-  await requireCaseMember(caseId, author);
+  const member = await requireCaseMember(caseId, author);
   await requireWritableCase(caseId);
   const idempotencyKey = readIdempotencyKey(headers);
   const sourceText = readSourceText(body);
   const sourceLang = readSourceLang(body, sourceText);
+  const citedFileId = readCitedFileId(body);
+  if (citedFileId) {
+    await assertCiteable(
+      caseId,
+      citedFileId,
+      author,
+      member.memberRole === "coordinator" && member.canReview,
+    );
+  }
 
   const uniqueKey = { caseId_authorId_idempotencyKey: { caseId, authorId: author.id, idempotencyKey } };
   const existing = await prisma.message.findUnique({
@@ -83,14 +140,14 @@ export async function sendMessage(
     include: { author: true },
   });
   if (existing) {
-    const view = (await annotateAlertIssues([toMessageView(existing)], author.id))[0]!;
+    const view = (await annotateAlertIssues([await messageViewWithRole(existing)], author.id))[0]!;
     return { view, replayed: true };
   }
 
   let message: MessageWithAuthor;
   try {
     message = await prisma.message.create({
-      data: { caseId, authorId: author.id, idempotencyKey, sourceLang, sourceText },
+      data: { caseId, authorId: author.id, idempotencyKey, sourceLang, sourceText, citedFileId },
       include: { author: true },
     });
   } catch (error) {
@@ -100,7 +157,7 @@ export async function sendMessage(
         where: uniqueKey,
         include: { author: true },
       });
-      return { view: (await annotateAlertIssues([toMessageView(winner)], author.id))[0]!, replayed: true };
+      return { view: (await annotateAlertIssues([await messageViewWithRole(winner)], author.id))[0]!, replayed: true };
     }
     throw error;
   }
@@ -112,7 +169,7 @@ export async function sendMessage(
     targetId: message.id,
     caseId,
   });
-  const view = toMessageView(await runPipeline(message));
+  const view = await messageViewWithRole(await runPipeline(message));
   return { view: (await annotateAlertIssues([view], author.id))[0]!, replayed: false };
 }
 
@@ -192,7 +249,11 @@ export async function publishMessage(messageId: string): Promise<MessageWithAuth
     data: { status: "published", publishedAt: new Date() },
     include: { author: true },
   });
-  publishToCase(published.caseId, "message", JSON.stringify({ message: toMessageView(published) }));
+  publishToCase(
+    published.caseId,
+    "message",
+    JSON.stringify({ message: await messageViewWithRole(published) }),
+  );
   return published;
 }
 
@@ -202,6 +263,8 @@ export type MessageView = ReturnType<typeof toMessageView> & { reviewAlertIssue:
 
 export type MessageListView = MessageView & {
   translation: TranslationView | null;
+  file: ReturnType<typeof toFileView> | null;
+  citedFile: { id: string; originalName: string } | null;
 };
 
 // REQ-NTF-12: when a held message has no live alert (no valid channel, all
@@ -228,14 +291,55 @@ async function annotateAlertIssues(
   return views.map((v) => ({ ...v, reviewAlertIssue: issueMessageIds.has(v.id) }));
 }
 
+async function attachMessageFiles<T extends { id: string }>(
+  rows: MessageWithAuthor[],
+  views: T[],
+  user: User,
+  isReviewer: boolean,
+): Promise<Array<T & { file: ReturnType<typeof toFileView> | null; citedFile: { id: string; originalName: string } | null }>> {
+  const messageIds = rows.map((row) => row.id);
+  const citedIds = rows.flatMap((row) => (row.citedFileId ? [row.citedFileId] : []));
+  const files =
+    messageIds.length === 0
+      ? []
+      : await prisma.file.findMany({
+          where: {
+            OR: [
+              { messageId: { in: messageIds } },
+              ...(citedIds.length > 0 ? [{ id: { in: citedIds } }] : []),
+            ],
+          },
+          include: { uploader: true, attachmentPage: true },
+        });
+  const byMessage = new Map<string, (typeof files)[number]>();
+  const byId = new Map(files.map((file) => [file.id, file]));
+  for (const file of files) {
+    if (file.messageId) byMessage.set(file.messageId, file);
+  }
+  return views.map((view, index) => {
+    const row = rows[index]!;
+    const sent = byMessage.get(row.id);
+    const cited = row.citedFileId ? byId.get(row.citedFileId) : undefined;
+    return {
+      ...view,
+      file: sent && fileVisibleTo(sent, user.id, isReviewer) ? toFileView(sent) : null,
+      citedFile:
+        cited && fileVisibleTo(cited, user.id, isReviewer)
+          ? { id: cited.id, originalName: cited.originalName }
+          : null,
+    };
+  });
+}
+
 export async function listMessages(
   caseId: string,
   user: User,
   after: string | null,
   mode: ReadingMode = "auto",
 ): Promise<MessageListView[]> {
-  await requireCaseMember(caseId, user);
-  if (after) return backfillMessages(caseId, user, after, mode);
+  const member = await requireCaseMember(caseId, user);
+  const isReviewer = member.memberRole === "coordinator" && member.canReview;
+  if (after) return backfillMessages(caseId, user, after, mode, isReviewer);
 
   // REQ-MSG-03: receivers see published only; the author also sees their own
   // pending/returned/rejected states (REQ-MSG-06).
@@ -246,8 +350,9 @@ export async function listMessages(
   });
   const latestPublished = [...rows].reverse().find((m) => m.status === "published");
   if (latestPublished) await advanceLastRead(caseId, user.id, latestPublished);
-  const views = await annotateAlertIssues(rows.map(toMessageView), user.id);
-  return attachTranslations(views, user, mode);
+  const views = await annotateAlertIssues(await viewsFor(rows), user.id);
+  const translated = await attachTranslations(views, user, mode);
+  return attachMessageFiles(rows, translated, user, isReviewer);
 }
 
 // REQ-MSG-05: incremental backfill by last received message id. The cursor is
@@ -258,6 +363,7 @@ async function backfillMessages(
   user: User,
   afterId: string,
   mode: ReadingMode,
+  isReviewer: boolean,
 ): Promise<MessageListView[]> {
   const cursor = await prisma.message.findFirst({
     where: { id: afterId, caseId, status: "published" },
@@ -275,8 +381,9 @@ async function backfillMessages(
     include: { author: true },
     orderBy: [{ publishedAt: "asc" }, { id: "asc" }],
   });
-  const views = await annotateAlertIssues(rows.map(toMessageView), user.id);
-  return attachTranslations(views, user, mode);
+  const views = await annotateAlertIssues(await viewsFor(rows), user.id);
+  const translated = await attachTranslations(views, user, mode);
+  return attachMessageFiles(rows, translated, user, isReviewer);
 }
 
 // REQ-MSG-07: reading the message list advances the member's own read

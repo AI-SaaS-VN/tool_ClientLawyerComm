@@ -59,9 +59,11 @@ export function uploadFileRequest(
   cookie: string,
   name: string,
   bytes: Buffer,
+  messageId?: string,
 ): NextRequest {
   const form = new FormData();
   form.set("file", new File([new Uint8Array(bytes)], name));
+  if (messageId) form.set("messageId", messageId);
   return new NextRequest(`http://localhost/api/cases/${caseId}/files`, {
     method: "POST",
     headers: { cookie },

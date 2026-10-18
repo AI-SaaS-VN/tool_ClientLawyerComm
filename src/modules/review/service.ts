@@ -4,7 +4,7 @@ import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
 import { copySharedVersion } from "@/modules/files/service";
 import { enqueueAttachmentPage } from "@/modules/files/attachment-translation";
-import { toMessageView } from "@/modules/messages/service";
+import { messageViewWithRole } from "@/modules/messages/service";
 import { recordAudit } from "@/server/audit/log";
 import { requireCaseMember } from "@/server/guards/case-guards";
 import {
@@ -249,7 +249,11 @@ export async function decideReviewTask(
   });
 
   if (action === "approve" && published) {
-    publishToCase(published.caseId, "message", JSON.stringify({ message: toMessageView(published) }));
+    publishToCase(
+      published.caseId,
+      "message",
+      JSON.stringify({ message: await messageViewWithRole(published) }),
+    );
   }
   return { status: taskStatus };
 }

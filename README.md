@@ -4,11 +4,11 @@ A web-based, case-isolated communication system: Chinese Client — Vietnamese L
 
 基于网页、按案件隔离的沟通系统：中国客户—越南律师—案件协调员。一步激活（受邀邮箱加上激活码）、发布受控的消息流水线、对话翻译（中简繁/越/英）、文件分享、紧急提醒、审核后台、管理员 MFA 与完整审计。
 
-## Status / 状态（2026-10-09）
+## Status / 状态（2026-10-18）
 
-The shipped MVP through T13 is on the Shanghai test machine. From 2026-10-09, later test deployments go to the US test machine. Application code and design documents stay off that machine, and it has no public entry yet. The case already running on the Shanghai test machine is not moved by this decision. The next code is F18, then T15. F18 sets a client's default screen to Simplified Chinese. T15 is the HTML Attachment Translation Page (REQ-ATT). T16, T18, and T17 follow, and they do not start before T15. The paragraph-numbered DOCX (T09) and the case-creation page (T14) stay later. Domain, HTTPS, and a real file scanner stay deferred. See PLAN.md and PROGRESS.md.
+PLAN v0.23 is current. The second phase (T15–T18), the DOCX bilingual document (T09), the administration console (T14), and the message-and-file thread (T19) are implemented. T19 and the message author role are deployed on the Shanghai host at `http://<IP>/new/` (database `clc_new`, with a copy of the pilot case). The pilot stays at `/`. Domain, HTTPS, and a real file scanner stay deferred. See PROGRESS.md.
 
-已交付的 MVP 做到 T13，在上海测试机上。2026-10-09 起，后续测试部署改到美国测试机；应用代码和设计文档不放在那台机器上，公网入口还没有。上海测试机上已经在跑的案件不因这次决定搬迁。下一件代码是 F18，然后 T15。F18 把客户的默认屏幕改成简体中文。T15 是 HTML 附件翻译页（REQ-ATT）。T16、T18、T17 排在后面，T15 完成之前不要开始。段落编号的 DOCX（T09）和建案页面（T14）仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。见 PLAN.md 与 PROGRESS.md。
+PLAN v0.23 为当前计划。第二阶段（T15–T18）、DOCX 双语对照（T09）、管理控制台（T14）和消息与附件同一条对话（T19）已经实现。T19 与消息发送人角色已部署到上海测试机的 `http://<IP>/new/`（数据库 `clc_new`，带有试点案件的副本）。试点仍在 `/`。域名、HTTPS 与正式文件扫描仍然推迟。见 PROGRESS.md。
 
 ## Commands / 命令
 

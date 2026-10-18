@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>原型 · 消息与附件放在一起</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font: 15px/1.5 "Noto Sans", "Noto Sans SC", sans-serif; background: #f6f6f4; color: #1c1c1c; }
+    header { background: #fff; border-bottom: 1px solid #ddd; padding: 16px 24px; }
+    header h1 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+    .roles { display: flex; gap: 8px; flex-wrap: wrap; }
+    .roles button { border: 1px solid #bbb; background: #fff; padding: 4px 12px; cursor: pointer; }
+    .roles button[aria-pressed="true"] { background: #1c1c1c; color: #fff; border-color: #1c1c1c; }
+    main { max-width: 40rem; margin: 0 auto; padding: 24px 24px 80px; }
+    .note, .muted { color: #666; font-size: 13px; }
+    h2 { margin: 24px 0 8px; font-size: 16px; }
+    .card { border: 1px solid #ccc; background: #fff; padding: 12px; margin: 8px 0; }
+    .file { margin-top: 8px; border: 1px solid #ddd; background: #fafafa; padding: 8px; }
+    .file.hit { outline: 2px solid #1c1c1c; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .btn, .chip { border: 1px solid #888; background: #fff; padding: 4px 10px; cursor: pointer; font: inherit; }
+    .chip { font-size: 13px; }
+    .composer { position: sticky; bottom: 0; background: #f6f6f4; padding: 12px 0 16px; }
+    textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 6px; border: 1px solid #bbb; }
+    .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>原型 · 虚构合同纠纷</h1>
+    <div class="roles" role="group" aria-label="查看角色">
+      <button type="button" id="role-client" aria-pressed="true">客户 · 简体中文</button>
+      <button type="button" id="role-lawyer">律师 · Tiếng Việt</button>
+      <button type="button" id="role-coordinator">协调员 · 简体中文</button>
+    </div>
+  </header>
+  <main>
+    <p class="note" id="note"></p>
+    <h2 id="thread-title"></h2>
+    <div id="thread"></div>
+    <form class="composer" id="composer">
+      <label id="draft-label" for="draft"></label>
+      <textarea id="draft" rows="3"></textarea>
+      <div class="row">
+        <button type="button" class="btn" id="pick"></button>
+        <span class="muted" id="picked"></span>
+        <button type="submit" class="btn" id="send"></button>
+      </div>
+    </form>
+    <section id="brief" hidden>
+      <h2>协调员备忘</h2>
+      <div class="card muted">备忘仍在对话下面。附件不再放到这里之前的单独列表里。</div>
+    </section>
+  </main>
+  <script>
+    const copy = {
+      client: {
+        note: "附件跟在提到它的那条消息下面。不用再翻到页面最底下找文件。",
+        thread: "对话",
+        draft: "写一条消息。文件和这句话一起发出。",
+        pick: "选择文件",
+        picked: "尚未选择文件",
+        send: "发送",
+        download: "下载原件",
+        open: "打开附件翻译",
+        noText: "未能抽出文字，没有附件翻译",
+        sent: "已发送",
+        refers: "对应附件",
+        items: [
+          { who: "客户", time: "2026-10-18 18:20 UTC+8", text: "合同扫描件已上传，请核对签字页。", file: { name: "合同扫描.pdf", state: "已发布", extra: "open" } },
+          { who: "律师", time: "2026-10-18 18:40 UTC+8", text: "我们已收到合同扫描件，正核对签字页。", ref: "合同扫描.pdf" },
+          { who: "客户", time: "2026-10-18 19:05 UTC+8", text: "现场照片也一并上传。", file: { name: "现场照片.jpg", state: "已发布", extra: "noText" } }
+        ]
+      },
+      lawyer: {
+        note: "Tệp nằm ngay dưới tin nhắn nhắc đến nó. Không cần kéo xuống cuối trang.",
+        thread: "Trao đổi",
+        draft: "Viết một tin. Tệp đi cùng câu này.",
+        pick: "Chọn tệp",
+        picked: "Chưa chọn tệp",
+        send: "Gửi",
+        download: "Tải bản gốc",
+        open: "Mở bản dịch tệp",
+        noText: "Không trích được chữ, không có trang dịch",
+        sent: "Đã gửi",
+        refers: "Tệp tương ứng",
+        items: [
+          { who: "Khách hàng", time: "2026-10-18 17:20 UTC+7", text: "Đã gửi bản scan hợp đồng, xin đối chiếu trang ký.", file: { name: "合同扫描.pdf", state: "Đã phát hành", extra: "open" } },
+          { who: "Luật sư", time: "2026-10-18 17:40 UTC+7", text: "Đã nhận bản scan hợp đồng và đang đối chiếu trang ký.", ref: "合同扫描.pdf" },
+          { who: "Khách hàng", time: "2026-10-18 18:05 UTC+7", text: "Đã gửi thêm ảnh hiện trường.", file: { name: "现场照片.jpg", state: "Đã phát hành", extra: "noText" } }
+        ]
+      },
+      coordinator: {
+        note: "附件跟在提到它的那条消息下面。协调员备忘仍在对话之后，不把附件隔开。",
+        thread: "对话",
+        draft: "写一条消息。文件和这句话一起发出。",
+        pick: "选择文件",
+        picked: "尚未选择文件",
+        send: "发送",
+        download: "下载原件",
+        open: "打开附件翻译",
+        noText: "未能抽出文字，没有附件翻译",
+        sent: "已发送",
+        refers: "对应附件",
+        items: [
+          { who: "客户", time: "2026-10-18 18:20 UTC+8", text: "合同扫描件已上传，请核对签字页。", file: { name: "合同扫描.pdf", state: "已发布", extra: "open" } },
+          { who: "律师", time: "2026-10-18 18:40 UTC+8", text: "我们已收到合同扫描件，正核对签字页。", ref: "合同扫描.pdf" },
+          { who: "客户", time: "2026-10-18 19:05 UTC+8", text: "现场照片也一并上传。", file: { name: "现场照片.jpg", state: "已发布", extra: "noText" } }
+        ]
+      }
+    };
+
+    let role = "client";
+    let pickedName = "";
+
+    function fileBlock(file, id) {
+      const c = copy[role];
+      const box = document.createElement("div");
+      box.className = "file";
+      box.id = id;
+      const line = document.createElement("div");
+      line.textContent = file.name + " · " + file.state;
+      box.appendChild(line);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const original = document.createElement("button");
+      original.type = "button";
+      original.className = "btn";
+      original.textContent = c.download;
+      original.addEventListener("click", () => alert(c.download + " · " + file.name));
+      actions.appendChild(original);
+      if (file.extra === "open") {
+        const open = document.createElement("button");
+        open.type = "button";
+        open.className = "btn";
+        open.textContent = c.open;
+        open.addEventListener("click", () => {
+          location.href = "phase2-attachment-translation.html?view=" + (role === "lawyer" ? "lawyer" : "clientHans");
+        });
+        actions.appendChild(open);
+      } else {
+        const note = document.createElement("span");
+        note.className = "muted";
+        note.textContent = c.noText;
+        actions.appendChild(note);
+      }
+      box.appendChild(actions);
+      return box;
+    }
+
+    function render() {
+      const c = copy[role];
+      document.getElementById("note").textContent = c.note;
+      document.getElementById("thread-title").textContent = c.thread;
+      document.getElementById("draft-label").textContent = c.draft;
+      document.getElementById("pick").textContent = c.pick;
+      document.getElementById("picked").textContent = pickedName || c.picked;
+      document.getElementById("send").textContent = c.send;
+      document.getElementById("brief").hidden = role !== "coordinator";
+      for (const id of ["role-client", "role-lawyer", "role-coordinator"]) {
+        document.getElementById(id).setAttribute("aria-pressed", String(id === "role-" + role));
+      }
+      const thread = document.getElementById("thread");
+      thread.replaceChildren();
+      const fileIds = {};
+      c.items.forEach((item, index) => {
+        const card = document.createElement("article");
+        card.className = "card";
+        const head = document.createElement("div");
+        head.className = "muted";
+        head.textContent = item.who + " · " + item.time;
+        card.appendChild(head);
+        const text = document.createElement("p");
+        text.textContent = item.text;
+        card.appendChild(text);
+        if (item.file) {
+          const id = "file-" + index;
+          fileIds[item.file.name] = id;
+          card.appendChild(fileBlock(item.file, id));
+        }
+        if (item.ref) {
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "chip";
+          chip.textContent = c.refers + "：" + item.ref;
+          chip.addEventListener("click", () => {
+            const target = document.getElementById(fileIds[item.ref]);
+            if (!target) return;
+            target.classList.add("hit");
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+          });
+          card.appendChild(chip);
+        }
+        thread.appendChild(card);
+      });
+    }
+
+    document.getElementById("role-client").onclick = () => { role = "client"; render(); };
+    document.getElementById("role-lawyer").onclick = () => { role = "lawyer"; render(); };
+    document.getElementById("role-coordinator").onclick = () => { role = "coordinator"; render(); };
+    document.getElementById("pick").onclick = () => {
+      pickedName = role === "lawyer" ? "phu-luc.pdf" : "补充说明.pdf";
+      document.getElementById("picked").textContent = pickedName;
+    };
+    document.getElementById("composer").onsubmit = (event) => {
+      event.preventDefault();
+      const c = copy[role];
+      const text = document.getElementById("draft").value.trim();
+      if (!text && !pickedName) return;
+      c.items.push({
+        who: role === "lawyer" ? "Luật sư" : role === "coordinator" ? "协调员" : "客户",
+        time: c.sent,
+        text: text || pickedName,
+        file: pickedName ? { name: pickedName, state: c.items[0].file.state, extra: "open" } : undefined
+      });
+      document.getElementById("draft").value = "";
+      pickedName = "";
+      render();
+      document.getElementById("thread").lastElementChild.scrollIntoView({ behavior: "smooth" });
+    };
+    render();
+  </script>
+</body>
+</html>

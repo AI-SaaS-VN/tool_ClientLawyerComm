@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.22 | Date: 2026-10-18
-- 版本：0.22｜日期：2026-10-18
-- Basis: SPEC.md v0.22, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. T17 statute note was implemented 2026-10-18 — the second phase is complete. T09 DOCX bilingual conversion was implemented 2026-10-18 (SPEC v0.21). T14 Administration Console was implemented 2026-10-18 (SPEC v0.22) — the plan has no remaining task. Also on 2026-10-18 the app became basePath-deployable and the Shanghai host gained the isolated `/new/` test instance (own process, own database `clc_new`, own cookie path) so future deploys never disturb the pilot at `/` — see `docs/deployment.md`. Domain, HTTPS, and a real file scanner stay deferred.
-- 依据：SPEC.md v0.22、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。T17 法条备忘已于 2026-10-18 实现——第二阶段全部完成。T09 DOCX 双语对照转换已于 2026-10-18 实现（SPEC v0.21）。T14 管理控制台已于 2026-10-18 实现（SPEC v0.22）——计划已无剩余任务。同日消息：应用支持 basePath 部署，上海机新增隔离的 `/new/` 测试实例（独立进程、独立数据库 clc_new、独立 Cookie 路径），今后部署不再干扰 `/` 上的试点——见 `docs/deployment.md`。域名、HTTPS 与正式文件扫描仍然推迟。
+- Version: 0.23 | Date: 2026-10-18
+- 版本：0.23｜日期：2026-10-18
+- Basis: SPEC.md v0.23, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. T17 statute note was implemented 2026-10-18 — the second phase is complete. T09 DOCX bilingual conversion was implemented 2026-10-18 (SPEC v0.21). T14 Administration Console was implemented 2026-10-18 (SPEC v0.22). T19 message-and-file thread was implemented 2026-10-18 (SPEC v0.23). Also on 2026-10-18 the app became basePath-deployable and the Shanghai host gained the isolated `/new/` test instance (own process, own database `clc_new`, own cookie path) so future deploys never disturb the pilot at `/` — see `docs/deployment.md`. Domain, HTTPS, and a real file scanner stay deferred. T19 and the message author role are deployed on the Shanghai `/new/` instance. That instance holds a copy of the pilot case data, so the same invite email and code open the same messages and files there. The pilot process at `/` was not restarted.
+- 依据：SPEC.md v0.23、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。T17 法条备忘已于 2026-10-18 实现——第二阶段全部完成。T09 DOCX 双语对照转换已于 2026-10-18 实现（SPEC v0.21）。T14 管理控制台已于 2026-10-18 实现（SPEC v0.22）。T19 消息与附件同一条对话已于 2026-10-18 实现（SPEC v0.23）。同日消息：应用支持 basePath 部署，上海机新增隔离的 `/new/` 测试实例（独立进程、独立数据库 clc_new、独立 Cookie 路径），今后部署不再干扰 `/` 上的试点——见 `docs/deployment.md`。域名、HTTPS 与正式文件扫描仍然推迟。T19 与消息发送人角色已部署到上海 `/new/`。该实例带有试点案件数据的副本，同一邀请邮箱和邀请码可以打开同样的消息和附件。`/` 上的试点进程没有重启。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -421,6 +421,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 21 | F20 | Coordinator Brief (T16, REQ-BRIEF). Coordinator only. Stored after confirm. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/coordinator-brief.test.ts`. | Done 2026-10-16 |
 | 22 | F21 | China-and-Vietnam statute note (T17, REQ-STAT). Links first. Confirm before the brief stores it. | Specified 2026-10-09. After T16. First failing test: `tests/unit/agent/statute-brief.test.ts`. | Implemented 2026-10-18 |
 | 23 | F22 | Target Company registry lookup (T18, REQ-REG). Automatic per case. Coordinator sees the result. | Specified 2026-10-09. After T15. First failing test: `tests/unit/agent/target-company-registry.test.ts`. | Implemented 2026-10-17 |
+| 24 | F23 | Message and file on one thread (T19, REQ-THREAD). A file sits under the message it was sent with. A message with no file still sends. A later message may cite one visible file. Each message shows the author's case role. | Accepted from `docs/prototypes/case-thread-files.html` on 2026-10-18. Integration test: `tests/integration/messages/message-file-link.test.ts`. Deployed the same day to the Shanghai `/new/` instance with a copy of the pilot case. The pilot at `/` was not restarted. | Done 2026-10-18 |
 
 | 顺序 | ID | 任务 | 与提出的三处修改比较 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -447,6 +448,13 @@ The three roles are in the fictitious case and can see the client's three identi
 | 21 | F20 | 协调员备忘（T16，REQ-BRIEF）。只有协调员。确认后才写入。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/coordinator-brief.test.ts`。 | 2026-10-16 完成 |
 | 22 | F21 | 中国法与越南法备忘（T17，REQ-STAT）。先给链接。确认后才写入备忘。 | 2026-10-09 写入。在 T16 之后。第一份失败测试：`tests/unit/agent/statute-brief.test.ts`。 | 2026-10-18 已实现 |
 | 23 | F22 | 目标公司工商查询（T18，REQ-REG）。每个案件自动查询。协调员看到结果。 | 2026-10-09 写入。在 T15 之后。第一份失败测试：`tests/unit/agent/target-company-registry.test.ts`。 | 2026-10-17 已实现 |
+| 24 | F23 | 消息与附件同一条对话（T19，REQ-THREAD）。文件跟在随它发出的消息下面。没有文件的消息仍然发送。后来的消息可以指向一份可见文件。每条消息显示发送人在本案中的角色。 | 2026-10-18 接受原型 `docs/prototypes/case-thread-files.html`。集成测试：`tests/integration/messages/message-file-link.test.ts`。同日部署到上海 `/new/`，并带入试点案件副本。`/` 上的试点没有重启。 | 2026-10-18 已完成 |
+
+## T19 Message and file on one thread (2026-10-18, SPEC v0.23) / T19 消息与附件同一条对话（2026-10-18，SPEC v0.23）
+
+Implemented (F23). `files.message_id` links a file to the message it was sent with (at most one). `messages.cited_file_id` lets a later message point at one visible file; the chip scrolls to the original card. A message with no file still sends. Upload failure after the message is stored keeps the message and shows the upload error. Files with no message render under 此前上传的附件. Each message header shows the author's case role (REQ-THREAD-06): 客户, 律师, or 协调员 in the viewer's screen language. Covered by `tests/integration/messages/message-file-link.test.ts`. Deployed 2026-10-18 to the Shanghai `/new/` instance, with the pilot case data copied into `clc_new` and migration `20261018143000_message_file_link` applied there. The two instances share the file bucket, so the copied attachments open. The pilot process at `/` was not restarted and still runs the older build.
+
+已实现（F23）。`files.message_id` 把文件连到随它发出的消息（至多一个）。`messages.cited_file_id` 让后来的消息指向一份可见文件；标签滚到原来的文件卡。没有文件的消息仍然发送。消息写入后上传失败则保留消息并显示上传失败。没有对应消息的文件显示在「此前上传的附件」下。每条消息的抬头显示发送人在本案中的角色（REQ-THREAD-06）：客户、律师或协调员，用观看者的界面语言。集成测试见 `tests/integration/messages/message-file-link.test.ts`。2026-10-18 已部署到上海 `/new/`：试点案件数据复制进 `clc_new`，并在该库应用迁移 `20261018143000_message_file_link`。两个实例共用文件桶，因此复制过去的附件可以打开。`/` 上的试点进程没有重启，仍运行更早的构建。
 
 ## Launch scope decided 2026-10-04 / 2026-10-04 确定的上线范围
 

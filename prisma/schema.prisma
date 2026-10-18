@@ -199,12 +199,18 @@ model Message {
   publishedAt    DateTime? @map("published_at")
   correctedById  String?   @map("corrected_by_id") @db.Uuid
   correctedBy    User?     @relation("MessageCorrector", fields: [correctedById], references: [id])
+  // Set when this message points at a file already on the case. The file
+  // card stays on the message it was sent with.
+  citedFileId    String?   @map("cited_file_id") @db.Uuid
+  citedFile      File?     @relation("MessageCitation", fields: [citedFileId], references: [id], onDelete: SetNull)
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   translations   TranslationVersion[]
+  sentFile       File?     @relation("FileSentWithMessage")
 
   @@unique([caseId, authorId, idempotencyKey])
   @@index([caseId, status, publishedAt])
+  @@index([citedFileId])
   @@map("messages")
 }
 
@@ -373,9 +379,14 @@ model File {
   sizeBytes    Int       @map("size_bytes")
   originalName String    @map("original_name")
   publishedAt  DateTime? @map("published_at")
+  // The message this file was sent with. Null for files uploaded before the
+  // link existed. At most one file per message.
+  messageId    String?   @unique @map("message_id") @db.Uuid
+  message      Message?  @relation("FileSentWithMessage", fields: [messageId], references: [id], onDelete: SetNull)
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   variants     FileVariant[]
+  citations    Message[] @relation("MessageCitation")
   attachmentPage AttachmentPage?
   docxJobs     DocxJob[]
 
