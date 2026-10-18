@@ -1473,12 +1473,12 @@ Deploy to the Shanghai host; then discuss T14 (admin console, P1) with the user.
 
 ### Unfinished Items / 未完成项
 
-- Deploy T14 to the Shanghai host (this session ends before deploy).<br>把 T14 部署到上海机（本会话结束前未部署）。
+- ~~Deploy T14 to the Shanghai host~~ Done: rsync + `prisma migrate deploy` (no pending) + build rc=0 + restart, health 200; `/api/admin/cases` answers 401 unauthenticated and `/admin/cases` 307-redirects to login.<br>~~把 T14 部署到上海机~~ 已完成：rsync＋migrate deploy（无待迁移）＋构建 rc=0＋重启，健康检查 200；`/api/admin/cases` 未登录 401、`/admin/cases` 307 转登录页。
 - E2E full suite 7/7 still pending a quiet window; Kimi credit still low.<br>E2E 全量 7/7 仍待安静窗口；Kimi 余额仍不足。
 - PLAN has no remaining task: second phase, needs_review release, T09, and T14 are all complete (SPEC v0.22).<br>PLAN 已无剩余任务：第二阶段、needs_review 放行、T09、T14 全部完成（SPEC v0.22）。
 
 ### First Step Next Time / 下次第一步
 
-Deploy T14 to the Shanghai host and tell the operator the console lives at /admin/cases (session sign-in, mutations need the current TOTP code).<br>把 T14 部署到上海机，并告知操作者控制台在 /admin/cases（会话登录，变更操作需当次 TOTP 验证码）。
+Tell the operator the console is live at /admin/cases on the Shanghai host (session sign-in, mutations need the current TOTP code).<br>告知操作者：上海机的控制台已上线于 /admin/cases（会话登录，变更操作需当次 TOTP 验证码）。
 
 ---
