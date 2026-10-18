@@ -319,3 +319,73 @@ export async function attachTranslations<T extends MessageViewLike>(
   }
   return result;
 }
+
+// --- needs_review release (2026-10-18 decision) ------------------------------
+
+export interface ReviewTranslationView {
+  text: string;
+  keyFieldCheck: string | null;
+  version: number;
+}
+
+async function requireCoordinatorForMessage(messageId: string, user: User): Promise<Message> {
+  const message = await prisma.message.findUnique({ where: { id: messageId } });
+  if (!message) throw new ApiError(404, "not_found");
+  try {
+    const member = await requireCaseMember(message.caseId, user);
+    if (member.memberRole !== "coordinator") throw new ApiError(403, "forbidden");
+  } catch {
+    // Same shape as the brief/registry: the flagged text's existence is not
+    // revealed to non-coordinators.
+    throw new ApiError(404, "not_found");
+  }
+  return message;
+}
+
+// REQ-TR-05: only the coordinator may READ the flagged text, and only through
+// this review path — reading views keep hiding it until release.
+export async function getReviewTranslation(
+  messageId: string,
+  user: User,
+  targetLang: string,
+): Promise<ReviewTranslationView> {
+  await requireCoordinatorForMessage(messageId, user);
+  const latest = await latestVersion(messageId, targetLang);
+  if (!latest || latest.status !== "needs_review" || !latest.text) {
+    throw new ApiError(409, "not_needs_review");
+  }
+  return { text: latest.text, keyFieldCheck: latest.keyFieldCheck, version: latest.version };
+}
+
+// Releasing marks the flagged version done; reading views then show the text
+// with the machine tag. The release is audited with the checker verdict.
+export async function releaseTranslation(
+  messageId: string,
+  user: User,
+  body: Record<string, unknown>,
+): Promise<{ view: TranslationView }> {
+  const message = await requireCoordinatorForMessage(messageId, user);
+  await requireWritableCase(message.caseId);
+  const targetLang = body.targetLang;
+  if (typeof targetLang !== "string" || !isSupportedLang(targetLang)) {
+    throw new ApiError(400, "invalid_target_lang");
+  }
+  const latest = await latestVersion(messageId, targetLang);
+  if (!latest || latest.status !== "needs_review") {
+    throw new ApiError(409, "not_needs_review");
+  }
+  const released = await prisma.translationVersion.update({
+    where: { id: latest.id },
+    data: { status: "done" },
+  });
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "translation.release",
+    result: "success",
+    targetType: "message",
+    targetId: message.id,
+    caseId: message.caseId,
+    meta: { targetLang, version: latest.version, keyFieldCheck: latest.keyFieldCheck },
+  });
+  return { view: viewFromVersion(targetLang, released) };
+}

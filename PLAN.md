@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.19 | Date: 2026-10-18
-- 版本：0.19｜日期：2026-10-18
-- Basis: SPEC.md v0.19, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. T17 statute note was implemented 2026-10-18 — the second phase is complete. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
-- 依据：SPEC.md v0.19、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。T17 法条备忘已于 2026-10-18 实现——第二阶段全部完成。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
+- Version: 0.20 | Date: 2026-10-18
+- 版本：0.20｜日期：2026-10-18
+- Basis: SPEC.md v0.20, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. T17 statute note was implemented 2026-10-18 — the second phase is complete. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
+- 依据：SPEC.md v0.20、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。T17 法条备忘已于 2026-10-18 实现——第二阶段全部完成。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -323,8 +323,8 @@
 - 依赖：T08、T06。
 - Acceptance criteria: the first failing test is `tests/unit/files/attachment-translation-page.test.ts`. A published file with extracted Chinese text produces a page whose body is the source text, then Vietnamese. A published file with extracted Vietnamese text produces Traditional Chinese after the source. A file that yields no text has no page, and the file row says so. A member who cannot download the original cannot open the page. An unpublished file has no page for the other members.
 - 验收标准：第一份失败测试是 `tests/unit/files/attachment-translation-page.test.ts`。已发布且抽出中文的文件，页面正文先是源文，然后是越南语。已发布且抽出越南语的文件，源文之后是繁体中文。抽不出文字的文件没有这一页，文件行上写明。不能下载原件的成员不能打开这一页。未发布的文件不给其他成员这一页。
-- Status: Done 2026-10-16. `attachment_pages` row queued inside both publish transactions; the worker extracts (local pdf-parse/mammoth for selectable PDF/DOCX, Kimi vision for JPG/PNG) then translates, paced with the same 3 RPM budget as message translation; `/files/[id]/translation` renders source then the one translation; authorization re-validates membership and publish state per request. Clarifications recorded in SPEC v0.15 (REQ-ATT-02/04).
-- 状态：2026-10-16 完成。两条发布路径的事务里都会排入 `attachment_pages` 行；worker 先抽取（可选中 PDF/DOCX 用本机 pdf-parse/mammoth，JPG/PNG 用 Kimi 视觉）再翻译，与消息翻译共用 3 RPM 定速；`/files/[id]/translation` 先源文后译文；每次请求都重新校验成员与发布状态。澄清已写入 SPEC v0.15（REQ-ATT-02/04）。
+- Status: Done 2026-10-16. `attachment_pages` row queued inside both publish transactions; the worker extracts (local pdf-parse/mammoth for selectable PDF/DOCX, Kimi vision for JPG/PNG) then translates, paced with the same 3 RPM budget as message translation; `/files/[id]/translation` renders source then the one translation; authorization re-validates membership and publish state per request. Clarifications recorded in SPEC v0.15 (REQ-ATT-02/04). Follow-up 2026-10-18 (SPEC v0.20): the needs_review release path — coordinator-only review (GET …/translate/review) and release (POST …/translate/release) endpoints plus the message-list review/release buttons; release is audited with the checker verdict.
+- 状态：2026-10-16 完成。两条发布路径的事务里都会排入 `attachment_pages` 行；worker 先抽取（可选中 PDF/DOCX 用本机 pdf-parse/mammoth，JPG/PNG 用 Kimi 视觉）再翻译，与消息翻译共用 3 RPM 定速；`/files/[id]/translation` 先源文后译文；每次请求都重新校验成员与发布状态。澄清已写入 SPEC v0.15（REQ-ATT-02/04）。 后续 2026-10-18（SPEC v0.20）：needs_review 放行路径——仅协调员的审阅（GET …/translate/review）与放行（POST …/translate/release）端点，以及消息列表上的审阅/放行按钮；放行连同检查结果记入审计。
 
 ## T16 Coordinator Brief / T16 协调员备忘
 

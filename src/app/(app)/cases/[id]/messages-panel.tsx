@@ -37,7 +37,21 @@ function newIdempotencyKey(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-export function MessagesPanel({ caseId, lang }: { caseId: string; lang: string }) {
+interface ReviewView {
+  text: string;
+  keyFieldCheck: string | null;
+  version: number;
+}
+
+export function MessagesPanel({
+  caseId,
+  lang,
+  coordinator = false,
+}: {
+  caseId: string;
+  lang: string;
+  coordinator?: boolean;
+}) {
   const [mode, setMode] = useState<ReadingMode>("auto");
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [error, setError] = useState(false);
@@ -45,6 +59,8 @@ export function MessagesPanel({ caseId, lang }: { caseId: string; lang: string }
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reviewByMessage, setReviewByMessage] = useState<Record<string, ReviewView>>({});
+  const [releasing, setReleasing] = useState<string | null>(null);
   const sendingRef = useRef(false);
   // Hydration gate: server-rendered controls have no handlers yet.
   const mounted = useSyncExternalStore(
@@ -123,6 +139,40 @@ export function MessagesPanel({ caseId, lang }: { caseId: string; lang: string }
     if (res.ok) setRefreshKey((key) => key + 1);
   }
 
+  async function reviewFlagged(message: MessageItem) {
+    const targetLang = message.translation?.targetLang;
+    if (!targetLang) return;
+    const res = await fetch(
+      `/api/messages/${message.id}/translate/review?targetLang=${encodeURIComponent(targetLang)}`,
+    );
+    if (!res.ok) return;
+    const data = (await res.json()) as { review: ReviewView };
+    setReviewByMessage((prev) => ({ ...prev, [message.id]: data.review }));
+  }
+
+  async function release(message: MessageItem) {
+    const targetLang = message.translation?.targetLang;
+    if (!targetLang || releasing) return;
+    setReleasing(message.id);
+    try {
+      const res = await fetch(`/api/messages/${message.id}/translate/release`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ targetLang }),
+      });
+      if (res.ok) {
+        setReviewByMessage((prev) => {
+          const next = { ...prev };
+          delete next[message.id];
+          return next;
+        });
+        setRefreshKey((key) => key + 1);
+      }
+    } finally {
+      setReleasing(null);
+    }
+  }
+
   function switchMode(next: ReadingMode) {
     // REQ-TR-02: switching modes is a pure reading preference; it touches no
     // publish permissions.
@@ -183,8 +233,46 @@ export function MessagesPanel({ caseId, lang }: { caseId: string; lang: string }
             </button>
           </p>
         );
-      case "needs_review":
-        return <p className="text-sm opacity-60">{uiText(lang, "translationPending")}</p>;
+      case "needs_review": {
+        const review = reviewByMessage[message.id];
+        return (
+          <div>
+            <p className="text-sm opacity-60">{uiText(lang, "translationPending")}</p>
+            {coordinator ? (
+              review ? (
+                <div className="mt-1 rounded border p-2" data-testid="translation-review">
+                  <p className="text-xs opacity-60">{uiText(lang, "translationReviewTitle")}</p>
+                  <p className="mt-1 text-sm" data-testid="review-text">
+                    {review.text}
+                  </p>
+                  {review.keyFieldCheck ? (
+                    <p className="mt-1 text-xs opacity-60">
+                      {uiText(lang, "translationMismatch")}: {review.keyFieldCheck}
+                    </p>
+                  ) : null}
+                  <button
+                    className="mt-1 rounded border px-2 py-0.5 text-xs disabled:opacity-50"
+                    data-testid="release-button"
+                    disabled={!mounted || releasing === message.id}
+                    onClick={() => void release(message)}
+                  >
+                    {uiText(lang, "translationRelease")}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="mt-1 rounded border px-2 py-0.5 text-xs"
+                  data-testid="review-button"
+                  disabled={!mounted}
+                  onClick={() => void reviewFlagged(message)}
+                >
+                  {uiText(lang, "translationReview")}
+                </button>
+              )
+            ) : null}
+          </div>
+        );
+      }
       default:
         return <p className="text-sm opacity-60">{uiText(lang, "translating")}</p>;
     }

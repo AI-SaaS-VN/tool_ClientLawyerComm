@@ -20,6 +20,13 @@ Test runtime (2026-10-09): subsequent test deployments use the US test machine. 
 
 第二阶段开工（2026-10-15）：F18 客户默认简体中文（繁体仅自行切换）；F17 自动翻译移入 worker 队列串行定速执行（Kimi 账号上限实测 3 RPM），失败退避重试最多 3 次并记录类型化日志；关键字段校验排除「非常/是否/được không」误报。E2E 顺手修了 10-04 起坏掉的邀请邮件匹配。`npm run test` 340/340、E2E 7/7、tsc/lint/build 无错误，已部署上海测试机。
 
+## needs_review Release Path (2026-10-18) / 待审译文放行（2026-10-18）
+
+- User decision 2026-10-18: the needs_review release goes to the coordinator (the alternative — author-side fix-and-retry — is dropped). `GET /api/messages/[id]/translate/review` returns the flagged text plus the key-field checker verdict to coordinators only (404 otherwise); `POST /api/messages/[id]/translate/release` marks the version done and audits `translation.release` with the checker verdict. Reading views keep hiding the text until release (REQ-TR-05). The message list shows 查看待审译文 / 放行此译文 on needs_review rows for coordinators (four languages).
+- Tests: `tests/integration/translation/release-needs-review.test.ts` (3: review→release→readers-see-text with audit, 404 for client/lawyer, 409 on double release).
+
+待审译文放行（2026-10-18）：按用户决定，放行权归协调员（放弃作者修正重试方案）。协调员先经 review 端点读待审译文与关键字段检查结果，再经 release 端点放行；放行前阅读视图一律不显示译文；放行记审计。消息列表对协调员显示「查看待审译文/放行此译文」（四语言）。集成测试 3 项。
+
 ## T17 China-and-Vietnam Statute Note (2026-10-18) / T17 中国法与越南法备忘（2026-10-18）
 
 - Implemented per SPEC v0.19 / PLAN v0.19 — the last second-phase task; the phase is now complete. Statute fields live on the `case_briefs` row (migration `20261018042119_t17_statute_links`: statute_status state machine none → queued → processing → ready/failed with a hand-added CHECK, statute_links JSON, statute_note). Suggestions ride the same thin-case prompt cycle as T16 through the new `suggestStatuteLinks` method on the brief provider seam (fake/Kimi): the provider answers a JSON array of {title, url, jurisdiction}, and every entry that is not cn or vn is dropped before storage (REQ-STAT-01 — material outside China and Vietnam is never offered).

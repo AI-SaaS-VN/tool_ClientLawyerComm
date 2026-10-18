@@ -59,7 +59,11 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
             </li>
           ))}
       </ul>
-      <MessagesPanel caseId={caseId} lang={lang} />
+      <MessagesPanel
+        caseId={caseId}
+        lang={lang}
+        coordinator={membership.memberRole === "coordinator"}
+      />
       <FilesPanel caseId={caseId} lang={lang} />
       {membership.memberRole === "coordinator" ? <BriefPanel caseId={caseId} lang={lang} /> : null}
       {membership.memberRole === "coordinator" ? <RegistryPanel caseId={caseId} lang={lang} /> : null}
