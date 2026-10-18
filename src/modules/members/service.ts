@@ -15,13 +15,12 @@ import { disconnectCaseUser } from "@/server/sse/hub";
 // tasks (peer_urgent included, REQ-NTF-05) are cancelled in the same
 // transaction; the worker's pre-send re-check is the backstop. Live SSE
 // connections are force-closed right after the transaction commits.
-export async function revokeMember(
+// Guard-free core shared with the REQ-ADM admin console.
+export async function revokeMemberRecord(
   caseId: string,
   targetUserId: string,
-  actor: User,
+  actorId: string,
 ): Promise<void> {
-  await requireCaseManager(caseId, actor);
-  await requireWritableCase(caseId);
   const member = await prisma.caseMember.findUnique({
     where: { caseId_userId: { caseId, userId: targetUserId } },
   });
@@ -34,7 +33,7 @@ export async function revokeMember(
       });
       await cancelQueuedAlertsForRecipient(tx, caseId, targetUserId, new Date());
       await recordAudit(tx, {
-        actorId: actor.id,
+        actorId,
         action: "member.revoke",
         result: "success",
         targetType: "case_member",
@@ -44,6 +43,16 @@ export async function revokeMember(
     });
     disconnectCaseUser(caseId, targetUserId);
   }
+}
+
+export async function revokeMember(
+  caseId: string,
+  targetUserId: string,
+  actor: User,
+): Promise<void> {
+  await requireCaseManager(caseId, actor);
+  await requireWritableCase(caseId);
+  await revokeMemberRecord(caseId, targetUserId, actor.id);
 }
 
 // Duty flags exist only on coordinator memberships (REQ-PM-05); other roles

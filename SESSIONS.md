@@ -1423,7 +1423,7 @@ Deploy T18 to the Shanghai host (add `REGISTRY_PROVIDER=masothue` to its `.env`)
 
 ---
 
-## Session 2026-10-18-01 (In progress) / 会话 2026-10-18-01（进行中）
+## Session 2026-10-18-01 (completed) / 会话 2026-10-18-01（已完成）
 
 - Date/Timezone: 2026-10-18, UTC (Kimi Code on the dev Linux)<br>日期/时区：2026-10-18，UTC（研发 Linux 上的 Kimi Code）
 - Goal (user request): add a coordinator manual-entry path for the registry lookup (done first); then execute the next PLAN step — T17 statute note.<br>本次目标（用户要求）：先加协调员手工录入入口；然后执行 PLAN 下一步——T17 法条备忘。
@@ -1450,5 +1450,35 @@ Deploy T18 to the Shanghai host (add `REGISTRY_PROVIDER=masothue` to its `.env`)
 ### First Step Next Time / 下次第一步
 
 Deploy to the Shanghai host; then discuss T14 (admin console, P1) with the user.<br>部署上海机；然后与用户讨论 T14（管理控制台，P1）。
+
+---
+
+## Session 2026-10-18-02 (completed) / 会话 2026-10-18-02（已完成）
+
+- Date/Timezone: 2026-10-18, UTC (Kimi Code on the dev Linux)<br>日期/时区：2026-10-18，UTC（研发 Linux 上的 Kimi Code）
+- Goal (user request): continue with the remaining PLAN item — T14 Administration Console (REQ-ADM-01~05).<br>本次目标（用户要求）：继续完成剩余计划项——T14 管理控制台（REQ-ADM-01~05）。
+
+### Actual Actions / 实际动作
+
+1. Read SPEC REQ-ADM-01~05 and the PLAN T14 section; aligned on the existing admin surface (`requireAdminMfa`, `admin/test-cases.ts`, `admin/audit-logs.ts`) and the invite/member services.<br>阅读 SPEC REQ-ADM-01~05 与 PLAN T14 节；对齐现有 admin 面（requireAdminMfa、test-cases、audit-logs）与邀请/成员服务。
+2. TDD red: `tests/integration/admin/console-cases.test.ts` (10 tests) failed first on missing routes, then drove the implementation.<br>TDD 红：先写 10 条集成测试，因路由不存在而失败，再驱动实现。
+3. Service `src/modules/admin/cases.ts`: `listCasesView`/`listCases` (metadata + roster only; pending rows from unused, unrevoked invites; `admin.cases_list` audit), `createCaseWithParticipants` (title + client org + ≥1 participant per role, duplicate-address 400, REQ-ADM-05 role-mismatch 409 at creation, `case.create` audit with `origin: "admin_console"`, one activation email per entered address via `issueInvite`), `addParticipant`, `revokeMemberAsAdmin` (404 on malformed/unknown UUID case id).<br>服务模块 admin/cases.ts：列表仅元数据＋名册（pending 行来自未用未撤邀请）；建案要求每角色至少一名、重复地址 400、角色不符创建时 409；追加参与人与撤销；非法案件 id 404。
+4. Extracted the guard-free `revokeMemberRecord` core in `members/service.ts` (shared by the coordinator flow and the console); `admin/test-cases.ts` now imports the shared `ensurePendingRecipient` (its REQ-OPS-07 tests still pass).<br>members/service.ts 抽出无守卫的 revokeMemberRecord 核心（协调员流程与控制台共用）；test-cases.ts 改为导入共享的 ensurePendingRecipient（REQ-OPS-07 测试仍通过）。
+5. API routes: `GET|POST /api/admin/cases`, `POST /api/admin/cases/[id]/invites`, `DELETE /api/admin/cases/[id]/members/[uid]` — all behind `requireAdminMfa`.<br>API 路由：四个端点全部经 requireAdminMfa。
+6. Pages: `src/app/(app)/admin/cases/page.tsx` (list + create form) and `[id]/page.tsx` (roster + add participant + per-row revoke); client components send the current TOTP code in `x-totp-code`; 25 new i18n keys × 4 languages (written via python with byte assertions).<br>页面：/admin/cases 列表＋建案表单、/admin/cases/[id] 名册＋追加参与人＋逐行撤销；客户端表单在 x-totp-code 头携带当次验证码；25 个新 i18n 键 × 4 语言（python 写入＋字节断言）。
+
+### Verification / 验证
+
+- `npm run test` 446/446 (60 files; T14 +10 integration), `npx tsc --noEmit` clean, eslint clean on all touched paths, `npm run build` rc=0 with the four new admin routes in the route table.<br>`npm run test` 446/446（60 个文件；T14 新增 10 条集成）；tsc/eslint 干净；构建 rc=0 且路由表含四个新 admin 路由。
+
+### Unfinished Items / 未完成项
+
+- Deploy T14 to the Shanghai host (this session ends before deploy).<br>把 T14 部署到上海机（本会话结束前未部署）。
+- E2E full suite 7/7 still pending a quiet window; Kimi credit still low.<br>E2E 全量 7/7 仍待安静窗口；Kimi 余额仍不足。
+- PLAN has no remaining task: second phase, needs_review release, T09, and T14 are all complete (SPEC v0.22).<br>PLAN 已无剩余任务：第二阶段、needs_review 放行、T09、T14 全部完成（SPEC v0.22）。
+
+### First Step Next Time / 下次第一步
+
+Deploy T14 to the Shanghai host and tell the operator the console lives at /admin/cases (session sign-in, mutations need the current TOTP code).<br>把 T14 部署到上海机，并告知操作者控制台在 /admin/cases（会话登录，变更操作需当次 TOTP 验证码）。
 
 ---

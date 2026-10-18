@@ -2,18 +2,13 @@ import type { User } from "@prisma/client";
 
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/db";
-import { encryptText, hashEmail, normalizeEmail } from "@/modules/auth/crypto";
+import { normalizeEmail } from "@/modules/auth/crypto";
+import { ensurePendingRecipient, type ParticipantEntry } from "@/modules/admin/cases";
 import { assertValidTitle } from "@/modules/cases/title";
 import { issueInvite, type InvitableRole } from "@/modules/invites/service";
 import { recordAudit } from "@/server/audit/log";
 
 const DEFAULT_CLIENT_ORG = "Fictitious Test Client 虚构测试客户";
-
-interface TriangleEntry {
-  role: InvitableRole;
-  email: string;
-  displayName: string | null;
-}
 
 function readEmail(value: unknown): string {
   const email = typeof value === "string" ? normalizeEmail(value) : "";
@@ -37,31 +32,6 @@ function readClientOrgName(value: unknown): string {
   return value;
 }
 
-// A recipient row exists so an optional display name survives until the
-// person activates. One-step activation reuses this channel and marks the
-// pending user active.
-async function ensurePendingRecipient(entry: TriangleEntry): Promise<void> {
-  const existing = await prisma.contactChannel.findUnique({
-    where: { valueHash: hashEmail(entry.email) },
-  });
-  if (existing) return;
-  const user = await prisma.user.create({
-    data: {
-      displayName: entry.displayName ?? entry.email.split("@")[0] ?? "user",
-      globalRole: entry.role,
-      status: "pending",
-    },
-  });
-  await prisma.contactChannel.create({
-    data: {
-      userId: user.id,
-      valueEnc: encryptText(entry.email),
-      valueHash: hashEmail(entry.email),
-      isPrimary: true,
-    },
-  });
-}
-
 // REQ-OPS-07: the MFA-guarded administrator creates one fictitious test case
 // and the system sends one activation email to each of the three entered
 // addresses — coordinator, Chinese client, Vietnamese lawyer — and to no one
@@ -71,7 +41,7 @@ export async function createTestCase(
   body: Record<string, unknown>,
 ): Promise<{ caseId: string; title: string; invites: Array<{ id: string; role: InvitableRole }> }> {
   assertValidTitle(body.title);
-  const entries: TriangleEntry[] = [
+  const entries: ParticipantEntry[] = [
     {
       role: "coordinator",
       email: readEmail(body.coordinatorEmail),
