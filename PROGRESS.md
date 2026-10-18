@@ -20,6 +20,14 @@ Test runtime (2026-10-09): subsequent test deployments use the US test machine. 
 
 第二阶段开工（2026-10-15）：F18 客户默认简体中文（繁体仅自行切换）；F17 自动翻译移入 worker 队列串行定速执行（Kimi 账号上限实测 3 RPM），失败退避重试最多 3 次并记录类型化日志；关键字段校验排除「非常/是否/được không」误报。E2E 顺手修了 10-04 起坏掉的邀请邮件匹配。`npm run test` 340/340、E2E 7/7、tsc/lint/build 无错误，已部署上海测试机。
 
+## T09 DOCX Bilingual Parallel Document (2026-10-18) / T09 DOCX 中越对照文档（2026-10-18）
+
+- Implemented per SPEC v0.21 / PLAN v0.21 (the P1 hold from v1.4 is lifted by the user's request). `docx_jobs` (migration `20261018051943_t09_docx_jobs`, hand-added status CHECK). New module `src/modules/bilingual/`: jszip container read/write, paragraph extraction that flags tables/text boxes/images/footnotes/comments as rejected_unsupported without any provider call (REQ-DOC-04 — never silently omitted), conservative page estimate (max of chars/400 and paragraphs/15; >20 pages → rejected_too_long, REQ-DOC-02 [O06] fallback — no office renderer on the hosts), language gate (zh→vi, vi→zh-Hans; others rejected_lang), numbered batches of 8 paragraphs through the existing translation provider inside the shared paced budget (rate-limit requeue spends no attempts).
+- Output: `合同-中越对照.docx` with a header carrying the machine-translation marking, source file name, language direction, model and time, plus the no-layout/no-certification note (REQ-DOC-03/06 — also stated in the UI). The output is a normal File that enters publish review (pending_review, reason bilingual_output; REQ-DOC-05) and becomes visible to the other party only on reviewer approval. FilesPanel gains the 生成中越对照文档 button and per-row job status (four languages). API: `POST/GET /api/files/[id]/bilingual`.
+- Tests: `tests/unit/bilingual/docx.test.ts` (11: extraction, unsupported detection, page estimate, batch roundtrip, output roundtrip) + `tests/integration/bilingual/convert.test.ts` (7: full request→convert→review→publish flow with pair-count integrity, table rejection without provider calls, over-limit rejection, language rejection, access/409/400 guards, rate-limit requeue, GET status).
+
+T09 DOCX 中越对照文档（2026-10-18）：按 SPEC v0.21 / PLAN v0.21 实现（v1.4 的 P1 搁置由用户解除）。段落抽取遇表格/文本框/图片/脚注/批注直接拒绝且不调用 provider；页数用保守估算（无渲染组件）；方向 中→越 / 越→简中；每批 8 段编号翻译，共用定速额度；输出进发布审核，审核通过对方才可见；界面按钮与状态四语言。测试 11 单测 + 7 集成。
+
 ## needs_review Release Path (2026-10-18) / 待审译文放行（2026-10-18）
 
 - User decision 2026-10-18: the needs_review release goes to the coordinator (the alternative — author-side fix-and-retry — is dropped). `GET /api/messages/[id]/translate/review` returns the flagged text plus the key-field checker verdict to coordinators only (404 otherwise); `POST /api/messages/[id]/translate/release` marks the version done and audits `translation.release` with the checker verdict. Reading views keep hiding the text until release (REQ-TR-05). The message list shows 查看待审译文 / 放行此译文 on needs_review rows for coordinators (four languages).

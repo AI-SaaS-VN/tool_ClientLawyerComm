@@ -10,10 +10,20 @@ interface FileItem {
   uploaderDisplayName: string;
   status: string;
   originalName: string;
+  mime: string;
   sizeBytes: number;
   createdAt: string;
   attachmentState?: "none" | "pending" | "ready" | "unavailable";
 }
+
+interface BilingualJob {
+  id: string;
+  status: string;
+  error: string | null;
+  outputFileId: string | null;
+}
+
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -21,6 +31,8 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selected, setSelected] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [jobs, setJobs] = useState<Record<string, BilingualJob | null>>({});
+  const [requesting, setRequesting] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadingRef = useRef(false);
@@ -58,6 +70,56 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
     return () => clearInterval(backstop);
   }, [caseId]);
 
+  // T09 (REQ-DOC): poll the latest conversion job for each DOCX row.
+  useEffect(() => {
+    let cancelled = false;
+    const docxFiles = files.filter((f) => f.mime === DOCX_MIME);
+    for (const file of docxFiles) {
+      fetch(`/api/files/${file.id}/bilingual`)
+        .then(async (res) => {
+          if (cancelled || !res.ok) return;
+          const data = (await res.json()) as { job: BilingualJob | null };
+          setJobs((prev) => ({ ...prev, [file.id]: data.job }));
+        })
+        .catch(() => {});
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [files]);
+
+  async function requestBilingual(fileId: string) {
+    if (requesting) return;
+    setRequesting(fileId);
+    try {
+      const res = await fetch(`/api/files/${fileId}/bilingual`, { method: "POST" });
+      if (res.ok) {
+        const data = (await res.json()) as { job: BilingualJob };
+        setJobs((prev) => ({ ...prev, [fileId]: data.job }));
+      }
+    } finally {
+      setRequesting(null);
+    }
+  }
+
+  function bilingualStateText(job: BilingualJob): string {
+    switch (job.status) {
+      case "queued":
+      case "processing":
+        return uiText(lang, "bilingualWorking");
+      case "done":
+        return uiText(lang, "bilingualDone");
+      case "rejected_unsupported":
+        return uiText(lang, "bilingualRejectedUnsupported");
+      case "rejected_too_long":
+        return uiText(lang, "bilingualRejectedTooLong");
+      case "rejected_lang":
+        return uiText(lang, "bilingualRejectedLang");
+      default:
+        return uiText(lang, "bilingualFailed");
+    }
+  }
+
   async function upload() {
     if (!selected || uploadingRef.current) return;
     uploadingRef.current = true;
@@ -85,6 +147,9 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
   return (
     <section className="mt-8">
       <h2 className="mb-2 font-medium">{uiText(lang, "files")}</h2>
+      {files.some((f) => f.mime === DOCX_MIME) ? (
+        <p className="mb-2 text-xs opacity-60">{uiText(lang, "bilingualDisclaimer")}</p>
+      ) : null}
       {error ? <p className="text-sm opacity-60">{uiText(lang, "loadFailed")}</p> : null}
       <ul className="flex flex-col gap-2" data-testid="file-list">
         {files.map((file) => (
@@ -122,6 +187,26 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
             {file.status === "published" && file.attachmentState === "unavailable" ? (
               <span className="ml-3 opacity-60" data-testid="attachment-unavailable">
                 {uiText(lang, "attachmentNoText")}
+              </span>
+            ) : null}
+            {file.mime === DOCX_MIME ? (
+              <span className="ml-3" data-testid="bilingual-block">
+                {jobs[file.id] ? (
+                  <span className="opacity-60" data-testid="bilingual-status">
+                    {bilingualStateText(jobs[file.id]!)}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="underline disabled:opacity-50"
+                    title={uiText(lang, "bilingualDisclaimer")}
+                    data-testid="bilingual-button"
+                    disabled={!mounted || requesting === file.id}
+                    onClick={() => void requestBilingual(file.id)}
+                  >
+                    {uiText(lang, "bilingualButton")}
+                  </button>
+                )}
               </span>
             ) : null}
           </li>

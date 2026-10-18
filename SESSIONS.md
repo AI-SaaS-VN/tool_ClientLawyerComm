@@ -1435,18 +1435,20 @@ Deploy T18 to the Shanghai host (add `REGISTRY_PROVIDER=masothue` to its `.env`)
 
 3. needs_review release path (SPEC v0.20, user decision): coordinator-only review + release endpoints (`GET/POST …/translate/review|release`), audited with the checker verdict; message-list review/release buttons for coordinators (four languages). TDD: 3 integration tests first.<br>needs_review 放行（SPEC v0.20，用户拍板）：仅协调员的审阅＋放行端点，放行记审计含检查结果；消息列表为协调员显示审阅/放行按钮（四语言）。先红 3 个集成测试。
 
+4. T09 DOCX bilingual conversion (SPEC v0.21, per user request lifting the P1 hold): `src/modules/bilingual/` (jszip container, paragraph extraction with upfront unsupported-element rejection, conservative page estimate, zh→vi / vi→zh-Hans gate, numbered batches of 8 in the paced budget); `docx_jobs` table + worker pass; output File enters publish review (reason bilingual_output); FilesPanel button + four-language status; `POST/GET /api/files/[id]/bilingual`.<br>T09 DOCX 对照转换（SPEC v0.21，用户解除 P1 搁置）：bilingual 模块；docx_jobs 表＋worker 趟次；输出走发布审核；FilesPanel 按钮与四语言状态；新 API 端点。
+
 ### Verification / 验证
 
-- `npm run test` 418/418 (57 files; T17 +10 unit +5 integration; manual entry +3 integration; release +3 integration), tsc clean, eslint clean, `npm run build` rc=0 with `/api/cases/[id]/statute` in the route table.<br>`npm run test` 418/418（57 个文件；T17 新增 10 单测 + 5 集成，手工录入 +3 集成，放行 +3 集成）；tsc/eslint 干净；构建含新路由。
+- `npm run test` 436/436 (59 files; T09 +11 unit +7 integration), tsc clean, eslint clean, `npm run build` pending.<br>`npm run test` 436/436（59 个文件；T09 新增 11 单测 + 7 集成）；tsc/eslint 干净；构建待跑。 (57 files; T17 +10 unit +5 integration; manual entry +3 integration; release +3 integration), tsc clean, eslint clean, `npm run build` rc=0 with `/api/cases/[id]/statute` in the route table.<br>`npm run test` 418/418（57 个文件；T17 新增 10 单测 + 5 集成，手工录入 +3 集成，放行 +3 集成）；tsc/eslint 干净；构建含新路由。
 
 ### Unfinished Items / 未完成项
 
 - ~~Deploy T17 + manual entry to the Shanghai host~~ Done: migration + build rc=0 + restart, health 200.<br>~~部署 T17 与手工录入到上海机~~ 已完成：迁移＋构建 rc=0＋重启，健康检查 200。
 - E2E full suite 7/7 still pending a quiet window; Kimi credit still low.<br>E2E 全量 7/7 仍待安静窗口；Kimi 余额仍不足。
-- Second phase (F18, F17, T15, T16, T18, T17) is complete, and the needs_review release decision is now implemented; remaining: T09 and T14 (later).<br>第二阶段（F18、F17、T15、T16、T18、T17）已全部完成，needs_review 放行决策也已实现；剩余：T09 与 T14（更后）。
+- Second phase (F18, F17, T15, T16, T18, T17) plus the needs_review release path and T09 are all complete; remaining: T14 admin console (P1).<br>第二阶段（F18、F17、T15、T16、T18、T17）、needs_review 放行与 T09 均已完成；剩余：T14 管理控制台（P1）。
 
 ### First Step Next Time / 下次第一步
 
-Deploy to the Shanghai host; then discuss remaining items (T09/T14, needs_review release UI) with the user.<br>部署上海机；然后与用户讨论剩余事项（T09/T14、needs_review 放行界面）。
+Deploy to the Shanghai host; then discuss T14 (admin console, P1) with the user.<br>部署上海机；然后与用户讨论 T14（管理控制台，P1）。
 
 ---

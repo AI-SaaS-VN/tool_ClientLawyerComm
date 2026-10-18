@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.20 | Date: 2026-10-18
-- 版本：0.20｜日期：2026-10-18
-- Basis: SPEC.md v0.20, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. T17 statute note was implemented 2026-10-18 — the second phase is complete. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
-- 依据：SPEC.md v0.20、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。T17 法条备忘已于 2026-10-18 实现——第二阶段全部完成。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
+- Version: 0.21 | Date: 2026-10-18
+- 版本：0.21｜日期：2026-10-18
+- Basis: SPEC.md v0.21, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. T17 statute note was implemented 2026-10-18 — the second phase is complete. T09 DOCX bilingual conversion was implemented 2026-10-18 (SPEC v0.21). T14 stays later. Domain, HTTPS, and a real file scanner stay deferred.
+- 依据：SPEC.md v0.21、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。T17 法条备忘已于 2026-10-18 实现——第二阶段全部完成。T09 DOCX 双语对照转换已于 2026-10-18 实现（SPEC v0.21）。T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -32,7 +32,7 @@
 | T06 | Translation service and dual reading modes (Simplified/Traditional Chinese / Vietnamese / English)<br>翻译服务与双阅读模式（中简繁/越/英） | T04 | REQ-TR; R05; AC03/AC04 |
 | T07 | Review console + Coordinator automatic reminders (email, including notification core)<br>审核后台＋协调员自动提醒（邮件，含通知核心） | T05 | REQ-REV/NTF-07~13; R10; AC12 |
 | T08 | File upload / isolation / scanning / publish / authorized download<br>文件上传/隔离/扫描/发布/授权下载 | T03、T07 | REQ-FILE; R07; AC06 |
-| T09 | ~~DOCX Bilingual Parallel Document conversion~~ (moved to P1, v1.4)<br>~~DOCX 双语对照转换~~（移 P1，v1.4） | — | REQ-DOC; R08; AC07 (P1) |
+| T09 | DOCX Bilingual Parallel Document conversion<br>DOCX 双语对照转换 | T06、T08 | REQ-DOC; R08; AC07 |
 | T10 | Two-way Urgent Alerts (between users, email channel)<br>双向紧急提醒（用户间，邮件渠道） | T07、T03 | REQ-NTF-01~06; R09; AC08 |
 | T11 | Permission Revocation / Archive / admin MFA / Audit Trail<br>撤权/归档/管理员 MFA/审计 | T03、T04、T07、T08 | REQ-OPS/PM-08/AUTH-09; R11; AC02/09/11 |
 | T12 | End-to-end dual-user + Backup and Restore drill + real-channel acceptance<br>端到端双用户＋备份恢复演练＋真实链路验收 | T01–T08、T10、T11 | AC01–AC06、AC08–AC12（AC07 属 P1）；O07/O08 |
@@ -215,8 +215,8 @@
 - 同步测试（P1）：`tests/unit/bilingual/paragraph-integrity.test.ts`、`tests/integration/bilingual/convert.test.ts`、`tests/integration/bilingual/reject-unsupported.test.ts`。
 - Test commands (P1): `npm run test -- bilingual`, `npm run test:int -- bilingual`.
 - 测试命令（P1）：`npm run test -- bilingual`、`npm run test:int -- bilingual`。
-- Status: moved to P1 (v1.4); does not block MVP.
-- 状态：已移 P1（v1.4），不阻塞 MVP。
+- Status: Done 2026-10-18 (SPEC v0.21). `docx_jobs` table (migration `20261018051943_t09_docx_jobs`); `src/modules/bilingual/` (jszip container, paragraph extraction, conservative page estimate, numbered batches of 8, pair assembly); one paced provider call per worker step; output File enters publish review (reason bilingual_output). FilesPanel button + four-language status. Tests: `tests/unit/bilingual/docx.test.ts` (11) + `tests/integration/bilingual/convert.test.ts` (7).
+- 状态：2026-10-18 完成（SPEC v0.21）。`docx_jobs` 表（迁移 `20261018051943_t09_docx_jobs`）；`src/modules/bilingual/`（jszip 容器、段落抽取、保守页数估算、每批 8 段编号翻译、对照组稿）；worker 每步一次定速 provider 调用；输出 File 走发布审核（原因 bilingual_output）。FilesPanel 按钮＋四语言状态。测试：`tests/unit/bilingual/docx.test.ts`（11 项）+ `tests/integration/bilingual/convert.test.ts`（7 项）。
 
 ## T10 Two-way Urgent Alerts (Between Users) / T10 双向紧急提醒（用户间）
 
@@ -408,7 +408,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 8 | F08 | T12 leftovers: AC10 China–Vietnam network test, production-scale restore drill (O07/O08). | After the pilot UI. Blocked on external resources. | Blocked |
 | 9 | F09 | P0 review gaps already found: display names are not checked for contact channels (REQ-MOD-02); no account-recovery API (REQ-AUTH-10); no API for a later administrator; session tokens are stored in plaintext. The 2026-10-03 code review expanded this list — CURSOR_REVIEW.md Section 10 items R1–R9 must be fixed before real data, R10–R22 right after. | After F01–F05. Expanded by the 2026-10-03 code review. | Later |
 | 10 | F10 | Re-run the three failing end-to-end journeys from the 2026-10-03 review, after F01 and F04. | Quality. Done 2026-10-03: all specs pass in three consecutive full runs (7/7 each). The dual-user visibility timeout did not recur; the leading suspect (cold dev-server compiles consuming the expect window) is addressed by compiling the journey routes in global setup, and `trace: retain-on-failure` now captures evidence on any recurrence. No sleeps added, no assertion weakened. | Done |
-| 11 | T09 | DOCX bilingual conversion. | Stays P1. | P1 |
+| 11 | T09 | DOCX bilingual conversion. | Implemented 2026-10-18 (SPEC v0.21). | Done |
 | 12 | F11 | Publish ordinary messages and clean files immediately. Hold only a message or file name that explicitly asks about or negotiates the firm's litigation retainer fee. Contact details in a message or file name publish. A display name that contains a contact channel is still rejected on save. Scan failure stays unpublished. | Requested 2026-10-03 after the Shanghai pilot: not every attachment or message waits for review. | Done |
 | 13 | F12 | Case entry is the invited email plus the invitation code that was sent. The first use joins the case. The same pair signs in to that case again from any browser. Case entry does not ask for a 6-digit code. The administrator still uses the email OTP. | Requested 2026-10-03: the client was stopped on the 6-digit code page. | Done |
 | 14 | F13 | Show a timestamp on every conversation record and every upload record the viewer can see (REQ-MSG-11, REQ-FILE-04). Format it with the timezone set on that computer, and print the offset beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7 for the same instant. The role does not choose the offset. The message list and the file list both print that labeled time. | Requested 2026-10-03. The timezone rule was set the same evening: the lawyer's computer is UTC+7, the client's computer is UTC+8, and each computer's own setting is what gets labeled. The screen now does this. | Done |
@@ -434,7 +434,7 @@ The three roles are in the fictitious case and can see the client's three identi
 | 8 | F08 | T12 剩余项：AC10 中越网络测试、生产规模恢复演练（O07/O08）。 | 排在试点界面之后。外部资源阻塞。 | 阻塞 |
 | 9 | F09 | 已发现的 P0 复核缺口：显示名未按联系渠道检查（REQ-MOD-02）；没有账号找回接口（REQ-AUTH-10）；没有后续管理员接口；会话令牌明文存放。2026-10-03 代码复核扩充了这份清单——CURSOR_REVIEW.md 第 10 节 R1–R9 须在接入真实数据前修复，R10–R22 紧随其后。 | 排在 F01–F05 之后。已由 2026-10-03 代码复核扩充。 | 稍后 |
 | 10 | F10 | F01 与 F04 之后，重跑 2026-10-03 复核里失败的三段端到端旅程。 | 质量项。2026-10-03 完成：连续三轮完整运行全部通过（每轮 7/7）。双用户可见性超时未再出现；首要嫌疑（dev server 冷编译占满 expect 窗口）已通过在 global setup 预编译旅程路由解决，并加入 `trace: retain-on-failure` 以便复发时留证。未加 sleep，未削弱断言。 | 已完成 |
-| 11 | T09 | DOCX 双语转换。 | 仍是 P1。 | P1 |
+| 11 | T09 | DOCX 双语转换。 | 2026-10-18 已实现（SPEC v0.21）。 | 已完成 |
 | 12 | F11 | 普通消息和扫描通过的文件立即发布。只有消息或文件名显式询问或协商律所诉讼委托费用时才待审。消息或文件名里的联系方式直接发布。显示名含联系渠道时仍拒绝保存。扫描失败不发布。 | 2026-10-03 上海试点之后提出：不是每条消息和每个附件都要等审核。 | 已完成 |
 | 13 | F12 | 进入案件使用受邀邮箱加上已经发出的邀请码。第一次使用即加入该案件。之后同一组邮箱和邀请码可以从任意浏览器再次进入该案件。案件入口不再要 6 位验证码。管理员仍用邮箱验证码。 | 2026-10-03 提出：客户停在 6 位验证码页面。 | 已完成 |
 | 14 | F13 | 观看者能看到的每条对话记录和每条上传记录都显示时间戳（REQ-MSG-11、REQ-FILE-04）。按那台电脑的时区设置换算，并在时间旁边标出时区。设为 UTC+8 的电脑标 UTC+8。同一时刻在设为 UTC+7 的电脑上标 UTC+7。时区不按角色写死。消息列表和文件列表都标出这个时间。 | 2026-10-03 提出。当晚补上时区规则：律师的电脑是 UTC+7，客户的电脑是 UTC+8，各自电脑的设置就是要标出的时区。界面已按此显示。 | 已完成 |

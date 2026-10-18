@@ -105,6 +105,7 @@ model Case {
   digestRuns    DigestRun[]
   brief         CaseBrief?
   registryLookup CaseRegistryLookup?
+  docxJobs      DocxJob[]
 
   @@map("cases")
 }
@@ -376,6 +377,7 @@ model File {
   updatedAt    DateTime  @updatedAt @map("updated_at")
   variants     FileVariant[]
   attachmentPage AttachmentPage?
+  docxJobs     DocxJob[]
 
   @@index([caseId, status])
   @@map("files")
@@ -448,6 +450,37 @@ model CaseBrief {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@map("case_briefs")
+}
+
+// T09 (REQ-DOC): one DOCX bilingual conversion job per request. status state
+// machine: queued → processing → done / rejected_unsupported /
+// rejected_too_long / rejected_lang / failed. progress holds partial batch
+// translations (JSON array with null holes) so pacing across worker ticks
+// never redoes a batch. The output file is a normal File that goes through
+// publish review (REQ-DOC-05). Status CHECK is hand-added in the migration.
+model DocxJob {
+  id             String    @id @default(uuid()) @db.Uuid
+  caseId         String    @map("case_id") @db.Uuid
+  case           Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fileId         String    @map("file_id") @db.Uuid
+  file           File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  requesterId    String    @map("requester_id") @db.Uuid
+  status         String    @default("queued")
+  sourceLang     String?   @map("source_lang")
+  targetLang     String?   @map("target_lang")
+  paragraphCount Int?      @map("paragraph_count")
+  pageEstimate   Int?      @map("page_estimate")
+  progress       Json?
+  outputFileId   String?   @map("output_file_id") @db.Uuid
+  error          String?
+  attempts       Int       @default(0)
+  nextRetryAt    DateTime? @map("next_retry_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([caseId])
+  @@index([fileId])
+  @@map("docx_jobs")
 }
 
 // T18 (REQ-REG): one target-company registry lookup per case. status state

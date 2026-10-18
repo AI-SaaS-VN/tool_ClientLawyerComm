@@ -25,6 +25,7 @@ import {
 } from "@/modules/files/attachment-translation";
 import { findDueBriefRows, queueBriefPrompts, runBriefQuestionsStep } from "@/modules/agent/coordinator-brief";
 import { findDueStatuteRows, runStatuteLinksStep } from "@/modules/agent/statute-brief";
+import { findDueDocxJobs, runBilingualJobStep } from "@/modules/bilingual/service";
 import {
   findDueRegistryRows,
   queueRegistryLookups,
@@ -75,6 +76,8 @@ export interface WorkerRunSummary {
   registriesQueued: number;
   registriesDone: number;
   registriesFailed: number;
+  bilingualSteps: number;
+  bilingualFailed: number;
 }
 
 const BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
@@ -97,7 +100,7 @@ export async function runNotificationWorkerOnce(
 ): Promise<WorkerRunSummary> {
   const clock = deps.clock ?? systemClock;
   const emailProvider = deps.emailProvider ?? getEmailProvider();
-  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0, briefsQueued: 0, briefsGenerated: 0, briefsFailed: 0, statutesGenerated: 0, statutesFailed: 0, registriesQueued: 0, registriesDone: 0, registriesFailed: 0 };
+  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0, briefsQueued: 0, briefsGenerated: 0, briefsFailed: 0, statutesGenerated: 0, statutesFailed: 0, registriesQueued: 0, registriesDone: 0, registriesFailed: 0, bilingualSteps: 0, bilingualFailed: 0 };
 
   if (deps.digest) {
     // Idempotent via the unique (case_id, digest_date): a failure here is
@@ -124,6 +127,10 @@ export async function runNotificationWorkerOnce(
     summary,
   );
   await runRegistryLookupPass(
+    deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
+    summary,
+  );
+  await runBilingualPass(
     deps.translationMinIntervalMs ?? TRANSLATION_MIN_INTERVAL_MS,
     summary,
   );
@@ -234,6 +241,25 @@ async function runRegistryLookupPass(
     } else if (finished.status === "failed") {
       summary.registriesFailed += 1;
     }
+  }
+}
+
+// T09 (REQ-DOC): one step per job per gap — extraction is local, then one
+// paced translation batch per step. The output file enters publish review.
+async function runBilingualPass(
+  minIntervalMs: number,
+  summary: WorkerRunSummary,
+): Promise<void> {
+  const due = await findDueDocxJobs(new Date());
+  for (const row of due) {
+    const needsLlm = row.progress !== null || row.status === "queued";
+    if (needsLlm) {
+      if (Date.now() - lastLlmTranslationCallAt < minIntervalMs) break;
+      lastLlmTranslationCallAt = Date.now();
+    }
+    const finished = await runBilingualJobStep(row);
+    if (finished.status === "failed") summary.bilingualFailed += 1;
+    else summary.bilingualSteps += 1;
   }
 }
 
