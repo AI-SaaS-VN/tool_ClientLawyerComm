@@ -1439,7 +1439,7 @@ Deploy T18 to the Shanghai host (add `REGISTRY_PROVIDER=masothue` to its `.env`)
 
 ### Unfinished Items / 未完成项
 
-- Deploy T17 + manual entry to the Shanghai host.<br>把 T17 与手工录入部署到上海机。
+- ~~Deploy T17 + manual entry to the Shanghai host~~ Done: migration + build rc=0 + restart, health 200.<br>~~部署 T17 与手工录入到上海机~~ 已完成：迁移＋构建 rc=0＋重启，健康检查 200。
 - E2E full suite 7/7 still pending a quiet window; Kimi credit still low.<br>E2E 全量 7/7 仍待安静窗口；Kimi 余额仍不足。
 - Second phase (F18, F17, T15, T16, T18, T17) is complete; remaining: T09 and T14 (later), plus the needs_review release decision from T15.<br>第二阶段（F18、F17、T15、T16、T18、T17）已全部完成；剩余：T09 与 T14（更后），以及 T15 遗留的 needs_review 放行决策。
 
