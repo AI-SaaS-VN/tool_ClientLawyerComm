@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { memberStatusText, roleText, uiText } from "@/modules/i18n/copy";
 
 export interface AdminRosterRow {
@@ -48,7 +49,7 @@ export function CaseAdminPanel({
   async function addParticipant() {
     if (state === "working") return;
     setState("working");
-    const ok = await call(`/api/admin/cases/${caseId}/invites`, "POST", {
+    const ok = await call(apiPath(`/api/admin/cases/${caseId}/invites`), "POST", {
       email: email.trim(),
       role,
       displayName: displayName.trim() || undefined,
@@ -66,7 +67,7 @@ export function CaseAdminPanel({
   async function revoke(userId: string) {
     if (state === "working") return;
     setState("working");
-    const ok = await call(`/api/admin/cases/${caseId}/members/${userId}`, "DELETE");
+    const ok = await call(apiPath(`/api/admin/cases/${caseId}/members/${userId}`), "DELETE");
     setState(ok ? "idle" : "failed");
     if (ok) router.refresh();
   }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { uiText } from "@/modules/i18n/copy";
 
 interface StatuteLink {
@@ -36,7 +37,7 @@ export function BriefPanel({ caseId, lang }: { caseId: string; lang: string }) {
   useEffect(() => {
     let cancelled = false;
     const load = () =>
-      fetch(`/api/cases/${caseId}/brief`)
+      fetch(apiPath(`/api/cases/${caseId}/brief`))
         .then(async (res) => {
           if (cancelled || !res.ok) return;
           const data = (await res.json()) as { brief: BriefState };
@@ -61,7 +62,7 @@ export function BriefPanel({ caseId, lang }: { caseId: string; lang: string }) {
     setSaving(true);
     setNeedAnswer(false);
     try {
-      const res = await fetch(`/api/cases/${caseId}/brief`, {
+      const res = await fetch(apiPath(`/api/cases/${caseId}/brief`), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ answers }),
@@ -84,7 +85,7 @@ export function BriefPanel({ caseId, lang }: { caseId: string; lang: string }) {
     setConfirmingStatute(true);
     setNeedSelection(false);
     try {
-      const res = await fetch(`/api/cases/${caseId}/statute`, {
+      const res = await fetch(apiPath(`/api/cases/${caseId}/statute`), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ selected: selectedLinks, remark: remark || undefined }),

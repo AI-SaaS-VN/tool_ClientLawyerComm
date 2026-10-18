@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { uiText } from "@/modules/i18n/copy";
 import { formatRecordTime } from "@/modules/i18n/record-time";
 
@@ -40,7 +41,7 @@ export function ReviewQueue({
       body.reason = reason;
     }
     if (selfRelease) body.selfRelease = true;
-    const res = await fetch(`/api/review/tasks/${taskId}/${action}`, {
+    const res = await fetch(apiPath(`/api/review/tasks/${taskId}/${action}`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),

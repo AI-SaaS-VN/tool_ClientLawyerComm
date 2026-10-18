@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { apiPath } from "@/lib/api-path";
 import { SESSION_COOKIE, getSessionUser } from "@/modules/auth/session";
 import { getAttachmentPageView } from "@/modules/files/attachment-translation";
 import { uiText } from "@/modules/i18n/copy";
@@ -39,7 +40,7 @@ export default async function AttachmentTranslationPage({
   return (
     <main className="mx-auto max-w-2xl p-8">
       <p className="mb-4 text-sm">
-        <a className="underline" href={`/cases/${view.caseId}`}>
+        <a className="underline" href={apiPath(`/cases/${view.caseId}`)}>
           {uiText(lang, "backToCase")}
         </a>
       </p>

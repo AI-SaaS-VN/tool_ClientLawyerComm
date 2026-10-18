@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { apiPath } from "@/lib/api-path";
 import { LANG_NAME, uiText } from "@/modules/i18n/copy";
 import { screenLangOptions } from "@/modules/i18n/screen-lang";
 import type { SupportedLang } from "@/modules/translation/langs";
@@ -10,7 +11,7 @@ export function LanguageSwitch({ lang, role }: { lang: SupportedLang; role: stri
   const router = useRouter();
 
   async function onChange(next: string) {
-    const res = await fetch("/api/auth/me", {
+    const res = await fetch(apiPath("/api/auth/me"), {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ preferredLang: next, uiLang: next }),

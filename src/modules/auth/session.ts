@@ -54,12 +54,18 @@ export function sessionCookieSecure(): boolean {
   return (process.env.SESSION_COOKIE_SECURE ?? "true") !== "false";
 }
 
+// A parallel basePath instance (the /new test deployment) scopes its cookie
+// to its own path so it never collides with the pilot instance's cookie.
+export function sessionCookiePath(): string {
+  return process.env.SESSION_COOKIE_PATH ?? "/";
+}
+
 export function sessionCookieOptions(expiresAt: Date, now: Date = new Date()) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     secure: sessionCookieSecure(),
-    path: "/",
+    path: sessionCookiePath(),
     expires: expiresAt,
     maxAge: Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000)),
   };

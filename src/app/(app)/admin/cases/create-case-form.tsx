@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { roleText, uiText } from "@/modules/i18n/copy";
 
 interface ParticipantRow {
@@ -37,7 +38,7 @@ export function CreateCaseForm({ lang }: { lang: string }) {
     if (state === "working") return;
     setState("working");
     try {
-      const res = await fetch("/api/admin/cases", {
+      const res = await fetch(apiPath("/api/admin/cases"), {
         method: "POST",
         headers: { "content-type": "application/json", "x-totp-code": totp },
         body: JSON.stringify({

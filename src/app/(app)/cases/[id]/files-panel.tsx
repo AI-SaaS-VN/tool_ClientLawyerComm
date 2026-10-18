@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { statusText, uiText } from "@/modules/i18n/copy";
 import { formatRecordTime } from "@/modules/i18n/record-time";
 
@@ -45,7 +46,7 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/cases/${caseId}/files`)
+    fetch(apiPath(`/api/cases/${caseId}/files`))
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
@@ -75,7 +76,7 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
     let cancelled = false;
     const docxFiles = files.filter((f) => f.mime === DOCX_MIME);
     for (const file of docxFiles) {
-      fetch(`/api/files/${file.id}/bilingual`)
+      fetch(apiPath(`/api/files/${file.id}/bilingual`))
         .then(async (res) => {
           if (cancelled || !res.ok) return;
           const data = (await res.json()) as { job: BilingualJob | null };
@@ -92,7 +93,7 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
     if (requesting) return;
     setRequesting(fileId);
     try {
-      const res = await fetch(`/api/files/${fileId}/bilingual`, { method: "POST" });
+      const res = await fetch(apiPath(`/api/files/${fileId}/bilingual`), { method: "POST" });
       if (res.ok) {
         const data = (await res.json()) as { job: BilingualJob };
         setJobs((prev) => ({ ...prev, [fileId]: data.job }));
@@ -128,7 +129,7 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
     try {
       const form = new FormData();
       form.append("file", selected);
-      const res = await fetch(`/api/cases/${caseId}/files`, { method: "POST", body: form });
+      const res = await fetch(apiPath(`/api/cases/${caseId}/files`), { method: "POST", body: form });
       if (!res.ok) {
         setUploadError(true);
         return;
@@ -165,7 +166,7 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
               <a
                 className="ml-3 underline"
                 data-testid="file-download"
-                href={`/api/files/${file.id}/download`}
+                href={apiPath(`/api/files/${file.id}/download`)}
               >
                 {uiText(lang, "download")}
               </a>
@@ -174,7 +175,7 @@ export function FilesPanel({ caseId, lang }: { caseId: string; lang: string }) {
               <a
                 className="ml-3 underline"
                 data-testid="attachment-translation-link"
-                href={`/files/${file.id}/translation`}
+                href={apiPath(`/files/${file.id}/translation`)}
               >
                 {uiText(lang, "openAttachmentTranslation")}
               </a>

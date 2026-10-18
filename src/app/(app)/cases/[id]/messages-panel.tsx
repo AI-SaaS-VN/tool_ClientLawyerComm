@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { machineTag, statusText, uiText } from "@/modules/i18n/copy";
 import { formatRecordTime } from "@/modules/i18n/record-time";
 
@@ -71,7 +72,7 @@ export function MessagesPanel({
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/cases/${caseId}/messages?mode=${mode}`)
+    fetch(apiPath(`/api/cases/${caseId}/messages?mode=${mode}`))
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
@@ -94,7 +95,7 @@ export function MessagesPanel({
   // fall into an SSE reconnect gap are lost (the stream never replays), so a
   // slow interval refetches the authoritative list as a backstop.
   useEffect(() => {
-    const source = new EventSource(`/api/cases/${caseId}/stream`);
+    const source = new EventSource(apiPath(`/api/cases/${caseId}/stream`));
     source.addEventListener("message", () => setRefreshKey((key) => key + 1));
     const backstop = setInterval(() => setRefreshKey((key) => key + 1), 10_000);
     return () => {
@@ -111,7 +112,7 @@ export function MessagesPanel({
     setSending(true);
     setSendError(false);
     try {
-      const res = await fetch(`/api/cases/${caseId}/messages`, {
+      const res = await fetch(apiPath(`/api/cases/${caseId}/messages`), {
         method: "POST",
         headers: { "content-type": "application/json", "idempotency-key": newIdempotencyKey() },
         body: JSON.stringify({ sourceText: text }),
@@ -131,7 +132,7 @@ export function MessagesPanel({
   }
 
   async function translate(messageId: string) {
-    const res = await fetch(`/api/messages/${messageId}/translate`, {
+    const res = await fetch(apiPath(`/api/messages/${messageId}/translate`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: "{}",
@@ -155,7 +156,7 @@ export function MessagesPanel({
     if (!targetLang || releasing) return;
     setReleasing(message.id);
     try {
-      const res = await fetch(`/api/messages/${message.id}/translate/release`, {
+      const res = await fetch(apiPath(`/api/messages/${message.id}/translate/release`), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ targetLang }),

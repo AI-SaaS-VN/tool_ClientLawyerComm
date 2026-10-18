@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { uiText } from "@/modules/i18n/copy";
 import type { SupportedLang } from "@/modules/translation/langs";
 
@@ -23,7 +24,7 @@ export function InviteForm({ lang }: { lang: SupportedLang }) {
     setMessage("");
     setPending(true);
     try {
-      const res = await fetch("/api/invites/activate", {
+      const res = await fetch(apiPath("/api/invites/activate"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, code: inviteCode }),
@@ -46,7 +47,7 @@ export function InviteForm({ lang }: { lang: SupportedLang }) {
     setMessage("");
     setPending(true);
     try {
-      const res = await fetch("/api/invites/accept", {
+      const res = await fetch(apiPath("/api/invites/accept"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ code: inviteCode }),

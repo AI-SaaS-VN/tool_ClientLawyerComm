@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { uiText } from "@/modules/i18n/copy";
 
 interface RegistryState {
@@ -27,7 +28,7 @@ export function RegistryPanel({ caseId, lang }: { caseId: string; lang: string }
   useEffect(() => {
     let cancelled = false;
     const load = () =>
-      fetch(`/api/cases/${caseId}/registry`)
+      fetch(apiPath(`/api/cases/${caseId}/registry`))
         .then(async (res) => {
           if (cancelled || !res.ok) return;
           const data = (await res.json()) as { registry: RegistryState };
@@ -47,7 +48,7 @@ export function RegistryPanel({ caseId, lang }: { caseId: string; lang: string }
     setSaving(true);
     setNeedName(false);
     try {
-      const res = await fetch(`/api/cases/${caseId}/registry`, {
+      const res = await fetch(apiPath(`/api/cases/${caseId}/registry`), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name }),
@@ -69,7 +70,7 @@ export function RegistryPanel({ caseId, lang }: { caseId: string; lang: string }
     if (manualSaving) return;
     setManualSaving(true);
     try {
-      const res = await fetch(`/api/cases/${caseId}/registry`, {
+      const res = await fetch(apiPath(`/api/cases/${caseId}/registry`), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ text: manualText, sourceUrl: manualSource || undefined }),

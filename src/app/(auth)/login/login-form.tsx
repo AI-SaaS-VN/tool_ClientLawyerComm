@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 
+import { apiPath } from "@/lib/api-path";
 import { uiText } from "@/modules/i18n/copy";
 import type { SupportedLang } from "@/modules/translation/langs";
 
@@ -26,7 +27,7 @@ export function LoginForm({ lang }: { lang: SupportedLang }) {
     setMessage("");
     setPending(true);
     try {
-      const res = await fetch("/api/invites/activate", {
+      const res = await fetch(apiPath("/api/invites/activate"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, code: inviteCode }),
@@ -48,7 +49,7 @@ export function LoginForm({ lang }: { lang: SupportedLang }) {
   async function requestOtp(event: React.FormEvent) {
     event.preventDefault();
     setMessage("");
-    const res = await fetch("/api/auth/otp/request", {
+    const res = await fetch(apiPath("/api/auth/otp/request"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email }),
@@ -64,7 +65,7 @@ export function LoginForm({ lang }: { lang: SupportedLang }) {
   async function verifyAdmin(event: React.FormEvent) {
     event.preventDefault();
     setMessage("");
-    const res = await fetch("/api/auth/otp/verify", {
+    const res = await fetch(apiPath("/api/auth/otp/verify"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, code: otp }),
@@ -73,7 +74,7 @@ export function LoginForm({ lang }: { lang: SupportedLang }) {
       setMessage(uiText(lang, "adminCodeInvalid"));
       return;
     }
-    window.location.assign("/cases");
+    window.location.assign(apiPath("/cases"));
   }
 
   return (
