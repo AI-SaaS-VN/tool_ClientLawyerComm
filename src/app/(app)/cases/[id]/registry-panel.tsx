@@ -20,6 +20,9 @@ export function RegistryPanel({ caseId, lang }: { caseId: string; lang: string }
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [needName, setNeedName] = useState(false);
+  const [manualText, setManualText] = useState("");
+  const [manualSource, setManualSource] = useState("");
+  const [manualSaving, setManualSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +62,26 @@ export function RegistryPanel({ caseId, lang }: { caseId: string; lang: string }
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveManual() {
+    if (manualSaving) return;
+    setManualSaving(true);
+    try {
+      const res = await fetch(`/api/cases/${caseId}/registry`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: manualText, sourceUrl: manualSource || undefined }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { registry: RegistryState };
+        setRegistry(data.registry);
+        setManualText("");
+        setManualSource("");
+      }
+    } finally {
+      setManualSaving(false);
     }
   }
 
@@ -103,6 +126,37 @@ export function RegistryPanel({ caseId, lang }: { caseId: string; lang: string }
             {uiText(lang, "registryNoMatch")}
           </p>
         ) : null}
+        <details className="mb-2" data-testid="registry-manual">
+          <summary className="cursor-pointer text-sm opacity-70">
+            {uiText(lang, "registryManualTitle")}
+          </summary>
+          <p className="mt-1 text-sm opacity-60">{uiText(lang, "registryManualLead")}</p>
+          <textarea
+            className="mt-1 block w-full border px-2 py-1 text-sm"
+            rows={4}
+            placeholder={uiText(lang, "registryManualPlaceholder")}
+            data-testid="registry-manual-text"
+            value={manualText}
+            onChange={(event) => setManualText(event.target.value)}
+          />
+          <input
+            type="text"
+            className="mt-1 block w-full border px-2 py-1 text-sm"
+            placeholder={uiText(lang, "registryManualSource")}
+            data-testid="registry-manual-source"
+            value={manualSource}
+            onChange={(event) => setManualSource(event.target.value)}
+          />
+          <button
+            type="button"
+            className="mt-1 border px-3 py-1 text-sm disabled:opacity-50"
+            data-testid="registry-manual-submit"
+            disabled={manualSaving}
+            onClick={() => void saveManual()}
+          >
+            {uiText(lang, "registryManualSubmit")}
+          </button>
+        </details>
         {registry.resultText ? (
           <div data-testid="registry-result">
             <p className="whitespace-pre-wrap text-sm">{registry.resultText}</p>

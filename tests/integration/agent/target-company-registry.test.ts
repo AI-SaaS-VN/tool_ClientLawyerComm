@@ -118,6 +118,70 @@ describe("target company registry lookup (REQ-REG-01~02)", () => {
     expect(row.resultText).toBeNull();
   });
 
+  it("the coordinator records a manual entry when the source is unreachable (REQ-REG-01 v0.18)", async () => {
+    const { kase, coordinatorCookie } = await seedTriangle();
+    const text = "税号：0901053180\n登记状态：正常经营\n法定代表人：HUNG, KUO-YI";
+    const res = await postRegistry(
+      postJson(
+        `/api/cases/${kase.id}/registry`,
+        { text, sourceUrl: "https://masothue.com/0901053180-example" },
+        cookieHeader(coordinatorCookie),
+      ),
+      params(kase.id),
+    );
+    expect(res.status).toBe(200);
+
+    const row = await prisma.caseRegistryLookup.findUniqueOrThrow({ where: { caseId: kase.id } });
+    expect(row.status).toBe("ready");
+    expect(row.resultText).toBe(text);
+    expect(row.sourceUrl).toBe("https://masothue.com/0901053180-example");
+    expect(row.lookedUpAt).not.toBeNull();
+
+    // A manual entry is settled: the worker never re-queues or overwrites it.
+    await runNotificationWorkerOnce({ translationMinIntervalMs: 0 });
+    const after = await prisma.caseRegistryLookup.findUniqueOrThrow({ where: { caseId: kase.id } });
+    expect(after.resultText).toBe(text);
+
+    // Not a case-chat message, nothing emailed (REQ-REG-01).
+    expect(await prisma.message.count({ where: { caseId: kase.id } })).toBe(0);
+    expect(fakeEmailProvider.outbox).toHaveLength(0);
+
+    const audit = await prisma.auditLog.findFirstOrThrow({
+      where: { caseId: kase.id, action: "registry.manual" },
+    });
+    expect(audit.result).toBe("success");
+  });
+
+  it("manual entry requires text and a sane optional source URL", async () => {
+    const { kase, coordinatorCookie } = await seedTriangle();
+    for (const body of [
+      { text: " " },
+      { text: "税号：0901053180", sourceUrl: "not-a-url" },
+    ]) {
+      const res = await postRegistry(
+        postJson(`/api/cases/${kase.id}/registry`, body, cookieHeader(coordinatorCookie)),
+        params(kase.id),
+      );
+      expect(res.status).toBe(400);
+    }
+    expect(await prisma.caseRegistryLookup.count({ where: { caseId: kase.id } })).toBe(0);
+  });
+
+  it("clients and lawyers cannot record a manual entry (REQ-REG-01)", async () => {
+    const { kase, clientCookie, lawyerCookie } = await seedTriangle();
+    for (const cookie of [clientCookie, lawyerCookie]) {
+      const res = await postRegistry(
+        postJson(
+          `/api/cases/${kase.id}/registry`,
+          { text: "手工录入" },
+          cookieHeader(cookie),
+        ),
+        params(kase.id),
+      );
+      expect(res.status).toBe(404);
+    }
+  });
+
   it("a bare tax code goes straight to the detail page", async () => {
     const { kase, coordinatorCookie } = await seedTriangle();
     await postRegistry(

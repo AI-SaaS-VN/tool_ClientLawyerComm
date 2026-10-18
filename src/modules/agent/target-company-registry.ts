@@ -334,6 +334,70 @@ export async function setRegistryQuery(
   return toRegistryView(row);
 }
 
+const MAX_MANUAL_TEXT_CHARS = 4000;
+const MAX_SOURCE_URL_CHARS = 500;
+
+// REQ-REG-01 (v0.18): when the host cannot reach the registry mirror, the
+// coordinator records the result by hand. The text is stored verbatim and
+// marked in the audit log; the row is settled ("ready"), so the worker never
+// re-queues or overwrites it.
+export async function setRegistryManual(
+  caseId: string,
+  user: User,
+  body: Record<string, unknown>,
+): Promise<RegistryView> {
+  try {
+    await requireCoordinatorMember(caseId, user);
+  } catch {
+    throw new ApiError(404, "not_found");
+  }
+  await requireWritableCase(caseId);
+  const rawText = body.text;
+  if (typeof rawText !== "string") throw new ApiError(400, "text_required");
+  const text = [...rawText.trim()].slice(0, MAX_MANUAL_TEXT_CHARS).join("");
+  if (text.length < 2) throw new ApiError(400, "text_required");
+  let sourceUrl: string | null = null;
+  if (body.sourceUrl !== undefined && body.sourceUrl !== null && body.sourceUrl !== "") {
+    if (typeof body.sourceUrl !== "string") throw new ApiError(400, "source_invalid");
+    const candidate = body.sourceUrl.trim();
+    if (
+      candidate.length > MAX_SOURCE_URL_CHARS ||
+      !/^https?:\/\//.test(candidate)
+    ) {
+      throw new ApiError(400, "source_invalid");
+    }
+    sourceUrl = candidate;
+  }
+  const row = await prisma.caseRegistryLookup.upsert({
+    where: { caseId },
+    create: {
+      caseId,
+      status: "ready",
+      resultText: text,
+      sourceUrl,
+      lookedUpAt: new Date(),
+    },
+    update: {
+      status: "ready",
+      resultText: text,
+      sourceUrl,
+      lookedUpAt: new Date(),
+      attempts: 0,
+      nextRetryAt: null,
+    },
+  });
+  await recordAudit(prisma, {
+    actorId: user.id,
+    action: "registry.manual",
+    result: "success",
+    targetType: "case",
+    targetId: caseId,
+    caseId,
+    meta: { chars: text.length, sourceUrl },
+  });
+  return toRegistryView(row);
+}
+
 // Worker trigger (REQ-REG-01/02): queue never-run lookups that already carry a
 // coordinator-supplied name. Cases without a name are skipped — never invent.
 export async function queueRegistryLookups(): Promise<number> {

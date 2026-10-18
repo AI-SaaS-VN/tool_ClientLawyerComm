@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { errorResponse } from "@/lib/http";
-import { getRegistryView, setRegistryQuery } from "@/modules/agent/target-company-registry";
+import {
+  getRegistryView,
+  setRegistryManual,
+  setRegistryQuery,
+} from "@/modules/agent/target-company-registry";
 import { requireUser } from "@/modules/auth/require-user";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +23,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 // REQ-REG-02: the coordinator supplies the target-company name (or tax code);
-// setting it queues the lookup.
+// setting it queues the lookup. A `text` body is a manual entry (v0.18) for
+// when the host cannot reach the registry source.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser(req);
@@ -30,7 +35,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     } catch {
       body = {};
     }
-    return NextResponse.json({ registry: await setRegistryQuery(caseId, user, body) });
+    const registry =
+      typeof body.text === "string"
+        ? await setRegistryManual(caseId, user, body)
+        : await setRegistryQuery(caseId, user, body);
+    return NextResponse.json({ registry });
   } catch (error) {
     return errorResponse(error);
   }

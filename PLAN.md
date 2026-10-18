@@ -1,9 +1,9 @@
 # PLAN.md — MVP Implementation Plan / MVP 实施计划
 
-- Version: 0.17 | Date: 2026-10-17
-- 版本：0.17｜日期：2026-10-17
-- Basis: SPEC.md v0.17, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. Remaining second phase: T17 statute note. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
-- 依据：SPEC.md v0.17、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。第二阶段剩余：T17 法条备忘。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
+- Version: 0.18 | Date: 2026-10-18
+- 版本：0.18｜日期：2026-10-18
+- Basis: SPEC.md v0.18, SOW.md v1.13. Invitation codes do not expire (v1.12). F18 and F17 were implemented 2026-10-15; T15 Attachment Translation Page and T16 Coordinator Brief were implemented 2026-10-16; T18 Target Company registry was implemented 2026-10-17. Remaining second phase: T17 statute note. T09 and T14 stay later. Domain, HTTPS, and a real file scanner stay deferred.
+- 依据：SPEC.md v0.18、SOW.md v1.13。邀请码长期有效（v1.12）。F18 与 F17 已于 2026-10-15 实现；T15 附件翻译页与 T16 协调员备忘已于 2026-10-16 实现；T18 目标公司工商查询已于 2026-10-17 实现。第二阶段剩余：T17 法条备忘。T09 与 T14 仍在更后。域名、HTTPS 与正式文件扫描仍然推迟。
 - Slicing principle: slice by verifiable features, not by "all frontend / all backend / test at the end"; each task is accepted independently, and dependencies are expressed by task ID.
 - 拆分原则：按可验证功能切片，不按「所有前端/所有后端/最后测试」；每任务独立验收，依赖以任务 ID 表示。
 
@@ -364,8 +364,8 @@
 - 验收标准：第一份失败测试是 `tests/unit/agent/target-company-registry.test.ts`。有目标公司名称的案件记下一条查询结果，协调员能读，客户不能读。没有名称的案件不编造公司。
 - Data source (verified 2026-10-17): the official registry (dangkyquamang.dkkd.gov.vn) sits behind a login/captcha wall; `masothue.com` is a public mirror of the same tax-registration data and worked without credentials — tax code, Vietnamese/English names, status, address, legal representative, and industry all came back for the pilot defendant (CÔNG TY TNHH ĐIỆN TỬ AOMAGA (VIỆT NAM), MST 0901053180, active, Bắc Ninh). The lookup provider parses masothue pages and always stores the source URL; the official address above stays the reference of record.
 - 数据源（2026-10-17 实测）：官方工商登记站（dangkyquamang.dkkd.gov.vn）有登录/验证码门槛；`masothue.com` 是同一套税务登记数据的公开镜像，无需凭据即可查询——试点被告 CÔNG TY TNHH ĐIỆN TỬ AOMAGA (VIỆT NAM)（税号 0901053180，正常经营，北宁省）的税号、越/英名称、状态、地址、法定代表人、行业均成功取回。查询提供方解析 masothue 页面并始终保存来源链接；上方官方地址仍是登记依据。
-- Status: Implemented 2026-10-17. `case_registry_lookups` (migration `20261017153604_t18_case_registry_lookups`); the coordinator enters the name or tax code on the case-page registry block (`RegistryPanel`, four languages; `GET/POST /api/cases/[id]/registry` answer 404 to non-coordinators); the worker fetches masothue through the `RegistryProvider` seam (fake in tests) inside the shared paced budget. Tests: `tests/unit/agent/target-company-registry.test.ts` (16) + `tests/integration/agent/target-company-registry.test.ts` (6). `npm run test` 397/397 (54 files).
-- 状态：2026-10-17 已实现。`case_registry_lookups` 表（迁移 `20261017153604_t18_case_registry_lookups`）；协调员在案件页查询块输入名称或税号（`RegistryPanel`，四语言；非协调员请求 `GET/POST /api/cases/[id]/registry` 一律 404）；worker 经 `RegistryProvider` 接缝抓取 masothue（测试中 fake），共享定速额度。测试：`tests/unit/agent/target-company-registry.test.ts`（16 项）+ `tests/integration/agent/target-company-registry.test.ts`（6 项）。`npm run test` 397/397（54 个文件）。
+- Status: Implemented 2026-10-17; coordinator manual entry added 2026-10-18 (SPEC v0.18) for hosts that cannot reach masothue — the Shanghai host is Cloudflare-blocked, see docs/deployment.md. `case_registry_lookups` (migration `20261017153604_t18_case_registry_lookups`); the coordinator enters the name or tax code on the case-page registry block (`RegistryPanel`, four languages; `GET/POST /api/cases/[id]/registry` answer 404 to non-coordinators); the worker fetches masothue through the `RegistryProvider` seam (fake in tests) inside the shared paced budget. Tests: `tests/unit/agent/target-company-registry.test.ts` (16) + `tests/integration/agent/target-company-registry.test.ts` (6). `npm run test` 397/397 (54 files).
+- 状态：2026-10-17 已实现；2026-10-18 增加协调员手工录入（SPEC v0.18），用于连不上 masothue 的主机——上海机被 Cloudflare 拦截，见 docs/deployment.md。`case_registry_lookups` 表（迁移 `20261017153604_t18_case_registry_lookups`）；协调员在案件页查询块输入名称或税号（`RegistryPanel`，四语言；非协调员请求 `GET/POST /api/cases/[id]/registry` 一律 404）；worker 经 `RegistryProvider` 接缝抓取 masothue（测试中 fake），共享定速额度。测试：`tests/unit/agent/target-company-registry.test.ts`（16 项）+ `tests/integration/agent/target-company-registry.test.ts`（6 项）。`npm run test` 397/397（54 个文件）。
 
 ## Dependency Graph and Execution Order / 依赖图与执行顺序
 

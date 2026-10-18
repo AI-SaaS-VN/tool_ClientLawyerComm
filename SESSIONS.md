@@ -1405,9 +1405,11 @@ Deploy T16 to the Shanghai host; then T18 per PLAN (first failing test `tests/un
 2. Data-source decision recorded in PLAN T18: the official registry (dangkyquamang.dkkd.gov.vn) is behind login/captcha; masothue.com is a public mirror that works without credentials (verified by fetching and parsing the real pages).<br>数据源结论已写入 PLAN T18：官方登记站有登录/验证码门槛；masothue.com 公开镜像无需凭据（已抓取真实页面验证解析）。
 3. T18 implemented (SPEC v0.17 / PLAN v0.17): trimmed real-page fixtures under `tests/fixtures/masothue/`; parser + candidate picking + note composition in `src/modules/agent/target-company-registry.ts`; `case_registry_lookups` table (migration `20261017153604_t18_case_registry_lookups`, hand-added status CHECK); `RegistryProvider` seam (fake + masothue, `REGISTRY_PROVIDER` env); worker `runRegistryLookupPass` in the shared paced budget; coordinator-only `GET/POST /api/cases/[id]/registry` (404 otherwise); `RegistryPanel` on the case page in four languages. Name comes only from the coordinator; bare tax code skips search; "(NỘP THAY)" rows excluded; no candidate → no_match, never invented.<br>T18 已实现（SPEC v0.17 / PLAN v0.17）：真实页面裁剪夹具；解析/候选选取/备忘组稿模块；case_registry_lookups 表（含手写 CHECK）；RegistryProvider 接缝；worker 定速趟次；仅协调员 API；案件页 RegistryPanel 四语言。名称仅由协调员提供；纯税号跳过搜索；排除报税代理行；无候选定格 no_match，绝不编造。
 
+4. Coordinator manual entry (2026-10-18, SPEC v0.18, per user request): the registry block gains a collapsible manual-entry form (free text + optional source link); `setRegistryManual` stores the text verbatim with status ready, audits `registry.manual`, and the worker never re-queues it. TDD: three new integration tests (flow + validation + 404 for client/lawyer).<br>协调员手工录入（2026-10-18，SPEC v0.18，应用户要求）：查询块新增可折叠手工录入表单（正文＋可选来源链接）；`setRegistryManual` 按原文保存为 ready、记入审计，worker 不会重排。TDD：新增 3 个集成测试（流程＋校验＋客户/律师 404）。
+
 ### Verification / 验证
 
-- `npm run test` 397/397 (54 files; +16 unit + 6 integration for T18), tsc clean, eslint clean on touched files. Vietnamese literals in tests/providers byte-verified against the fetched fixtures.<br>`npm run test` 397/397（54 个文件；T18 新增 16 单测 + 6 集成）；tsc/eslint 干净。测试与 provider 中的越南语字面值已按字节与抓取夹具核对。
+- `npm run test` 400/400 (54 files; +16 unit + 9 integration for T18 incl. manual entry), tsc clean, eslint clean on touched files. Vietnamese literals in tests/providers byte-verified against the fetched fixtures.<br>`npm run test` 400/400（54 个文件；T18 新增 16 单测 + 9 集成含手工录入）；tsc/eslint 干净。测试与 provider 中的越南语字面值已按字节与抓取夹具核对。
 
 ### Unfinished Items / 未完成项
 
