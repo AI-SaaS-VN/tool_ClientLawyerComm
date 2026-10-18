@@ -1439,7 +1439,7 @@ Deploy T18 to the Shanghai host (add `REGISTRY_PROVIDER=masothue` to its `.env`)
 
 ### Verification / 验证
 
-- `npm run test` 436/436 (59 files; T09 +11 unit +7 integration), tsc clean, eslint clean, `npm run build` pending.<br>`npm run test` 436/436（59 个文件；T09 新增 11 单测 + 7 集成）；tsc/eslint 干净；构建待跑。 (57 files; T17 +10 unit +5 integration; manual entry +3 integration; release +3 integration), tsc clean, eslint clean, `npm run build` rc=0 with `/api/cases/[id]/statute` in the route table.<br>`npm run test` 418/418（57 个文件；T17 新增 10 单测 + 5 集成，手工录入 +3 集成，放行 +3 集成）；tsc/eslint 干净；构建含新路由。
+- `npm run test` 436/436 (59 files; T09 +11 unit +7 integration), tsc clean, eslint clean, `npm run build` rc=0. Deployed to the Shanghai host: npm install (jszip added), migration applied, build rc=0, health 200.<br>`npm run test` 436/436（59 个文件；T09 新增 11 单测 + 7 集成）；tsc/eslint 干净；构建 rc=0。已部署上海机（npm install＋迁移＋构建＋重启，健康检查 200）。 (57 files; T17 +10 unit +5 integration; manual entry +3 integration; release +3 integration), tsc clean, eslint clean, `npm run build` rc=0 with `/api/cases/[id]/statute` in the route table.<br>`npm run test` 418/418（57 个文件；T17 新增 10 单测 + 5 集成，手工录入 +3 集成，放行 +3 集成）；tsc/eslint 干净；构建含新路由。
 
 ### Unfinished Items / 未完成项
 
