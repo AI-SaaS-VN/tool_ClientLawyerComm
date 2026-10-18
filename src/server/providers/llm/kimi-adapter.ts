@@ -203,14 +203,7 @@ export class KimiBriefProvider implements LlmBriefProvider {
     this.model = process.env.KIMI_MODEL;
   }
 
-  async suggestQuestions(input: BriefQuestionsInput): Promise<BriefQuestionsResult> {
-    if (!this.apiKey) {
-      throw new Error("kimi provider is not configured (KIMI_API_KEY missing)");
-    }
-    const model = this.model;
-    if (!model) {
-      throw new Error("kimi provider is not configured (KIMI_MODEL missing)");
-    }
+  private buildBody(input: BriefQuestionsInput): string {
     const sections: string[] = [];
     if (input.messageTexts.length > 0) {
       sections.push(`Published messages:\n${input.messageTexts.join("\n---\n")}`);
@@ -221,7 +214,17 @@ export class KimiBriefProvider implements LlmBriefProvider {
     if (input.attachmentTexts.length > 0) {
       sections.push(`Extracted attachment texts:\n${input.attachmentTexts.join("\n---\n")}`);
     }
-    const body = sections.length > 0 ? sections.join("\n\n") : "(no published content yet)";
+    return sections.length > 0 ? sections.join("\n\n") : "(no published content yet)";
+  }
+
+  private async chat(system: string, user: string): Promise<{ text: string; model: string }> {
+    if (!this.apiKey) {
+      throw new Error("kimi provider is not configured (KIMI_API_KEY missing)");
+    }
+    const model = this.model;
+    if (!model) {
+      throw new Error("kimi provider is not configured (KIMI_MODEL missing)");
+    }
     let response: Response;
     try {
       response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -234,15 +237,8 @@ export class KimiBriefProvider implements LlmBriefProvider {
         body: JSON.stringify({
           model,
           messages: [
-            {
-              role: "system",
-              content:
-                "You help the coordinator of a China–Vietnam legal case. From the published " +
-                "case content below, list up to 3 missing facts the coordinator should supply, " +
-                "as short numbered questions. Write the questions in the requested language. " +
-                "Reply with the numbered questions only — no commentary.",
-            },
-            { role: "user", content: `Language: ${input.lang}\n${body}` },
+            { role: "system", content: system },
+            { role: "user", content: user },
           ],
         }),
       });
@@ -272,5 +268,30 @@ export class KimiBriefProvider implements LlmBriefProvider {
       throw new LlmFailure("format");
     }
     return { text, model };
+  }
+
+  async suggestQuestions(input: BriefQuestionsInput): Promise<BriefQuestionsResult> {
+    return this.chat(
+      "You help the coordinator of a China–Vietnam legal case. From the published " +
+        "case content below, list up to 3 missing facts the coordinator should supply, " +
+        "as short numbered questions. Write the questions in the requested language. " +
+        "Reply with the numbered questions only — no commentary.",
+      `Language: ${input.lang}\n${this.buildBody(input)}`,
+    );
+  }
+
+  // REQ-STAT-01: public links on Chinese and Vietnamese law only. The reply
+  // is a JSON array of {title, url, jurisdiction: "cn"|"vn"}; parsing and the
+  // cn/vn-only filter live in modules/agent/statute-brief.ts.
+  async suggestStatuteLinks(input: BriefQuestionsInput): Promise<BriefQuestionsResult> {
+    return this.chat(
+      "You help the coordinator of a China–Vietnam legal case. From the published case " +
+        "content below, suggest up to 3 PUBLIC pages on Chinese law and Vietnamese law that " +
+        "are relevant to the case (official statutes or official gazettes preferred). " +
+        'Reply with a JSON array only — each item: {"title": string, "url": string, ' +
+        '"jurisdiction": "cn" | "vn"}. Never include material from other jurisdictions. ' +
+        "No commentary.",
+      `Language: ${input.lang}\n${this.buildBody(input)}`,
+    );
   }
 }

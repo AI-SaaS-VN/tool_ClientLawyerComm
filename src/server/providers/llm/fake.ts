@@ -155,7 +155,9 @@ export const fakeLlmVisionProvider = new FakeLlmVisionProvider();
 class FakeLlmBriefProvider implements LlmBriefProvider {
   readonly id = "fake";
   readonly calls: BriefQuestionsInput[] = [];
+  readonly statuteCalls: BriefQuestionsInput[] = [];
   private fixed: string | null = null;
+  private fixedStatute: string | null = null;
   private failure: LlmFailureKind | null = null;
 
   async suggestQuestions(input: BriefQuestionsInput): Promise<BriefQuestionsResult> {
@@ -171,8 +173,40 @@ class FakeLlmBriefProvider implements LlmBriefProvider {
     };
   }
 
+  // REQ-STAT-01: one Chinese-law and one Vietnamese-law public link, marked
+  // as examples — deterministic for tests.
+  async suggestStatuteLinks(input: BriefQuestionsInput): Promise<BriefQuestionsResult> {
+    this.statuteCalls.push({ ...input });
+    if (this.failure) {
+      const kind = this.failure;
+      this.failure = null;
+      throw new LlmFailure(kind);
+    }
+    return {
+      text:
+        this.fixedStatute ??
+        JSON.stringify([
+          {
+            title: "越南民法典 · 合同成立（示例链接）",
+            url: "https://example.gov.vn/civil-code",
+            jurisdiction: "vn",
+          },
+          {
+            title: "中华人民共和国民法典 · 合同编（示例链接）",
+            url: "https://example.gov.cn/civil-code",
+            jurisdiction: "cn",
+          },
+        ]),
+      model: "fake-brief",
+    };
+  }
+
   setFixedResponse(text: string): void {
     this.fixed = text;
+  }
+
+  setFixedStatuteResponse(text: string): void {
+    this.fixedStatute = text;
   }
 
   failNext(kind: LlmFailureKind): void {
@@ -181,7 +215,9 @@ class FakeLlmBriefProvider implements LlmBriefProvider {
 
   reset(): void {
     this.calls.length = 0;
+    this.statuteCalls.length = 0;
     this.fixed = null;
+    this.fixedStatute = null;
     this.failure = null;
   }
 }

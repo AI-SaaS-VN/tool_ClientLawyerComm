@@ -7,6 +7,8 @@ import { requireCaseMember, requireWritableCase } from "@/server/guards/case-gua
 import { getLlmBriefProvider } from "@/server/providers/llm";
 import { LlmFailure } from "@/server/providers/llm/interface";
 
+import { shouldQueueStatute, type StatuteLink } from "./statute-brief";
+
 // REQ-BRIEF-02: "thin" means fewer than five published messages.
 const THIN_MESSAGE_COUNT = 5;
 export function isThinCase(publishedMessageCount: number): boolean {
@@ -65,15 +67,34 @@ export interface BriefView {
   questions: string[] | null;
   briefText: string | null;
   confirmedAt: Date | null;
+  // T17 (REQ-STAT): statute link suggestions and the confirmed statute note.
+  statuteStatus: string;
+  statuteLinks: StatuteLink[] | null;
+  statuteNote: string | null;
 }
 
 function toBriefView(row: CaseBrief | null): BriefView {
-  if (!row) return { questionsStatus: "none", questions: null, briefText: null, confirmedAt: null };
+  if (!row) {
+    return {
+      questionsStatus: "none",
+      questions: null,
+      briefText: null,
+      confirmedAt: null,
+      statuteStatus: "none",
+      statuteLinks: null,
+      statuteNote: null,
+    };
+  }
   return {
     questionsStatus: row.questionsStatus,
     questions: Array.isArray(row.questions) ? (row.questions as string[]) : null,
     briefText: row.briefText,
     confirmedAt: row.confirmedAt,
+    statuteStatus: row.statuteStatus,
+    statuteLinks: Array.isArray(row.statuteLinks)
+      ? (row.statuteLinks as unknown as StatuteLink[])
+      : null,
+    statuteNote: row.statuteNote,
   };
 }
 
@@ -192,6 +213,8 @@ export async function queueBriefPrompts(): Promise<number> {
         questionsStatus: "queued",
         lastContentAt: stats.latestContentAt,
         nextRetryAt: null,
+        // T17 (REQ-STAT): statute link suggestions ride the same prompt cycle.
+        ...(shouldQueueStatute(brief) ? { statuteStatus: "queued" } : {}),
       },
     });
     queued += 1;

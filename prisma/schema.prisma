@@ -439,6 +439,11 @@ model CaseBrief {
   briefText       String?   @map("brief_text")
   confirmedById   String?   @map("confirmed_by_id") @db.Uuid
   confirmedAt     DateTime? @map("confirmed_at")
+  // T17 (REQ-STAT): statute links state machine (none → queued → processing →
+  // ready/failed); statute_note is written only on coordinator confirm.
+  statuteStatus   String    @default("none") @map("statute_status")
+  statuteLinks    Json?     @map("statute_links")
+  statuteNote     String?   @map("statute_note")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 

@@ -4,11 +4,20 @@ import { useEffect, useState } from "react";
 
 import { uiText } from "@/modules/i18n/copy";
 
+interface StatuteLink {
+  title: string;
+  url: string;
+  jurisdiction: "cn" | "vn";
+}
+
 interface BriefState {
   questionsStatus: string;
   questions: string[] | null;
   briefText: string | null;
   confirmedAt: string | null;
+  statuteStatus: string;
+  statuteLinks: StatuteLink[] | null;
+  statuteNote: string | null;
 }
 
 // REQ-BRIEF-01/02: the coordinator-only brief block. Questions appear when
@@ -19,6 +28,10 @@ export function BriefPanel({ caseId, lang }: { caseId: string; lang: string }) {
   const [answers, setAnswers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [needAnswer, setNeedAnswer] = useState(false);
+  const [selectedLinks, setSelectedLinks] = useState<number[]>([]);
+  const [remark, setRemark] = useState("");
+  const [confirmingStatute, setConfirmingStatute] = useState(false);
+  const [needSelection, setNeedSelection] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +76,29 @@ export function BriefPanel({ caseId, lang }: { caseId: string; lang: string }) {
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function confirmStatute() {
+    if (confirmingStatute) return;
+    setConfirmingStatute(true);
+    setNeedSelection(false);
+    try {
+      const res = await fetch(`/api/cases/${caseId}/statute`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ selected: selectedLinks, remark: remark || undefined }),
+      });
+      if (res.status === 400) {
+        setNeedSelection(true);
+        return;
+      }
+      if (res.ok) {
+        const data = (await res.json()) as { statuteNote: string };
+        setBrief((prev) => (prev ? { ...prev, statuteNote: data.statuteNote } : prev));
+      }
+    } finally {
+      setConfirmingStatute(false);
     }
   }
 
@@ -112,6 +148,55 @@ export function BriefPanel({ caseId, lang }: { caseId: string; lang: string }) {
         <p className="text-sm opacity-60">{uiText(lang, "briefFailed")}</p>
       ) : brief.questionsStatus !== "none" ? (
         <p className="text-sm opacity-60">{uiText(lang, "briefWorking")}</p>
+      ) : null}
+      {brief.statuteNote ? (
+        <div className="mt-3 rounded border p-3" data-testid="statute-note">
+          <p className="mb-1 text-sm opacity-60">{uiText(lang, "statuteNoteTitle")}</p>
+          <p className="whitespace-pre-wrap text-sm">{brief.statuteNote}</p>
+        </div>
+      ) : brief.statuteStatus === "ready" && brief.statuteLinks ? (
+        <div className="mt-3 rounded border p-3" data-testid="statute-links">
+          <p className="mb-2 text-sm">{uiText(lang, "statuteLinksLabel")}</p>
+          {brief.statuteLinks.map((link, i) => (
+            <label key={i} className="mb-1 block text-sm">
+              <input
+                type="checkbox"
+                className="mr-1"
+                data-testid={`statute-link-${i}`}
+                checked={selectedLinks.includes(i)}
+                onChange={(event) =>
+                  setSelectedLinks((prev) =>
+                    event.target.checked ? [...prev, i] : prev.filter((j) => j !== i),
+                  )
+                }
+              />
+              {link.title} —{" "}
+              <a className="underline" href={link.url} target="_blank" rel="noreferrer">
+                {link.url}
+              </a>
+            </label>
+          ))}
+          <input
+            type="text"
+            className="mt-1 block w-full border px-2 py-1 text-sm"
+            placeholder={uiText(lang, "statuteRemarkPlaceholder")}
+            data-testid="statute-remark"
+            value={remark}
+            onChange={(event) => setRemark(event.target.value)}
+          />
+          {needSelection ? (
+            <p className="mt-1 text-sm opacity-60">{uiText(lang, "statuteNeedSelection")}</p>
+          ) : null}
+          <button
+            type="button"
+            className="mt-2 border px-3 py-1 text-sm disabled:opacity-50"
+            data-testid="statute-confirm"
+            disabled={confirmingStatute}
+            onClick={() => void confirmStatute()}
+          >
+            {uiText(lang, "statuteConfirm")}
+          </button>
+        </div>
       ) : null}
     </section>
   );

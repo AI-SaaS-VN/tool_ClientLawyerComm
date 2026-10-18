@@ -24,6 +24,7 @@ import {
   runAttachmentPageStep,
 } from "@/modules/files/attachment-translation";
 import { findDueBriefRows, queueBriefPrompts, runBriefQuestionsStep } from "@/modules/agent/coordinator-brief";
+import { findDueStatuteRows, runStatuteLinksStep } from "@/modules/agent/statute-brief";
 import {
   findDueRegistryRows,
   queueRegistryLookups,
@@ -69,6 +70,8 @@ export interface WorkerRunSummary {
   briefsQueued: number;
   briefsGenerated: number;
   briefsFailed: number;
+  statutesGenerated: number;
+  statutesFailed: number;
   registriesQueued: number;
   registriesDone: number;
   registriesFailed: number;
@@ -94,7 +97,7 @@ export async function runNotificationWorkerOnce(
 ): Promise<WorkerRunSummary> {
   const clock = deps.clock ?? systemClock;
   const emailProvider = deps.emailProvider ?? getEmailProvider();
-  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0, briefsQueued: 0, briefsGenerated: 0, briefsFailed: 0, registriesQueued: 0, registriesDone: 0, registriesFailed: 0 };
+  const summary: WorkerRunSummary = { cancelled: 0, escalated: 0, submitted: 0, retried: 0, failed: 0, translated: 0, translationFailed: 0, attachmentPages: 0, attachmentPagesFailed: 0, briefsQueued: 0, briefsGenerated: 0, briefsFailed: 0, statutesGenerated: 0, statutesFailed: 0, registriesQueued: 0, registriesDone: 0, registriesFailed: 0 };
 
   if (deps.digest) {
     // Idempotent via the unique (case_id, digest_date): a failure here is
@@ -201,6 +204,15 @@ async function runBriefPass(
     const finished = await runBriefQuestionsStep(row);
     if (finished.questionsStatus === "ready") summary.briefsGenerated += 1;
     else if (finished.questionsStatus === "failed") summary.briefsFailed += 1;
+  }
+  // T17 (REQ-STAT): statute link suggestions share the same paced budget.
+  const dueStatutes = await findDueStatuteRows(new Date());
+  for (const row of dueStatutes) {
+    if (Date.now() - lastLlmTranslationCallAt < minIntervalMs) break;
+    lastLlmTranslationCallAt = Date.now();
+    const finished = await runStatuteLinksStep(row);
+    if (finished.statuteStatus === "ready") summary.statutesGenerated += 1;
+    else if (finished.statuteStatus === "failed") summary.statutesFailed += 1;
   }
 }
 

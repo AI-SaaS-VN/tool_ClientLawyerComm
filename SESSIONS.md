@@ -1422,3 +1422,29 @@ Deploy T16 to the Shanghai host; then T18 per PLAN (first failing test `tests/un
 Deploy T18 to the Shanghai host (add `REGISTRY_PROVIDER=masothue` to its `.env`); then T17 per PLAN (first failing test `tests/unit/agent/statute-brief.test.ts`).<br>把 T18 部署到上海机（`.env` 加 `REGISTRY_PROVIDER=masothue`）；然后按 PLAN 做 T17（第一份失败测试 `tests/unit/agent/statute-brief.test.ts`）。
 
 ---
+
+## Session 2026-10-18-01 (In progress) / 会话 2026-10-18-01（进行中）
+
+- Date/Timezone: 2026-10-18, UTC (Kimi Code on the dev Linux)<br>日期/时区：2026-10-18，UTC（研发 Linux 上的 Kimi Code）
+- Goal (user request): add a coordinator manual-entry path for the registry lookup (done first); then execute the next PLAN step — T17 statute note.<br>本次目标（用户要求）：先加协调员手工录入入口；然后执行 PLAN 下一步——T17 法条备忘。
+
+### Actual Actions / 实际动作
+
+1. Registry manual entry (SPEC v0.18): `setRegistryManual` stores the coordinator's text verbatim with status ready, audits `registry.manual`, and the worker never re-queues it; collapsible form in `RegistryPanel` (four languages). TDD: 3 integration tests first.<br>工商查询手工录入（SPEC v0.18）：`setRegistryManual` 按原文保存为 ready、记审计、worker 不覆盖；RegistryPanel 可折叠表单（四语言）。先红 3 个集成测试。
+2. T17 statute note (SPEC v0.19 / PLAN v0.19): statute fields on `case_briefs` (migration `20261018042119_t17_statute_links` + hand-added CHECK); `suggestStatuteLinks` added to the brief provider seam (fake returns one cn + one vn example link; Kimi refactored to a shared `chat()` helper); parsing/validation/cn-vn-only filtering in `modules/agent/statute-brief.ts`; suggestions ride the T16 thin-case prompt cycle; coordinator confirms selected links with an optional remark via `POST /api/cases/[id]/statute` (404 for client/lawyer); note stored in the brief record, never a chat message, never emailed.<br>T17 法条备忘（SPEC v0.19 / PLAN v0.19）：法条字段在 case_briefs 上；备忘 provider 接缝新增 suggestStatuteLinks；解析/校验/仅中越过滤在 statute-brief 模块；建议共用 T16 少内容提示周期；协调员勾选确认（可附备注）后写入备忘，仅协调员可见，不进对话不发邮件。
+
+### Verification / 验证
+
+- `npm run test` 415/415 (56 files; T17 +10 unit +5 integration; manual entry +3 integration), tsc clean, eslint clean, `npm run build` rc=0 with `/api/cases/[id]/statute` in the route table.<br>`npm run test` 415/415（56 个文件；T17 新增 10 单测 + 5 集成，手工录入 +3 集成）；tsc/eslint 干净；构建含新路由。
+
+### Unfinished Items / 未完成项
+
+- Deploy T17 + manual entry to the Shanghai host.<br>把 T17 与手工录入部署到上海机。
+- E2E full suite 7/7 still pending a quiet window; Kimi credit still low.<br>E2E 全量 7/7 仍待安静窗口；Kimi 余额仍不足。
+- Second phase (F18, F17, T15, T16, T18, T17) is complete; remaining: T09 and T14 (later), plus the needs_review release decision from T15.<br>第二阶段（F18、F17、T15、T16、T18、T17）已全部完成；剩余：T09 与 T14（更后），以及 T15 遗留的 needs_review 放行决策。
+
+### First Step Next Time / 下次第一步
+
+Deploy to the Shanghai host; then discuss remaining items (T09/T14, needs_review release UI) with the user.<br>部署上海机；然后与用户讨论剩余事项（T09/T14、needs_review 放行界面）。
+
+---

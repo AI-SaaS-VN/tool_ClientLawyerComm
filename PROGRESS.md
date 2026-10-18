@@ -20,6 +20,14 @@ Test runtime (2026-10-09): subsequent test deployments use the US test machine. 
 
 第二阶段开工（2026-10-15）：F18 客户默认简体中文（繁体仅自行切换）；F17 自动翻译移入 worker 队列串行定速执行（Kimi 账号上限实测 3 RPM），失败退避重试最多 3 次并记录类型化日志；关键字段校验排除「非常/是否/được không」误报。E2E 顺手修了 10-04 起坏掉的邀请邮件匹配。`npm run test` 340/340、E2E 7/7、tsc/lint/build 无错误，已部署上海测试机。
 
+## T17 China-and-Vietnam Statute Note (2026-10-18) / T17 中国法与越南法备忘（2026-10-18）
+
+- Implemented per SPEC v0.19 / PLAN v0.19 — the last second-phase task; the phase is now complete. Statute fields live on the `case_briefs` row (migration `20261018042119_t17_statute_links`: statute_status state machine none → queued → processing → ready/failed with a hand-added CHECK, statute_links JSON, statute_note). Suggestions ride the same thin-case prompt cycle as T16 through the new `suggestStatuteLinks` method on the brief provider seam (fake/Kimi): the provider answers a JSON array of {title, url, jurisdiction}, and every entry that is not cn or vn is dropped before storage (REQ-STAT-01 — material outside China and Vietnam is never offered).
+- The coordinator's brief block lists the suggested links with checkboxes plus an optional remark (e.g. a possible gap in the Vietnamese lawyer's work); confirming via `POST /api/cases/[id]/statute` stores the note in the brief record — coordinator-only (404 for client/lawyer), never a chat message, never emailed (asserted in tests). Links always appear before any statute sentence is stored (acceptance order).
+- Tests: first failing test `tests/unit/agent/statute-brief.test.ts` (10 tests: JSON parsing incl. code-fence tolerance, cn/vn-only filter, https/title validation, five-link cap, note composition, queue gating) + `tests/integration/agent/statute-brief.test.ts` (5 tests: worker→links→confirm flow with audit, 404 for client/lawyer, non-cn/vn filtered out, 409 before ready / 400 on bad selection, payload minimization).
+
+T17 中国法与越南法备忘（2026-10-18）：按 SPEC v0.19 / PLAN v0.19 实现——第二阶段至此全部完成。法条字段在 `case_briefs` 行上；建议与 T16 共用少内容提示周期，经备忘 provider 接缝新增的 `suggestStatuteLinks` 生成（JSON 数组，写入前丢弃非中国法/越南法条目）。协调员在备忘块勾选链接、可附备注（例如越南律师工作里可能的遗漏），确认后才写入备忘；仅协调员可见，不进对话、不发邮件（测试已断言）。链接总是先于任何法条句子出现。
+
 ## T18 Target Company Registry Lookup (2026-10-17) / T18 目标公司工商查询（2026-10-17）
 
 - Implemented per SPEC v0.17 / PLAN v0.17. Data source decision (verified live 2026-10-17): the official Vietnam registry (dangkyquamang.dkkd.gov.vn) sits behind a login/captcha wall; `masothue.com` is a public mirror of the same tax-registration data and returned the pilot defendant's full record (tax code, Vietnamese/English names, status, address, legal representative, industry) without credentials. The official address stays the reference of record and every stored result carries its masothue source URL.

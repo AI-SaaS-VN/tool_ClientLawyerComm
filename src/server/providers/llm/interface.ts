@@ -81,4 +81,9 @@ export interface BriefQuestionsResult {
 export interface LlmBriefProvider {
   readonly id: string;
   suggestQuestions(input: BriefQuestionsInput): Promise<BriefQuestionsResult>;
+  // REQ-STAT-01: suggest public links on Chinese and Vietnamese law. The
+  // reply is a JSON array of {title, url, jurisdiction: "cn"|"vn"}; parsing
+  // and jurisdiction filtering live in modules/agent/statute-brief.ts. Same
+  // payload minimization as suggestQuestions.
+  suggestStatuteLinks(input: BriefQuestionsInput): Promise<BriefQuestionsResult>;
 }
