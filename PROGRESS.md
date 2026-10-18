@@ -20,6 +20,14 @@ Test runtime (2026-10-09): subsequent test deployments use the US test machine. 
 
 第二阶段开工（2026-10-15）：F18 客户默认简体中文（繁体仅自行切换）；F17 自动翻译移入 worker 队列串行定速执行（Kimi 账号上限实测 3 RPM），失败退避重试最多 3 次并记录类型化日志；关键字段校验排除「非常/是否/được không」误报。E2E 顺手修了 10-04 起坏掉的邀请邮件匹配。`npm run test` 340/340、E2E 7/7、tsc/lint/build 无错误，已部署上海测试机。
 
+## Isolated /new Test Instance on the Shanghai Host (2026-10-18) / 上海机 /new 隔离测试实例（2026-10-18）
+
+- User request: new deployments must not disturb the running pilot pages. The app now supports basePath deployment (`BASE_PATH` in `next.config.ts`; client-side fetch/EventSource/`<a>`/location.assign URLs go through `src/lib/api-path.ts` with `NEXT_PUBLIC_BASE_PATH`; session cookie path via `SESSION_COOKIE_PATH`). The Shanghai host serves the pilot unchanged at `/` (unit `clc-web`, port 3000, database `clc_dev`) and a fully isolated instance at `/new/` (unit `clc-web-new`, 127.0.0.1:3001, own directory, own database `clc_new`, own cookie path) behind one nginx server block.
+- Verified on the host: `/new/login` 200 with `/new/_next` assets, `/new/api/health` 200, `/new/api/admin/cases` 401 without a session, `/new/api/test/` blocked 404, admin OTP really emailed through SMTP (audit `auth.otp_request` success); the pilot's `/` and `/login` answered exactly as before with no restart of `clc-web`. The /new admin account is the operator mailbox; TOTP enrollment is the remaining first-login step for the user.
+- Tests: 448/448 (61 files; +2 unit for api-path), tsc/eslint clean, `npm run build` passes both with and without `BASE_PATH=/new`. Details and the update procedure are in `docs/deployment.md`.
+
+上海机 /new 隔离测试实例（2026-10-18）：应用户要求，新部署不再干扰试点页面。代码支持 basePath 部署（`BASE_PATH`＋`apiPath` 前缀＋`SESSION_COOKIE_PATH`）。上海机上试点仍在 `/`（clc-web:3000，库 clc_dev）原样运行，隔离实例在 `/new/`（clc-web-new:3001，独立目录、独立库 clc_new、独立 Cookie 路径）。机上已验证：/new/login 200 且资源走 /new/_next、健康检查 200、admin API 未登录 401、/new/api/test/ 404、管理员 OTP 经 SMTP 真实发出（审计 success）；试点的 / 与 /login 不变且 clc-web 未重启。/new 管理员即运营邮箱；首次登录还需用户完成 TOTP 登记。测试 448/448（61 个文件），tsc/eslint 干净，两种构建模式均通过。详见 `docs/deployment.md`。
+
 ## T14 Administration Console (2026-10-18) / T14 管理控制台（2026-10-18）
 
 - Implemented per SPEC v0.22 / PLAN v0.22 — the last remaining PLAN task; the plan is now complete. The MFA-enrolled administrator gets `/admin/cases` (all cases with metadata + roster: display name, role, status pending/active/revoked — pending rows come from unused, unrevoked invites and show the entered notification email to the administrator only) and `/admin/cases/[id]` (roster with per-row revoke + add-participant form). Pages render from the session; every mutation calls the MFA-guarded API with the current TOTP code in `x-totp-code`. APIs: `GET|POST /api/admin/cases`, `POST /api/admin/cases/[id]/invites`, `DELETE /api/admin/cases/:id/members/:uid` (SPEC §14). No new tables.

@@ -1482,3 +1482,30 @@ Deploy to the Shanghai host; then discuss T14 (admin console, P1) with the user.
 Tell the operator the console is live at /admin/cases on the Shanghai host (session sign-in, mutations need the current TOTP code).<br>告知操作者：上海机的控制台已上线于 /admin/cases（会话登录，变更操作需当次 TOTP 验证码）。
 
 ---
+
+## Session 2026-10-18-03 (completed) / 会话 2026-10-18-03（已完成）
+
+- Date/Timezone: 2026-10-18, UTC (Kimi Code on the dev Linux)<br>日期/时区：2026-10-18，UTC（研发 Linux 上的 Kimi Code）
+- Goal (user request): deploy to the Shanghai host under a new page (e.g. /new/) without disturbing the old pages.<br>本次目标（用户要求）：部署上海测试机时新开一个页面（如 /new/），不要干扰老页面。
+
+### Actual Actions / 实际动作
+
+1. Made the app basePath-deployable: `next.config.ts` reads `BASE_PATH`; new `src/lib/api-path.ts` prefixes `NEXT_PUBLIC_BASE_PATH` on every client-side fetch/EventSource/plain-`<a>`/location.assign URL (10 files updated); session cookie path from `SESSION_COOKIE_PATH` so the two instances' cookies never collide.<br>让应用支持 basePath 部署：next.config 读 BASE_PATH；新增 api-path 模块统一前缀所有客户端 URL（改 10 个文件）；会话 Cookie 路径由 SESSION_COOKIE_PATH 控制。
+2. Committed and pushed (`3c99dd2`) after 448/448 tests and both build modes passed locally.<br>本地 448/448 与两种构建模式通过后提交并推送（3c99dd2）。
+3. Shanghai host: created database `clc_new`; rsynced the commit to `/home/ubuntu/ClientLawyerComm-new` (node_modules copied from the pilot's — identical package.json); derived `.env` from the pilot's (db → clc_new, APP_BASE_URL → …/new, BASE_PATH/NEXT_PUBLIC_BASE_PATH=/new, SESSION_COOKIE_PATH=/new); `prisma migrate deploy` + `generate`; `BASE_PATH=/new NEXT_PUBLIC_BASE_PATH=/new npm run build`; systemd unit `clc-web-new` on 127.0.0.1:3001; nginx gained `location /new/` → 3001 and `location /new/api/test/` → 404.<br>上海机：建库 clc_new；rsync 到 ClientLawyerComm-new（node_modules 从试点复制）；由试点 .env 派生新 .env；迁移＋生成＋basePath 构建；systemd 单元 clc-web-new（3001）；nginx 增加 /new/ 反代与 /new/api/test/ 404。
+4. Bootstrapped the /new admin (operator mailbox) — the host's Node 20 cannot run the .ts script, so it ran from the dev machine over an SSH tunnel; the first attempt stored the address with the .env quotes, which was caught by checking the OTP audit (`ignored`) and fixed by recreating the admin with the unquoted address.<br>经 SSH 隧道从研发机为 /new 引导管理员（运营邮箱，主机 Node 20 不能直接跑 .ts）；第一次误把 .env 引号存进邮箱，经 OTP 审计（ignored）发现并重建纠正。
+
+### Verification / 验证
+
+- On the host: `/new/login` 200 with `/new/_next` asset URLs, `/new/api/health` 200, `/new/api/admin/cases` 401 unauthenticated, `/new/api/test/outbox` 404, admin OTP request audited `auth.otp_request` success (real SMTP send). The pilot's `/` and `/login` answered as before and `clc-web` was never restarted.<br>机上验证：/new/login 200（资源走 /new/_next）、健康检查 200、admin API 未登录 401、/new/api/test/outbox 404、管理员 OTP 审计 success（真实发出）；试点的 / 与 /login 不变，clc-web 未重启。
+
+### Unfinished Items / 未完成项
+
+- The user still needs to do the first /new login (operator mailbox OTP) and enroll TOTP before /new/admin/cases works.<br>用户还需完成 /new 的首次登录（运营邮箱收 OTP）并登记 TOTP，/new/admin/cases 才可用。
+- The pilot at `/` still runs the pre-basePath commit (T14 included); next routine deploy will bring it to the same commit — behavior is identical when BASE_PATH is unset.<br>试点 / 仍运行 basePath 改造前的提交（含 T14）；下次例行部署会带上同一提交——BASE_PATH 未设时行为完全一致。
+
+### First Step Next Time / 下次第一步
+
+Tell the user /new/ is live and the first-login steps; on the next code change, deploy both instances (pilot: plain build + restart clc-web; /new: BASE_PATH build + restart clc-web-new).<br>告知用户 /new/ 已上线及首次登录步骤；下次代码变更时两个实例都部署（试点：普通构建＋重启 clc-web；/new：BASE_PATH 构建＋重启 clc-web-new）。
+
+---

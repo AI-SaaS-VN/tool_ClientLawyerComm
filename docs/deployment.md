@@ -76,6 +76,22 @@ Per SOW O02 (decided 2026-10-01): after a deploy, and until ICP filing completes
 
 Concrete host addresses and topology live only in the operations side's private notes, never in this repository.
 
+### /new 隔离测试实例（2026-10-18）/ The isolated /new test instance (2026-10-18)
+
+应用户要求（2026-10-18），上海测试机在不影响试点（`/`）的前提下新增一个隔离测试实例，入口 `http://<IP>/new/`。要点：
+
+- 代码支持 basePath 部署：`next.config.ts` 读 `BASE_PATH`；客户端的 fetch/EventSource/裸 `<a>`/location.assign 统一经 `src/lib/api-path.ts` 加 `NEXT_PUBLIC_BASE_PATH` 前缀（Next 只自动给 `<Link>` 与 next/navigation 跳转加前缀）。会话 Cookie 路径由 `SESSION_COOKIE_PATH` 控制，/new 实例设为 `/new`，与试点的 Cookie 互不干扰。
+- 拓扑：systemd 单元 `clc-web-new`（127.0.0.1:3001，目录 `/home/ubuntu/ClientLawyerComm-new`，独立 `.env`）；独立数据库 `clc_new`；nginx 在 80 端口增加 `location /new/` 反代到 3001，`location /new/api/test/` 与试点一样返回 404。试点实例 `clc-web`（3000）与数据库完全不动。
+- 新实例的管理员由 `scripts/bootstrap-admin.ts` 创建（主机上 Node 20 不能直接跑 .ts，经 SSH 隧道从研发机执行）；首次使用在 /new/login 用管理员邮箱收 OTP，再经 MFA 登记接口登记 TOTP，之后可用 /new/admin/cases。
+- 升级 /new：rsync 到 `ClientLawyerComm-new` →（有迁移时 `migrate deploy` + `prisma generate`）→ `BASE_PATH=/new NEXT_PUBLIC_BASE_PATH=/new npm run build` → `sudo systemctl restart clc-web-new`。主机地址等细节只记 `LOCAL_DEV_NOTES.md`。
+
+At the user's request (2026-10-18), the Shanghai test host runs an isolated test instance at `http://<IP>/new/` alongside the pilot at `/`. Key points:
+
+- The code supports basePath deployment: `next.config.ts` reads `BASE_PATH`; client-side fetch/EventSource/plain-`<a>`/location.assign URLs go through `src/lib/api-path.ts` with the `NEXT_PUBLIC_BASE_PATH` prefix (Next auto-prefixes only `<Link>` and next/navigation redirects). The session cookie path comes from `SESSION_COOKIE_PATH` — `/new` for the new instance, so the two instances' cookies never collide.
+- Topology: systemd unit `clc-web-new` (127.0.0.1:3001, directory `/home/ubuntu/ClientLawyerComm-new`, own `.env`); its own database `clc_new`; nginx on port 80 gained `location /new/` proxying to 3001, and `location /new/api/test/` returns 404 like the pilot. The pilot unit `clc-web` (3000) and its database are untouched.
+- The new instance's administrator was created with `scripts/bootstrap-admin.ts` (the host's Node 20 cannot run .ts directly, so it ran from the development machine over an SSH tunnel); first sign-in at /new/login with the admin mailbox OTP, then TOTP enrollment via the MFA API, then /new/admin/cases works.
+- Updating /new: rsync into `ClientLawyerComm-new` → (`migrate deploy` + `prisma generate` when migrations exist) → `BASE_PATH=/new NEXT_PUBLIC_BASE_PATH=/new npm run build` → `sudo systemctl restart clc-web-new`. Host details stay in `LOCAL_DEV_NOTES.md`.
+
 ### 美国测试机 / US test machine (2026-10-09)
 
 2026-10-09 起，后续测试部署改到美国测试机。上海那台继续称为上海测试机。美国测试机上的 PostgreSQL 16 与 MinIO 已在本机回环地址运行。应用代码、设计文档和主机环境文件都还没有放上去，因此还不能对外提供页面。这台机器没有 systemd，Docker 守护进程是手动启动的，重启后需要再启动。上海测试机继续服务已经在跑的试点，这次不把那个案件迁走。所在地、主机名和端口只记在 `LOCAL_DEV_NOTES.md`。研发机上，项目根目录的 `.env` 现为美国测试机配置，原先的文件改名为 `.env.lighthouse-test`。部署时仍排除 `.env`、`.env.lighthouse-test`、`LOCAL_DEV_NOTES.md` 与文档工作副本；装到美国测试机时只放 `.env`，不写入仓库。
