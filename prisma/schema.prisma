@@ -206,7 +206,7 @@ model Message {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   translations   TranslationVersion[]
-  sentFile       File?     @relation("FileSentWithMessage")
+  sentFiles      File[]    @relation("FileSentWithMessage")
 
   @@unique([caseId, authorId, idempotencyKey])
   @@index([caseId, status, publishedAt])
@@ -379,9 +379,9 @@ model File {
   sizeBytes    Int       @map("size_bytes")
   originalName String    @map("original_name")
   publishedAt  DateTime? @map("published_at")
-  // The message this file was sent with. Null for files uploaded before the
-  // link existed. At most one file per message.
-  messageId    String?   @unique @map("message_id") @db.Uuid
+  // The message this file was sent with, or the nearest same-author message
+  // from the same sitting. A new send still attaches at most one file.
+  messageId    String?   @map("message_id") @db.Uuid
   message      Message?  @relation("FileSentWithMessage", fields: [messageId], references: [id], onDelete: SetNull)
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
@@ -391,6 +391,7 @@ model File {
   docxJobs     DocxJob[]
 
   @@index([caseId, status])
+  @@index([messageId])
   @@map("files")
 }
 

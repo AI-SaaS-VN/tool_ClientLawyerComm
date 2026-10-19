@@ -1540,3 +1540,38 @@ Tell the user /new/ is live and the first-login steps; on the next code change, 
 The user opens `http://<IP>/new/invite` with the same email and code as the pilot. Mail already sent still links to `/invite` on the pilot. Do not restart `clc-web` unless asked. Do not push unless asked.<br>用户用与试点相同的邮箱和邀请码打开 `http://<IP>/new/invite`。已经发出的邮件仍指向试点的 `/invite`。未要求则不重启 `clc-web`，也不推送。
 
 ---
+
+## Session 2026-10-19-01 (completed) / 会话 2026-10-19-01（已完成）
+
+- Date/Timezone: 2026-10-19, UTC+8<br>日期/时区：2026-10-19，UTC+8
+- Goal: the `/new` case was missing records added on the pilot after the first copy, and existing attachments still sat in a list below the thread.<br>本次目标：`/new` 缺少第一次复制之后试点新增的记录，已有附件仍堆在对话下面的列表里。
+
+### Actual Actions / 实际动作
+
+1. Compared the two databases. The pilot had two more messages and one more file, plus the translation and file-variant rows that belong with them. No message text contained a file name.<br>对比两个库。试点多两条消息、一份附件，以及随之产生的译文和文件变体。没有一条消息正文写着文件名。
+2. REQ-THREAD-07: a file with no message is shown under the nearest message by the same author within 60 minutes. One message may show several of those files. A new send still attaches at most one file. Migration `20261019120000_file_message_sitting`.<br>REQ-THREAD-07：没有对应消息的文件，显示在同一作者 60 分钟内最近的那条消息下面。一条消息可以带上好几份。新发送仍然至多一个文件。迁移 `20261019120000_file_message_sitting`。
+3. Replaced `clc_new` with a fresh copy of `clc_dev`, applied the migrations, and restarted only `clc-web-new`. Message, file, and translation counts matched. All 35 files were linked. `/new/api/health` returned 200.<br>用当时的 `clc_dev` 重新替换 `clc_new`，应用迁移，只重启 `clc-web-new`。消息、附件和译文的数量一致。35 份附件都已挂上消息。`/new/api/health` 为 200。
+4. Earlier the same day, `/NEW` showed the pilot 404 and `/new` redirected in a loop. nginx now proxies `/new` straight to the app and redirects other capitalizations to `/new`.<br>当天更早的时候，`/NEW` 显示试点的 404，`/new` 无限跳转。nginx 现在把 `/new` 直接交给应用，并把其他大小写转到 `/new`。
+5. The user asked to delete two duplicate introduction messages from 2026-10-05, 10:09 and 11:34 UTC+8. Both rows were deleted from `clc_dev` and `clc_new`. The later message at 13:14 UTC+8 with the same Vietnamese sentence was left in place.<br>用户要求删除 2026-10-05 10:09 与 11:34（UTC+8）的两条重复自我介绍。两行已从 `clc_dev` 和 `clc_new` 删除。当天 13:14（UTC+8）那条越南语原文相同的消息仍保留。
+
+### First Step Next Time / 下次第一步
+
+Open `http://<IP>/new/` and confirm the latest pilot messages are present and the waybill photos sit on the message that announced them. Do not restart `clc-web` unless asked.<br>打开 `http://<IP>/new/`，确认试点上最新的消息都在，运单照片挂在宣布它们的那条消息上。未要求则不重启 `clc-web`。
+
+---
+
+## Session 2026-10-19-02 (completed) / 会话 2026-10-19-02（已完成）
+
+- Date/Timezone: 2026-10-19, UTC+8<br>日期/时区：2026-10-19，UTC+8
+- Goal: stop the daily case-summary email on both the pilot and `/new`.<br>本次目标：试点和 `/new` 都不再发送每日案件总结邮件。
+
+### Actual Actions / 实际动作
+
+1. `startNotificationWorker` no longer passes `digest: true`. Review alerts, urgent notices, and translation still run. Both databases had only already-submitted `case_digest` rows, so nothing waiting was cancelled.<br>`startNotificationWorker` 不再传入 `digest: true`。审核提醒、紧急提醒和翻译仍在跑。两个库里的 `case_digest` 都已是已提交状态，没有待发任务可取消。
+2. The pilot keeps its older build apart from this one change. `/new` got the current tree. Both processes were restarted. `/api/health` and `/new/api/health` returned 200.<br>试点除这一处外仍是原来的构建。`/new` 用的是当前代码。两个进程都已重启。`/api/health` 与 `/new/api/health` 均为 200。
+
+### First Step Next Time / 下次第一步
+
+Do not turn the daily digest back on unless the user asks. Other notification mail still sends.<br>用户未要求前不要恢复每日总结邮件。其他通知邮件仍会发送。
+
+---

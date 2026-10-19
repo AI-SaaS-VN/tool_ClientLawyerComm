@@ -4,11 +4,11 @@ A web-based, case-isolated communication system: Chinese Client — Vietnamese L
 
 基于网页、按案件隔离的沟通系统：中国客户—越南律师—案件协调员。一步激活（受邀邮箱加上激活码）、发布受控的消息流水线、对话翻译（中简繁/越/英）、文件分享、紧急提醒、审核后台、管理员 MFA 与完整审计。
 
-## Status / 状态（2026-10-18）
+## Status / 状态（2026-10-19）
 
-PLAN v0.23 is current. The second phase (T15–T18), the DOCX bilingual document (T09), the administration console (T14), and the message-and-file thread (T19) are implemented. T19 and the message author role are deployed on the Shanghai host at `http://<IP>/new/` (database `clc_new`, with a copy of the pilot case). The pilot stays at `/`. Domain, HTTPS, and a real file scanner stay deferred. See PROGRESS.md.
+PLAN v0.23 is current. The second phase (T15–T18), the DOCX bilingual document (T09), the administration console (T14), and the message-and-file thread (T19) are implemented. T19 is deployed at `http://<IP>/new/` with a fresh copy of the pilot case, and existing files sit on the nearest same-author message. `/NEW` redirects to `/new`. The daily digest email is off on both the pilot and `/new`. Domain, HTTPS, and a real file scanner stay deferred. See PROGRESS.md.
 
-PLAN v0.23 为当前计划。第二阶段（T15–T18）、DOCX 双语对照（T09）、管理控制台（T14）和消息与附件同一条对话（T19）已经实现。T19 与消息发送人角色已部署到上海测试机的 `http://<IP>/new/`（数据库 `clc_new`，带有试点案件的副本）。试点仍在 `/`。域名、HTTPS 与正式文件扫描仍然推迟。见 PROGRESS.md。
+PLAN v0.23 为当前计划。第二阶段（T15–T18）、DOCX 双语对照（T09）、管理控制台（T14）和消息与附件同一条对话（T19）已经实现。T19 部署在 `http://<IP>/new/`，库是试点案件的新副本，已有附件挂在同一作者最近的消息上。`/NEW` 转到 `/new`。每日总结邮件在试点和 `/new` 上都已停发。域名、HTTPS 与正式文件扫描仍然推迟。见 PROGRESS.md。
 
 ## Commands / 命令
 

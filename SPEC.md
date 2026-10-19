@@ -253,9 +253,9 @@ queued → submitted(供应商已接受) ─→ delivered（渠道支持回执�
 
 ### 10.3 Daily Case Digest Email (REQ-DIG, MVP as of 2026-10-04) / 案件日报邮件（REQ-DIG，2026-10-04 起属于 MVP）
 
-Corresponds to the daily email the Coordinator receives. The Coordinator forwards it to other people. v1.5 originally also sent it to Lawyers; that wider recipient list waits for a later version.
+Corresponds to the daily email the Coordinator receives. The Coordinator forwards it to other people. v1.5 originally also sent it to Lawyers; that wider recipient list waits for a later version. On 2026-10-19 the user stopped this daily send on both the pilot and `/new`. The worker no longer generates it. The rules below stay the record of what the send did.
 
-对应协调员收到的每日邮件。协调员再转给其他人。v1.5 原本也发给律师；更广的收件人留到后续版本。
+对应协调员收到的每日邮件。协调员再转给其他人。v1.5 原本也发给律师；更广的收件人留到后续版本。2026-10-19 用户在试点和 `/new` 上都停掉了这封每日邮件。worker 不再生成它。下面各条仍是这封邮件原先如何发送的记录。
 
 | ID / 编号 | Requirement / 需求 |
 | --- | --- |
@@ -450,3 +450,4 @@ The user accepted `docs/prototypes/case-thread-files.html` on 2026-10-18, includ
 | REQ-THREAD-04 | Only the message author can attach a file to that message. The cited file must be on the same case and visible to the sender. Anything else is 404. A second file on the same message is 409.<br>只有这条消息的作者能把文件挂到这条消息上。被指向的文件必须属于同一案件，且发送者看得见。其余情况 404。同一条消息上的第二个文件是 409。 |
 | REQ-THREAD-05 | Files with no message stay in a list titled 此前上传的附件 after the thread. New uploads from the case page go out with a message. Coordinator brief and registry stay after the thread.<br>没有对应消息的文件留在对话后面，标题是「此前上传的附件」。案件页上的新上传都随消息发出。协调员备忘和工商信息仍在对话之后。 |
 | REQ-THREAD-06 | Each message the viewer can see names the author's case role beside the display name: 客户, 律师, or 协调员, in the viewer's screen language. The role is that author's membership on this case. The screen does not print the message's language code in that header.<br>观看者能看到的每条消息，在显示名旁边标出作者在本案的角色：客户、律师或协调员，用观看者的界面语言。角色取该作者在本案的成员身份。这条抬头不印消息的语言代码。 |
+| REQ-THREAD-07 | A file that already existed with no message is shown under the nearest message by the same author within 60 minutes. Several such files may sit on one message. This alignment runs once, when the column is migrated. A new send still attaches at most one file, and that link is still written at upload.<br>已经存在、还没有对应消息的文件，显示在同一作者 60 分钟内最近的那条消息下面。这样的文件可以有多份挂在同一条消息上。这次对齐只在迁移该列时做一次。新发送仍然至多带一个文件，关联仍在上传时写入。 |

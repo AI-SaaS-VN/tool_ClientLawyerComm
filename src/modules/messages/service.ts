@@ -263,6 +263,7 @@ export type MessageView = ReturnType<typeof toMessageView> & { reviewAlertIssue:
 
 export type MessageListView = MessageView & {
   translation: TranslationView | null;
+  files: Array<ReturnType<typeof toFileView>>;
   file: ReturnType<typeof toFileView> | null;
   citedFile: { id: string; originalName: string } | null;
 };
@@ -296,7 +297,15 @@ async function attachMessageFiles<T extends { id: string }>(
   views: T[],
   user: User,
   isReviewer: boolean,
-): Promise<Array<T & { file: ReturnType<typeof toFileView> | null; citedFile: { id: string; originalName: string } | null }>> {
+): Promise<
+  Array<
+    T & {
+      files: Array<ReturnType<typeof toFileView>>;
+      file: ReturnType<typeof toFileView> | null;
+      citedFile: { id: string; originalName: string } | null;
+    }
+  >
+> {
   const messageIds = rows.map((row) => row.id);
   const citedIds = rows.flatMap((row) => (row.citedFileId ? [row.citedFileId] : []));
   const files =
@@ -310,19 +319,26 @@ async function attachMessageFiles<T extends { id: string }>(
             ],
           },
           include: { uploader: true, attachmentPage: true },
+          orderBy: { createdAt: "asc" },
         });
-  const byMessage = new Map<string, (typeof files)[number]>();
+  const byMessage = new Map<string, Array<(typeof files)[number]>>();
   const byId = new Map(files.map((file) => [file.id, file]));
   for (const file of files) {
-    if (file.messageId) byMessage.set(file.messageId, file);
+    if (!file.messageId) continue;
+    const list = byMessage.get(file.messageId) ?? [];
+    list.push(file);
+    byMessage.set(file.messageId, list);
   }
   return views.map((view, index) => {
     const row = rows[index]!;
-    const sent = byMessage.get(row.id);
+    const sent = (byMessage.get(row.id) ?? [])
+      .filter((file) => fileVisibleTo(file, user.id, isReviewer))
+      .map((file) => toFileView(file));
     const cited = row.citedFileId ? byId.get(row.citedFileId) : undefined;
     return {
       ...view,
-      file: sent && fileVisibleTo(sent, user.id, isReviewer) ? toFileView(sent) : null,
+      files: sent,
+      file: sent[0] ?? null,
       citedFile:
         cited && fileVisibleTo(cited, user.id, isReviewer)
           ? { id: cited.id, originalName: cited.originalName }

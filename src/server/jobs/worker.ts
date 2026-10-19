@@ -650,9 +650,10 @@ export function startNotificationWorker(intervalMs = 10_000): () => void {
   const tick = () => {
     if (passInFlight) return;
     passInFlight = true;
-    // digest: the in-process worker also generates the daily case digest
-    // (REQ-DIG-01); idempotent, so 10s ticks and restarts are safe.
-    runNotificationWorkerOnce({ digest: true })
+    // The daily case-digest email is off (user decision 2026-10-19) on both
+    // the pilot and /new. Review alerts, urgent notices, and translation
+    // still run. Tests that want a digest pass digest: true themselves.
+    runNotificationWorkerOnce()
       .catch(() => {
         // The next tick replays the persistent queue; nothing is lost.
       })

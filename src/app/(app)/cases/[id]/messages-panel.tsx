@@ -25,6 +25,7 @@ interface MessageItem {
   publishedAt: string | null;
   createdAt: string;
   translation: TranslationView | null;
+  files?: FileItem[];
   file: FileItem | null;
   citedFile: { id: string; originalName: string } | null;
 }
@@ -386,9 +387,9 @@ export function MessagesPanel({
               </time>
             </p>
             {body(message)}
-            {message.file ? (
-              <FileCard file={message.file} lang={lang} highlighted={highlightedId === message.file.id} />
-            ) : null}
+            {(message.files ?? (message.file ? [message.file] : [])).map((file) => (
+              <FileCard key={file.id} file={file} lang={lang} highlighted={highlightedId === file.id} />
+            ))}
             {message.citedFile ? (
               <button
                 type="button"

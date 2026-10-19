@@ -1,10 +1,10 @@
 # PROGRESS.md — Current Progress / 当前进度
 
-- Updated: 2026-10-18 (UTC+8) | Maintenance: update upon completion of each task or phase
-- 更新日期：2026-10-18（UTC+8）｜维护方式：每完成一个任务或阶段即更新
+- Updated: 2026-10-19 (UTC+8) | Maintenance: update upon completion of each task or phase
+- 更新日期：2026-10-19（UTC+8）｜维护方式：每完成一个任务或阶段即更新
 - Re-verified 2026-10-03 after F13/F14: `npm run test` 286/286 (42 files), `npm run test:e2e` 7/7, `npx tsc --noEmit` clean. The T01–T12 records below describe the earlier build.<br>2026-10-03 在 F13/F14 之后复核：`npm run test` 286/286（42 个文件）、`npm run test:e2e` 7/7、`npx tsc --noEmit` 无错误。下面 T01–T12 的记录描述的是更早的那次构建。
 
-Current (2026-10-18): F18, F17, T15, T16, T18, T17, T09, T14, and T19 are implemented. T19 (SPEC v0.23) puts a file under the message it was sent with, still allows a message with no file, and lets a later message cite one visible file. Files with no message stay under 此前上传的附件. Each message shows the author's case role. This is deployed on the Shanghai host at `http://<IP>/new/`, with the pilot case copied into `clc_new` so the same invite email and code open the same messages and files. The pilot process at `/` was not restarted.<br>当前（2026-10-18）：F18、F17、T15、T16、T18、T17、T09、T14、T19 已实现。T19（SPEC v0.23）把文件放在随它发出的消息下面，没有文件的消息仍然发送，后来的消息可以指向一份可见的文件。没有对应消息的文件留在「此前上传的附件」。每条消息显示发送人在本案中的角色。已部署到上海测试机的 `http://<IP>/new/`，试点案件已复制进 `clc_new`，同一邀请邮箱和邀请码可以打开同样的消息和附件。`/` 上的试点进程没有重启。
+Current (2026-10-18): F18, F17, T15, T16, T18, T17, T09, T14, and T19 are implemented. T19 (SPEC v0.23) puts a file under the message it was sent with, still allows a message with no file, and lets a later message cite one visible file. Files with no message stay under 此前上传的附件. Each message shows the author's case role. On 2026-10-19 the Shanghai `/new/` database was copied again from the pilot, so messages and files added after the first copy are present. Files that had no message are shown under the nearest same-author message within 60 minutes. On 2026-10-19 `/NEW` redirects to `/new`, the daily case-digest email was turned off on both processes, and two duplicate introduction messages from 2026-10-05 were deleted from both databases.<br>当前（2026-10-18）：F18、F17、T15、T16、T18、T17、T09、T14、T19 已实现。T19（SPEC v0.23）把文件放在随它发出的消息下面，没有文件的消息仍然发送，后来的消息可以指向一份可见的文件。没有对应消息的文件留在「此前上传的附件」。每条消息显示发送人在本案中的角色。2026-10-19 上海 `/new/` 的数据库再次从试点复制，第一次复制之后新增的消息和附件也在。还没有对应消息的文件，显示在同一作者 60 分钟内最近的那条消息下面。2026-10-19 起，`/NEW` 转到 `/new`，试点和 `/new` 都不再发送每日案件总结邮件，2026-10-05 的两条重复自我介绍已从两个库删除。
 
 ## Phase-2 start: F18 + F17 (2026-10-15) / 第二阶段开工：F18＋F17（2026-10-15）
 

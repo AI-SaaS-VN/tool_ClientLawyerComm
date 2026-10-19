@@ -45,7 +45,7 @@
 | SOW.md | v1.13 execution baseline. Companions are SPEC v0.23 and PLAN v0.23. Section 4.4 and REQ-THREAD are implemented<br>v1.13 执行基线。配套是 SPEC v0.23 与 PLAN v0.23。第 4.4 节与 REQ-THREAD 已实现 |
 | VIBE_CODING_INPUT.md | Historical launch-instruction entry point. Where it conflicts with SOW v1.11, SOW prevails. The historical body is kept and still contains superseded sentences<br>历史启动指令入口。与 SOW v1.11 冲突时以 SOW 为准。历史正文保留，其中仍有已被取代的句子 |
 | SPEC.md | v0.23 requirements. Second phase, DOCX bilingual document, administration console, and the message-and-file thread are implemented.<br>v0.23 需求。第二阶段、DOCX 双语对照、管理控制台和消息与附件同一条对话已实现。 |
-| PLAN.md | v0.23 task breakdown. T19 and the message author role are deployed on the Shanghai host at `/new/`, with the pilot case data copied in.<br>v0.23 任务拆分。T19 与消息发送人角色已部署到上海测试机的 `/new/`，并带入试点案件数据。 |
+| PLAN.md | v0.23 task breakdown. T19 is on `/new/` with the pilot case copied in. The daily digest email is off on both processes.<br>v0.23 任务拆分。T19 在 `/new/`，并带入试点案件。每日总结邮件在两个进程上都已停发。 |
 | README.md | Project overview, commands, and repo map (replaced the create-next-app boilerplate 2026-10-03)<br>项目概览、命令与仓库地图（2026-10-03 替换 create-next-app 模板） |
 | docs/runbook/mvp-test-case.md | REQ-OPS-07 runbook: one-step activation with the invited email and the activation code<br>REQ-OPS-07 运行指引：用受邀邮箱和激活码一步激活 |
 | docs/deployment.md | Service composition, env-var list, migrations, backup/restore, test-period entry caveats<br>服务组成、环境变量清单、迁移、备份/恢复、测试期入口注意事项 |
