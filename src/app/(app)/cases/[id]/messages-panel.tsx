@@ -214,7 +214,7 @@ export function MessagesPanel({
     const targetLang = message.translation?.targetLang;
     if (!targetLang) return;
     const res = await fetch(
-      `/api/messages/${message.id}/translate/review?targetLang=${encodeURIComponent(targetLang)}`,
+      apiPath(`/api/messages/${message.id}/translate/review?targetLang=${encodeURIComponent(targetLang)}`),
     );
     if (!res.ok) return;
     const data = (await res.json()) as { review: ReviewView };
