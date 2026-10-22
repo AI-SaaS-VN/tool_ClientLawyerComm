@@ -1,7 +1,7 @@
 # CONTEXT.md — Stable Background and File Navigation / 稳定背景与文件导航
 
-- Last updated: 2026-10-09 (UTC+8)
-- 更新日期：2026-10-09（UTC+8）
+- Last updated: 2026-10-22 (UTC+8)
+- 更新日期：2026-10-22（UTC+8）
 - Purpose: keeps only the product background, confirmed decisions, file navigation, and unresolved environment conditions. Records no credentials, real case details, or personal contact information.
 - 用途：仅保留产品背景、已确认决策、文件导航和未解决的环境条件。不记录凭据、真实案情、个人联系方式。
 
@@ -11,12 +11,12 @@
 - 中越双语案件沟通系统：中国客户—越南律师—案件协调员，网页端（手机/电脑浏览器），无需 WeChat/Zalo。
 - Users, chats, files, and permissions are isolated by Case. The administrator is created by local bootstrap. A Coordinator, Chinese Client, or Vietnamese Lawyer receives one activation email at the address that was entered. The activation code is bound to that email, the Case, and the role (v1.11, MVP). Only that email can accept it. The same email and the same code open that case again afterwards. The same email accepts a later code for another Case on the same account. Phone registration is P1. The repository implements this one-step path.
 - 以案件隔离用户、聊天、文件和权限。管理员由本地引导创建。协调员、中国客户或越南律师在被输入的地址收到一封激活邮件。激活码绑定该邮箱、案件与角色（v1.11，MVP）。只有该邮箱可以接受。之后仍用同一邮箱和同一个邀请码进入该案件。同一邮箱以后接受另一个案件的激活码时，加入同一账号。手机注册为 P1。本仓库已实现这一步激活。
-- The only publish hold is an explicit inquiry or negotiation about the firm's litigation retainer fee, in a message or a file name (decided 2026-10-03). Ordinary messages, contact details, case amounts, and clean files publish immediately. A display name that contains a contact channel is still rejected on save. Entering pending review alerts the coordinator; timeout never publishes.
-- 唯一的发布拦截是消息或文件名里显式询问或协商律所诉讼委托费用（2026-10-03 决定）。普通消息、联系方式、案件金额和扫描通过的文件立即发布。显示名含联系渠道时仍拒绝保存。进入待审会提醒协调员；超时绝不发布。
+- The only publish hold is an explicit inquiry or negotiation about the firm's litigation retainer fee, in a message or a file name (decided 2026-10-03). Ordinary messages, contact details, case amounts, and clean files publish immediately. A lawyer's Vietnamese message, and a file that lawyer uploads, publish even when the text or the file name is such an inquiry (2026-10-22). A display name that contains a contact channel is still rejected on save. Entering pending review alerts the coordinator; timeout never publishes.
+- 唯一的发布拦截是消息或文件名里显式询问或协商律所诉讼委托费用（2026-10-03 决定）。普通消息、联系方式、案件金额和扫描通过的文件立即发布。律师的越南语消息，以及该律师上传的文件，即使正文或文件名是这类问询也直接发布（2026-10-22）。显示名含联系渠道时仍拒绝保存。进入待审会提醒协调员；超时绝不发布。
 - Confirmed 2026-10-09: automatic mode calls Kimi. A lawyer's Vietnamese message is shown in the client's current screen language. That language is Simplified Chinese unless the client has switched to Traditional Chinese. A client's Chinese message is shown to the lawyer as Vietnamese.
 - 2026-10-09 确认：自动模式调用 Kimi。律师的越南语，客户看到自己当前的屏幕语言。默认是简体中文，客户自己切换后才是繁体中文。客户的中文，律师看到越南语。
-- Confirmed 2026-10-09: a Chinese Client's default screen is Simplified Chinese. A Vietnamese Lawyer's default screen is Vietnamese. A Coordinator's default screen is Simplified Chinese. Traditional Chinese appears only after the client switches it. Each person sees that one language on labels, buttons, and automatic-mode messages from other people. The application still defaults a client to Traditional Chinese until PLAN F18.
-- 2026-10-09 确认：中国客户默认看到简体中文。越南律师默认看到越南语。协调员默认看到简体中文。繁体中文只在客户自己切换后出现。按钮、提示，以及自动模式下别人发来的消息，都用这一种语言。应用代码仍把客户默认成繁体中文，直到 PLAN F18。
+- Confirmed 2026-10-09, implemented as F18 on 2026-10-15: a Chinese Client's default screen is Simplified Chinese. A Vietnamese Lawyer's default screen is Vietnamese. A Coordinator's default screen is Simplified Chinese. Traditional Chinese appears only after the client switches it. Each person sees that one language on labels, buttons, and automatic-mode messages from other people.
+- 2026-10-09 确认，F18 已于 2026-10-15 实现：中国客户默认看到简体中文。越南律师默认看到越南语。协调员默认看到简体中文。繁体中文只在客户自己切换后出现。按钮、提示，以及自动模式下别人发来的消息，都用这一种语言。
 - Every conversation record and every upload record the viewer can see shows a timestamp formatted with that computer's timezone setting, and the offset is printed beside the time. A UTC+8 computer shows UTC+8. A UTC+7 computer shows UTC+7. The role does not choose the offset (confirmed 2026-10-03).
 - 观看者能看到的每条对话记录和每条上传记录都按那台电脑的时区设置显示时间，并在时间旁边标出时区。设为 UTC+8 的电脑标 UTC+8。设为 UTC+7 的电脑标 UTC+7。时区不按角色写死（2026-10-03 确认）。
 - MVP includes two-way Urgent Alerts (email channel), file sharing (PDF/DOCX/JPG/PNG, 20MB), Permission Revocation, Archive, administrator MFA (separate admin account), Audit Trail, Backup and Restore, one-step activation bound to the invited email (v1.11), and a Daily Case Digest sent only to the Coordinator (2026-10-04; not built yet). Languages are Chinese (Simplified/Traditional)/Vietnamese/English. The Coordinator may participate in chat (v1.4). Later: phone registration/SMS, DOCX bilingual documents, the cross-case UI, sending the digest to Lawyers, and the case-creation page.
@@ -28,8 +28,8 @@
 - TypeScript / Next.js 模块化单体 + PostgreSQL + 私有对象存储 + 数据库持久任务队列。
 - HTTP for sending + SSE for receiving/incremental catch-up after reconnect; no microservices/K8s/cross-region dual-write.
 - HTTP 发送 + SSE 接收/断线增量拉取；不引入微服务/K8s/跨区双写。
-- External capabilities behind replaceable interfaces: TranslationProvider (Kimi/Moonshot AI designated as candidate by the user on 2026-10-01), SmsProvider, EmailProvider; use mature components for authentication.
-- 外部能力经可替换接口：TranslationProvider（Kimi/Moonshot AI 为用户 2026-10-01 指定候选）、SmsProvider、EmailProvider；认证用成熟组件。
+- External capabilities behind replaceable interfaces: TranslationProvider (Kimi/Moonshot AI designated as candidate by the user on 2026-10-01), SmsProvider, EmailProvider; use mature components for authentication. On 2026-10-20 the Shanghai `/new` host points that same adapter at DeepSeek (`deepseek-flash`) because the Kimi account was suspended for insufficient balance. The setting name stays `kimi`. From 2026-10-22 `/new` is the instance in use, and a new translation sends the fixed prompt `clc-translate-v2` plus one text. Stored messages and attachment pages are not rewritten. The pilot `.env` still points at Kimi, and that account remains suspended.
+- 外部能力经可替换接口：TranslationProvider（Kimi/Moonshot AI 为用户 2026-10-01 指定候选）、SmsProvider、EmailProvider；认证用成熟组件。2026-10-20 起，上海 `/new` 把同一个适配器指到 DeepSeek（`deepseek-flash`），因为 Kimi 账户因余额不足被暂停。设置名仍是 `kimi`。2026-10-22 起，正在使用的是 `/new`，新译文发送固定提示词 `clc-translate-v2` 加一段正文。已经存下的消息和附件页不改写。试点的 `.env` 仍指向 Kimi，该账户仍然暂停。
 - Vietnamlawyers.ai main-site entry + separate subdomain app; production prefers Hong Kong/Singapore VPS, subject to verification by the operations owner and China–Vietnam network testing.
 - Vietnamlawyers.ai 主站入口 + 独立子域名应用；生产优先香港/新加坡 VPS，须运维负责人与中越网络验证。
 
@@ -45,7 +45,7 @@
 | SOW.md | v1.13 execution baseline. Companions are SPEC v0.23 and PLAN v0.23. Section 4.4 and REQ-THREAD are implemented<br>v1.13 执行基线。配套是 SPEC v0.23 与 PLAN v0.23。第 4.4 节与 REQ-THREAD 已实现 |
 | VIBE_CODING_INPUT.md | Historical launch-instruction entry point. Where it conflicts with SOW v1.11, SOW prevails. The historical body is kept and still contains superseded sentences<br>历史启动指令入口。与 SOW v1.11 冲突时以 SOW 为准。历史正文保留，其中仍有已被取代的句子 |
 | SPEC.md | v0.23 requirements. Second phase, DOCX bilingual document, administration console, and the message-and-file thread are implemented.<br>v0.23 需求。第二阶段、DOCX 双语对照、管理控制台和消息与附件同一条对话已实现。 |
-| PLAN.md | v0.23 task breakdown. T19 is on `/new/` with the pilot case copied in. The daily digest email is off on both processes.<br>v0.23 任务拆分。T19 在 `/new/`，并带入试点案件。每日总结邮件在两个进程上都已停发。 |
+| PLAN.md | v0.23 task breakdown. `/new` is the instance in use and translates through DeepSeek with prompt `clc-translate-v2`. Stored translations stay. R&D pauses on 2026-10-22.<br>v0.23 任务拆分。正在使用的是 `/new`，经 DeepSeek 以提示词 `clc-translate-v2` 翻译。已经存下的译文保持原样。研发于 2026-10-22 告一段落。 |
 | README.md | Project overview, commands, and repo map (replaced the create-next-app boilerplate 2026-10-03)<br>项目概览、命令与仓库地图（2026-10-03 替换 create-next-app 模板） |
 | docs/runbook/mvp-test-case.md | REQ-OPS-07 runbook: one-step activation with the invited email and the activation code<br>REQ-OPS-07 运行指引：用受邀邮箱和激活码一步激活 |
 | docs/deployment.md | Service composition, env-var list, migrations, backup/restore, test-period entry caveats<br>服务组成、环境变量清单、迁移、备份/恢复、测试期入口注意事项 |

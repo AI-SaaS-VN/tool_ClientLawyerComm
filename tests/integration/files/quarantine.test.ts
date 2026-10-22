@@ -143,6 +143,24 @@ describe("file upload quarantine (REQ-FILE-01/02/04/05/07, AC06)", () => {
     expect(await prisma.file.count()).toBe(0);
   });
 
+  it("publishes a clean file uploaded by the lawyer without coordinator review", async () => {
+    const { kase, lawyerCookie, clientCookie } = await seedMembers();
+    const res = await uploadFile(
+      uploadFileRequest(kase.id, lawyerCookie, "你们律所收费多少.pdf", pdfSample()),
+      params(kase.id),
+    );
+    expect(res.status).toBe(201);
+    const { file } = (await res.json()) as { file: { id: string; status: string } };
+    expect(file.status).toBe("published");
+    expect(await prisma.reviewTask.count({ where: { targetId: file.id } })).toBe(0);
+    const clientList = await listFiles(
+      getRequest(`/api/cases/${kase.id}/files`, cookieHeader(clientCookie)),
+      params(kase.id),
+    );
+    const files = (await clientList.json()).files as Array<{ id: string }>;
+    expect(files.map((item) => item.id)).toEqual([file.id]);
+  });
+
   it("holds a file whose name explicitly asks about the firm's retainer fee", async () => {
     const { kase, clientCookie, lawyerCookie } = await seedMembers();
     const res = await uploadFile(

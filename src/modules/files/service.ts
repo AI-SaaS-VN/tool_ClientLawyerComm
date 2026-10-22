@@ -165,7 +165,12 @@ async function runScanPipeline(file: FileWithUploader): Promise<FileWithUploader
   if (!clean) return markCheckFailed(file);
 
   try {
-    if (await isExplicitFeeInquiry(file.originalName, "zh-Hans")) {
+    // A file the lawyer uploads publishes when the scan is clean. The
+    // retainer-fee hold stays for everyone else (user decision 2026-10-22).
+    if (
+      file.uploader.globalRole !== "lawyer" &&
+      (await isExplicitFeeInquiry(file.originalName, "zh-Hans"))
+    ) {
       return await holdFileForReview(file, "semantic:fee_inquiry");
     }
     return await publishCleanFile(file);

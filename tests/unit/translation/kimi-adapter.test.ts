@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LlmFailure } from "@/server/providers/llm/interface";
-import { KimiTranslationProvider } from "@/server/providers/llm/kimi-adapter";
+import {
+  KimiTranslationProvider,
+  TRANSLATION_SYSTEM_PROMPT,
+} from "@/server/providers/llm/kimi-adapter";
 
 // REQ-TR-03/REQ-MSG-10: the Kimi adapter is exercised against a mocked fetch;
 // every provider fault surfaces as a typed LlmFailure (or a loud
@@ -41,7 +44,7 @@ describe("KimiTranslationProvider", () => {
       text: "Vui lòng trả lời trước ngày 15/3/2026.",
       model: "kimi-test-model",
       modelVersion: "kimi-test-model",
-      promptVersion: "clc-translate-v1",
+      promptVersion: "clc-translate-v2",
       glossaryVersion: "clc-glossary-v1",
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -55,8 +58,13 @@ describe("KimiTranslationProvider", () => {
       messages: Array<{ role: string; content: string }>;
     };
     expect(body.model).toBe("kimi-test-model");
-    expect(body.messages.at(-1)!.content).toContain(INPUT.text);
-    expect(body.messages.at(-1)!.content).toContain(INPUT.targetLang);
+    expect(body.messages).toHaveLength(2);
+    expect(body.messages[0]).toEqual({ role: "system", content: TRANSLATION_SYSTEM_PROMPT });
+    expect(TRANSLATION_SYSTEM_PROMPT.length).toBeLessThan(800);
+    expect(body.messages[1]).toEqual({
+      role: "user",
+      content: `${INPUT.sourceLang}→${INPUT.targetLang}\n${INPUT.text}`,
+    });
   });
 
   it("falls back to the default Moonshot base URL when KIMI_BASE_URL is unset", async () => {

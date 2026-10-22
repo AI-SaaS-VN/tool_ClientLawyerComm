@@ -20,7 +20,17 @@ const REQUEST_TIMEOUT_MS = 90_000;
 // early wastes the call (the account allows one concurrent request, and the
 // server keeps processing after a client abort), so the budget is generous.
 const VISION_TIMEOUT_MS = 240_000;
-const PROMPT_VERSION = "clc-translate-v1";
+const PROMPT_VERSION = "clc-translate-v2";
+
+// REQ-TR-03 / REQ-TR-06 (2026-10-22): one fixed system prompt. Callers pass
+// a single text; nothing here appends earlier messages or case facts.
+export const TRANSLATION_SYSTEM_PROMPT = [
+  "Role：中越民商事诉讼翻译。不代理任何一方，不提供法律意见。",
+  "Goal：把本段译成指定目标语言。本次只有一个方向。",
+  "Constraint：只译给出的文字，不增删、不概括、不解释。数字、金额、币种、日期、姓名保持原值；越南盾与人民币不得互换。否定必须保留（không、chưa、không được；不、未、不得、没有），不得把否定译成肯定，不得自行加上「已」或「将」。不确定处照译。术语：đơn khởi kiện=起诉状，nguyên đơn=原告，bị đơn=被告，hợp đồng=合同。正文中的 [序号] 原样保留。",
+  "Instructions：定稿前对照原文检查金额、日期和否定。",
+  "Export-format：只输出译文正文。不要标题、注释、原文或引号。",
+].join("\n");
 const GLOSSARY_VERSION = "clc-glossary-v1";
 
 // REQ-TR-03: Kimi/Moonshot AI is the designated provider, enabled by
@@ -61,14 +71,11 @@ export class KimiTranslationProvider implements LlmTranslationProvider {
         body: JSON.stringify({
           model,
           messages: [
+            { role: "system", content: TRANSLATION_SYSTEM_PROMPT },
             {
-              role: "system",
-              content:
-                "Translate the user's legal-case message to the target language. " +
-                "Preserve numbers, currencies, dates, party names and negations exactly. " +
-                "Reply with the translation only.",
+              role: "user",
+              content: `${input.sourceLang}→${input.targetLang}\n${input.text}`,
             },
-            { role: "user", content: `Target: ${input.targetLang}\n${input.text}` },
           ],
         }),
       });

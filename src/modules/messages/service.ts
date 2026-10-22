@@ -173,6 +173,10 @@ export async function sendMessage(
   return { view: (await annotateAlertIssues([view], author.id))[0]!, replayed: false };
 }
 
+function isLawyerVietnamese(message: MessageWithAuthor): boolean {
+  return message.author.globalRole === "lawyer" && message.sourceLang === "vi";
+}
+
 async function runPipeline(message: MessageWithAuthor): Promise<MessageWithAuthor> {
   await prisma.message.update({ where: { id: message.id }, data: { status: "checking" } });
   let result;
@@ -196,7 +200,10 @@ async function runPipeline(message: MessageWithAuthor): Promise<MessageWithAutho
       return failed;
     });
   }
-  if (result.outcome === "needs_review") {
+  // A lawyer's Vietnamese message publishes without coordinator review
+  // (user decision 2026-10-22). Other authors, and a lawyer writing in
+  // another language, still stop on an explicit retainer-fee inquiry.
+  if (result.outcome === "needs_review" && !isLawyerVietnamese(message)) {
     try {
       return await holdForReview(message, result.reason);
     } catch {

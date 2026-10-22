@@ -73,6 +73,21 @@ describe("moderation pipeline (REQ-MOD-01~03, REQ-NTF-07 registration)", () => {
     expect(await prisma.reviewTask.count()).toBe(0);
   });
 
+  it("publishes a lawyer's Vietnamese message without coordinator review", async () => {
+    const { kase, lawyerCookie, cookie } = await seedChat();
+    const message = await send(
+      kase.id,
+      lawyerCookie,
+      "Phí luật sư của quý văn phòng là bao nhiêu?",
+      "m-vi-lawyer",
+    );
+    expect(message.status).toBe("published");
+    expect(message.sourceLang).toBe("vi");
+    expect(await prisma.reviewTask.count()).toBe(0);
+    const receiverList = await listFor(kase.id, cookie);
+    expect(receiverList.map((m) => m.id)).toEqual([message.id]);
+  });
+
   it("sends explicit fee inquiries to pending_review and registers the review task atomically", async () => {
     const { kase, lawyerCookie, cookie } = await seedChat();
     const message = await send(

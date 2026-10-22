@@ -133,11 +133,17 @@ export async function runTranslationVersion(row: TranslationVersion): Promise<Tr
       sourceLang: message.sourceLang,
       targetLang: row.targetLang,
     });
-    return finishWithCheck(current, message.sourceText, result.text, {
-      provider: provider.id,
-      model: result.model,
-      promptVersion: result.promptVersion,
-    });
+    return finishWithCheck(
+      current,
+      message.sourceText,
+      result.text,
+      {
+        provider: provider.id,
+        model: result.model,
+        promptVersion: result.promptVersion,
+      },
+      await lawyerVietnameseShowsMismatch(message),
+    );
   } catch (error) {
     const kind = error instanceof LlmFailure ? error.kind : "unknown";
     console.error("translation_failed", {
@@ -168,17 +174,27 @@ async function createAndRun(message: Message, targetLang: string): Promise<Trans
 
 // REQ-TR-05: key fields are checked independently; a mismatch stores the text
 // for reviewers but marks the version needs_review so reading views hide it.
+// A lawyer's Vietnamese message is shown even when a key field mismatches
+// (user decision 2026-10-22). The mismatch stays on the row. Every other
+// message still hides a doubtful translation until a coordinator releases it.
+async function lawyerVietnameseShowsMismatch(message: Message): Promise<boolean> {
+  if (message.sourceLang !== "vi") return false;
+  const author = await prisma.user.findUnique({ where: { id: message.authorId } });
+  return author?.globalRole === "lawyer";
+}
+
 async function finishWithCheck(
   row: TranslationVersion,
   sourceText: string,
   text: string,
   meta: { provider: string; model: string; promptVersion: string | null },
+  showMismatch = false,
 ): Promise<TranslationVersion> {
   const check = checkKeyFields(sourceText, text);
   return prisma.translationVersion.update({
     where: { id: row.id },
     data: {
-      status: check.ok ? "done" : "needs_review",
+      status: check.ok || showMismatch ? "done" : "needs_review",
       text,
       provider: meta.provider,
       model: meta.model,

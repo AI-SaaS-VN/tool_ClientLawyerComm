@@ -1575,3 +1575,86 @@ Open `http://<IP>/new/` and confirm the latest pilot messages are present and th
 Do not turn the daily digest back on unless the user asks. Other notification mail still sends.<br>用户未要求前不要恢复每日总结邮件。其他通知邮件仍会发送。
 
 ---
+
+## Session 2026-10-20-01 (completed) / 会话 2026-10-20-01（已完成）
+
+- Date/Timezone: 2026-10-20, UTC+8<br>日期/时区：2026-10-20，UTC+8
+- Goal: find why recent Vietnamese messages from the lawyer were not translated, switch the `/new` translation calls to DeepSeek after the Kimi account ran out of balance, backfill those messages, and make the coordinator's flagged-translation button work on `/new`.<br>本次目标：查清律师最近的越南语消息为什么没有译文；Kimi 账户余额用完后，把 `/new` 的翻译调用改到 DeepSeek，补译这些消息，并让协调员在 `/new` 上能打开待审译文。
+
+### Actual Actions / 实际动作
+
+1. The recent lawyer messages on `clc_new` had been queued automatically and failed. The provider answered that the account was suspended for insufficient balance. The program recorded that as `rate_limited`. The last successful call on that account was 2026-10-19 13:53 UTC+8. A later probe, after the user said the balance was restored, still returned the same suspension. The queued rows were paused so the attempt budget would not be spent while the account stayed suspended.<br>`clc_new` 上律师最近的消息已经自动入队，然后失败。供应商返回账户因余额不足被暂停。程序把这记成 `rate_limited`。该账户最后一次成功调用是 2026-10-19 13:53（UTC+8）。用户说额度已恢复之后再探测，返回仍是同一暂停。已入队的行被暂停，避免账户仍暂停时把重试次数用完。
+2. The user pointed the `/new` `.env` at DeepSeek: base `https://api.deepseek.com`, model `deepseek-flash`, vision model the same. `TRANSLATION_PROVIDER` stays `kimi`, which is the name that selects the OpenAI-compatible adapter. The file was saved at 21:41 CST and `clc-web-new` was restarted at 21:42 CST. The pilot `.env` was not changed. A one-line probe returned 200.<br>用户把 `/new` 的 `.env` 指到 DeepSeek：地址 `https://api.deepseek.com`，模型 `deepseek-flash`，读图模型相同。`TRANSLATION_PROVIDER` 仍是 `kimi`，程序用这个名字选用 OpenAI 兼容适配器。文件于 21:41（CST）保存，`clc-web-new` 于 21:42（CST）重启。试点的 `.env` 没有改。一次探测返回 200。
+3. The ten paused rows for recent published messages were released. All ten finished through DeepSeek. Six passed the key-field check and are visible. Four are `needs_review` (negation mismatch; the 15:58 UTC+8 message on 2026-10-20 also has a date mismatch), so readers see 「译文待人工校核」 until a coordinator releases them.<br>最近 10 条已发布消息的暂停行被放行。十次都由 DeepSeek 完成。6 条通过关键字段核对，可以直接看。4 条是 `needs_review`（否定词不一致；2026-10-20 15:58 UTC+8 那条还有日期不一致），协调员放行之前，读者看到「译文待人工校核」。
+4. The coordinator's 「查看待审译文」 button fetched `/api/messages/…/translate/review` with no `/new` prefix. nginx sent that to the pilot. The `/new` session cookie is not sent on that path, the response was unauthenticated, and the page ignored the failure. `messages-panel.tsx` now wraps that URL in `apiPath`. Every other client fetch, EventSource, plain link, and `location.assign` already used `apiPath`. `<Link>` and `router.push` are prefixed by Next. The built client calls `apiPath`, which returns the `/new` prefix. Only `clc-web-new` was rebuilt and restarted. `/new/api/health` returned 200. Commit `875badf` is on `main`.<br>协调员的「查看待审译文」请求的是不带 `/new` 的 `/api/messages/…/translate/review`。nginx 把这个地址交给试点。`/new` 的会话 cookie 不会随这个路径发送，响应是未登录，页面把失败丢掉。`messages-panel.tsx` 现已用 `apiPath` 包住这个地址。其余客户端 fetch、EventSource、裸链接和 `location.assign` 本来就走 `apiPath`。`<Link>` 和 `router.push` 由 Next 加前缀。构建后的客户端调用 `apiPath`，返回值带 `/new`。只重新构建并重启了 `clc-web-new`。`/new/api/health` 为 200。提交 `875badf` 已在 `main`。
+
+### First Step Next Time / 下次第一步
+
+The coordinator refreshes the case page and opens 「查看待审译文」 on each held message, then releases it only after checking the negation (and, on one message, the date). Do not point the pilot `.env` at DeepSeek unless asked. Do not turn the daily digest back on.<br>协调员刷新案件页，对每条被扣下的消息打开「查看待审译文」，核对否定词（其中一条还要核对日期）之后再放行。未要求则不要把试点的 `.env` 指到 DeepSeek，也不要恢复每日总结邮件。
+
+---
+
+## Session 2026-10-22-01 (completed) / 会话 2026-10-22-01（已完成）
+
+- Date/Timezone: 2026-10-22, UTC+8<br>日期/时区：2026-10-22，UTC+8
+- Goal: a lawyer's Vietnamese messages and the files that lawyer uploads publish without coordinator review.<br>本次目标：律师的越南语消息，以及该律师上传的文件，不经协调员审核即可发出。
+
+### Actual Actions / 实际动作
+
+1. A lawyer message whose source language is Vietnamese publishes even when the text is an explicit retainer-fee inquiry. A lawyer writing in another language, and anyone else, still stops on that inquiry.<br>律师发出的越南语消息，即使正文是显式委托费用问询，也直接发布。律师用其他语言写的，以及其他人写的，这类问询仍然待审。
+2. A file uploaded by the lawyer publishes when the scan is clean, including a file name that asks about the firm's retainer fee. The same name uploaded by a client stays in `pending_review`. A failed scan still does not publish.<br>律师上传的文件，扫描通过即发布，包括文件名在问律所委托费用的情况。客户上传同名文件仍进入 `pending_review`。扫描失败仍然不发布。
+3. A key-field mismatch on a lawyer's Vietnamese message is stored on the translation row, and the translation is shown. Other messages still hide a doubtful translation until a coordinator releases it.<br>律师越南语消息的关键字段不一致记在译文行上，译文直接显示。其他消息的存疑译文仍要等协调员放行。
+
+### Verification / 验证
+
+- The three affected integration files passed, 21 tests. `/new` was rebuilt and restarted. `/new/api/health` returned 200. `clc-web` was not restarted. Five already-held lawyer Vietnamese translation rows on `clc_new` were marked shown; the mismatch note stays on the row.<br>相关的三个集成测试文件通过，共 21 项。`/new` 已重新构建并重启。`/new/api/health` 为 200。`clc-web` 没有重启。`clc_new` 上 5 条已扣下的律师越南语译文改为直接显示，不一致记录仍留在该行。
+
+### First Step Next Time / 下次第一步
+
+Refresh the case page. Lawyer Vietnamese messages show their Chinese translation, including the four that were held for a negation mismatch. Do not restart `clc-web` unless asked.<br>刷新案件页。律师的越南语消息会显示中文译文，包括此前因否定词不一致被扣下的四条。未要求则不重启 `clc-web`。
+
+---
+
+## Session 2026-10-22-02 (completed) / 会话 2026-10-22-02（已完成）
+
+- Date/Timezone: 2026-10-22, UTC+8<br>日期/时区：2026-10-22，UTC+8
+- Goal: put the accepted translation-prompt design into SPEC and implement it, keeping each DeepSeek call to a fixed small context.<br>本次目标：把已认可的翻译提示词设计写入 SPEC 并实现，每次 DeepSeek 调用保持固定的小上下文。
+
+### Actual Actions / 实际动作
+
+1. SPEC REQ-TR-03 and REQ-TR-06 now name prompt version `clc-translate-v2` and the two-message bound. A subsection states the five headings, the closed term list, the kept `[序号]` markers, and that context does not accumulate.<br>SPEC 的 REQ-TR-03 与 REQ-TR-06 写明提示词版本 `clc-translate-v2` 和两条消息的上限。新增小节写明五个标题、封闭术语表、保留 `[序号]`，以及上下文不累积。
+2. The adapter system prompt is that fixed five-part text (333 characters). The user message is `源语言→目标语言` plus this one text. No earlier message and no case facts are attached. Image transcription is unchanged.<br>适配器的系统提示词就是这份固定五段文字（333 字）。用户消息是 `源语言→目标语言` 加上这一段正文。不附带更早的消息，也不附带案情。读图转写没有改。
+
+### Verification / 验证
+
+- `tests/unit/translation/kimi-adapter.test.ts`: 9 passed. The test checks that the request has exactly two messages, the system text is the fixed prompt and shorter than 800 characters, and the user message is the two language codes plus the source text. `/new` was rebuilt and `clc-web-new` restarted at 2026-10-22 19:08 CST; `/new/api/health` returned 200. `clc-web` was not restarted (still 2026-10-19 17:35 CST).<br>`tests/unit/translation/kimi-adapter.test.ts`：9 项通过。测试确认请求正好两条消息，系统文字是这份固定提示词且短于 800 字，用户消息是两个语言代码加源文。`/new` 已重新构建，`clc-web-new` 于 2026-10-22 19:08（UTC+8）重启，`/new/api/health` 为 200。`clc-web` 没有重启（仍是 2026-10-19 17:35）。
+
+### First Step Next Time / 下次第一步
+
+`/new` already serves `clc-translate-v2` for translations created after the 19:08 restart. Already stored translations are not re-run. A per-case glossary, if wanted later, needs a separate review and a hard character cap.<br>`/new` 从 19:08 那次重启起，新产生的翻译使用 `clc-translate-v2`。已经存下的译文不重跑。以后若要按案件附加术语表，须另行复核并设硬性字数上限。
+
+### Pilot restart (user request, same day) / 试点重启（当日用户要求）
+
+The user asked to restart the pilot and look at the live result. `kimi-adapter.ts` was copied to `/home/ubuntu/ClientLawyerComm`, the pilot was rebuilt without a base path, and `clc-web` restarted at 2026-10-22 19:18 CST. `http://127.0.0.1:3000/api/health` returned 200. `clc-web-new` stayed at its 19:08 start. The pilot `.env` still points at Kimi (`kimi-k2.7-code-highspeed`). Both sample calls returned HTTP 429 because that account is suspended for insufficient balance, so the pilot produced no translation. The same two sentences were then sent through `/new` (DeepSeek `deepseek-flash`, `clc-translate-v2`): Vietnamese “Yêu cầu bồi thường 2300000 đồng. Bị đơn chưa thanh toán hợp đồng.” came back “请求赔偿2300000越南盾。被告未支付合同款项。”; Chinese “被告不得在2026年3月15日前转让合同。” came back “Bị đơn không được chuyển nhượng hợp đồng trước ngày 15 tháng 3 năm 2026.” Each call was about 1.3s. These two calls were not written into a case.<br>用户要求重启试点并看实际效果。`kimi-adapter.ts` 已复制到 `/home/ubuntu/ClientLawyerComm`，试点按根路径重新构建，`clc-web` 于 2026-10-22 19:18（UTC+8）重启。`http://127.0.0.1:3000/api/health` 为 200。`clc-web-new` 仍是 19:08 那次启动。试点的 `.env` 仍指向 Kimi（`kimi-k2.7-code-highspeed`）。两条试样都返回 HTTP 429，该账户因余额不足被暂停，所以试点没有产出译文。同一两句改由 `/new` 发送（DeepSeek `deepseek-flash`，`clc-translate-v2`）：越南语 “Yêu cầu bồi thường 2300000 đồng. Bị đơn chưa thanh toán hợp đồng.” 译为 “请求赔偿2300000越南盾。被告未支付合同款项。”；中文 “被告不得在2026年3月15日前转让合同。” 译为 “Bị đơn không được chuyển nhượng hợp đồng trước ngày 15 tháng 3 năm 2026.” 每次约 1.3 秒。这两次调用没有写入任何案件。
+
+### New messages only (user request, 20:57 UTC+8) / 只译新消息（当日 20:57 用户要求）
+
+On `clc_new`, new messages use `clc-translate-v2`. Existing messages and attachment pages stay as stored. Checked after the request: no `queued` or `translating` translation rows, no translation row or attachment page updated after the 19:08 prompt deploy, every published message already has a version for the other side of the vi ↔ zh-Hans pair, and attachment pages are terminal (22 ready, 11 failed, 8 no_text). `clc-web-new` was not restarted.<br>`clc_new` 上，新消息使用 `clc-translate-v2`。已有消息和附件译文保持原样。复核时没有 `queued` 或 `translating` 的译文行，19:08 提示词上线后没有译文行或附件页被改写，每条已发布消息都已有 vi ↔ zh-Hans 另一侧的译文版本，附件页都已结束（22 条 ready、11 条 failed、8 条 no_text）。`clc-web-new` 没有重启。
+
+---
+
+## Session 2026-10-22-03 (completed) / 会话 2026-10-22-03（已完成）
+
+- Date/Timezone: 2026-10-22, UTC+8<br>日期/时区：2026-10-22，UTC+8
+- Goal: bring the progress and design records up to the close of this stretch of work, then update the git repository. R&D pauses.<br>本次目标：把进度记录和设计记录收到这一段工作的收工状态，然后更新 git 仓库。研发告一段落。
+
+### Actual Actions / 实际动作
+
+1. Living rows in SPEC, PLAN, PROGRESS, SESSIONS, SOW, CONTEXT, README, and `docs/deployment.md` now say: `/new` is the instance in use and calls DeepSeek; new messages and newly published attachments use `clc-translate-v2`; stored messages and attachment pages stay as they are; a lawyer's Vietnamese message and a lawyer-uploaded file publish without coordinator review; the pilot process has the same prompt and was restarted at 19:18 CST, while its `.env` still points at a suspended Kimi account.<br>SPEC、PLAN、PROGRESS、SESSIONS、SOW、CONTEXT、README 和 `docs/deployment.md` 的活记录现写明：正在使用的是 `/new`，调用 DeepSeek；新消息和新发布的附件使用 `clc-translate-v2`；已经存下的消息和附件页保持原样；律师的越南语消息和律师上传的文件不经协调员审核即发布；试点进程带有同一份提示词，并于 19:18（UTC+8）重启，它的 `.env` 仍指向已暂停的 Kimi 账户。
+2. The resume pointer no longer says the next code is F18. F18 has been implemented since 2026-10-15.<br>恢复指针不再把下一件代码写成 F18。F18 自 2026-10-15 起已经实现。
+
+### First Step Next Time / 下次第一步
+
+Use `/new`. Leave `clc-web-new` running unless a code change must go live. Do not retranslate stored messages or attachment pages. Do not point the pilot `.env` at DeepSeek unless asked. Do not turn the daily digest back on.<br>使用 `/new`。除非有代码必须上线，否则让 `clc-web-new` 继续跑。不要重译已经存下的消息或附件页。未要求则不要把试点的 `.env` 指到 DeepSeek，也不要恢复每日总结邮件。
+
+---

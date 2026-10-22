@@ -176,6 +176,30 @@ describe("translation failure states (REQ-TR-05/06/09, REQ-MSG-10, AC04)", () =>
     expect(fakeLlmTranslationProvider.calls).toHaveLength(2);
   });
 
+  it("shows a lawyer's Vietnamese translation even when a key field mismatches", async () => {
+    const { kase, cookie, lawyerCookie } = await seedChat("zh-Hans");
+    const message = await send(
+      kase.id,
+      lawyerCookie,
+      "Yêu cầu bồi thường 2300000 đồng.",
+      "f-vi-show",
+    );
+    expect(message.sourceLang).toBe("vi");
+    fakeLlmTranslationProvider.setFixedResponse("要求赔偿 2300001 元。");
+
+    const res = await translate(message.id as string, cookie);
+    expect(res.status).toBe(201);
+    const body = (await res.json()).translation as { state: string; text: string | null };
+    expect(body.state).toBe("ready");
+    expect(body.text).toContain("2300001");
+
+    const row = await prisma.translationVersion.findFirstOrThrow({
+      where: { messageId: message.id as string },
+    });
+    expect(row.status).toBe("done");
+    expect(row.keyFieldCheck).toContain("mismatch:");
+  });
+
   it("key-field mismatch routes the version to needs_review and the doubtful translation is never displayed (REQ-TR-05)", async () => {
     const { kase, cookie, lawyerCookie } = await seedChat();
     const sourceText = "损害赔偿金 2,300,000 元，请于2026年3月15日前支付。";
